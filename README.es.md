@@ -26,7 +26,7 @@
 
 ---
 <div align="center">
-  <video src="assets/demo.mp4" width="700" autoplay loop muted playsinline></video>
+  <img src="assets/demo.gif" width="700" alt="Demostración de Web MCP Bridge">
 </div>
 
 Las interfaces web gratuitas de IA no hablan MCP. **Web MCP Bridge** les añade esa capacidad:
