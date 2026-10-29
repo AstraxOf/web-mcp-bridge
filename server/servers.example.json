@@ -1,0 +1,24 @@
+{
+  "servers": [
+    {
+      "name": "astrax-mcp",
+      "port": 8080,
+      "command": ["python", "-m", "astrax_mcp"]
+    },
+    {
+      "name": "filesystem-mcp",
+      "port": 8081,
+      "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/ruta/a/tus/proyectos"]
+    },
+    {
+      "name": "git-mcp",
+      "port": 8082,
+      "command": ["uvx", "mcp-server-git", "--repository", "/ruta/al/repo"]
+    },
+    {
+      "name": "demo",
+      "port": 8090,
+      "command": ["python", "server/examples/demo_mcp_server.py"]
+    }
+  ]
+}

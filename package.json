@@ -1,0 +1,14 @@
+{
+  "name": "web-mcp-bridge",
+  "version": "1.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Extensión MV3 que conecta ChatGPT, Gemini y Claude Web con servidores MCP locales.",
+  "scripts": {
+    "check": "node scripts/check.mjs",
+    "test": "node scripts/check.mjs && node tests/test_utils.mjs && node tests/test_prompt.mjs && node tests/test_background.mjs && python tests/test_bridge.py",
+    "icons": "python scripts/generate_icons.py",
+    "pack": "node scripts/pack.mjs"
+  },
+  "license": "MIT"
+}

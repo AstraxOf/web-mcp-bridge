@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Web MCP Bridge</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="../icons/icon48.png" alt="" width="32" height="32">
+    <div class="grow">
+      <h1>Web MCP Bridge</h1>
+      <p id="master-label">Bridge activado</p>
+    </div>
+    <label class="switch big" title="Activar o desactivar el bridge">
+      <input type="checkbox" id="master" aria-label="Activar bridge">
+      <span></span>
+    </label>
+  </header>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" data-tab="servers" aria-selected="true">Servidores</button>
+    <button role="tab" data-tab="history" aria-selected="false">Historial</button>
+    <button role="tab" data-tab="settings" aria-selected="false">Ajustes</button>
+  </nav>
+
+  <main id="main">
+    <!-- ───── Servidores ───── -->
+    <section id="tab-servers">
+      <div class="summary">
+        <strong id="counter">0/5 activos</strong>
+        <span id="tokens" class="muted"></span>
+      </div>
+      <p id="warning" class="warning" hidden></p>
+      <p id="offline-hint" class="warning" hidden>No se detecta el puente local. Ejecútalo una sola vez: <code>python server/install_service.py</code> (después arranca solo con tu equipo).</p>
+
+      <div class="perm-all">
+        <div>
+          <strong>Permiso de todos los MCP</strong>
+          <small id="perm-hint">Con «Permitir siempre» no se pregunta nada.</small>
+        </div>
+        <select id="perm-all" aria-label="Permiso de todos los MCP">
+          <option value="allow">Permitir siempre</option>
+          <option value="ask">Preguntar siempre</option>
+          <option value="deny">No permitir</option>
+          <option value="mixed" disabled hidden>Mixto</option>
+        </select>
+      </div>
+
+      <ul id="server-list" class="server-list"></ul>
+      <div id="empty" class="muted" hidden>
+        <p>La extensión no trae ningún MCP: añade los tuyos abajo (por ejemplo <code>ws://localhost:8080</code>).</p>
+        <button id="add-demo" type="button" class="ghost">Añadir servidor de prueba (demo, ws://localhost:8090)</button>
+      </div>
+
+      <form id="add-form" class="add-form" autocomplete="off">
+        <h2>Añadir servidor MCP</h2>
+        <input id="add-name" type="text" placeholder="Nombre (p. ej. astrax-mcp)" maxlength="40" required>
+        <input id="add-url" type="text" placeholder="ws://localhost:8080" spellcheck="false" required>
+        <button type="submit" class="primary">Añadir servidor</button>
+      </form>
+    </section>
+
+    <!-- ───── Historial ───── -->
+    <section id="tab-history" hidden>
+      <div class="summary">
+        <strong>Últimas llamadas</strong>
+        <button id="clear-history" class="ghost" type="button">Borrar</button>
+      </div>
+      <ul id="history-list" class="history-list"></ul>
+      <p id="history-empty" class="muted" hidden>Todavía no se ha ejecutado ninguna herramienta.</p>
+    </section>
+
+    <!-- ───── Ajustes ───── -->
+    <section id="tab-settings" hidden>
+      <label class="setting">
+        <input type="checkbox" id="set-autoInject">
+        <span>
+          <strong>Añadir instrucciones automáticamente</strong>
+          <small>Al enviar tu primer mensaje del chat, la extensión antepone las instrucciones de las herramientas. No tienes que pulsar nada.</small>
+        </span>
+      </label>
+      <label class="setting">
+        <input type="checkbox" id="set-autoSend">
+        <span>
+          <strong>Enviar el resultado automáticamente</strong>
+          <small>Si lo desactivas, el resultado se escribe en el chat y lo envías tú.</small>
+        </span>
+      </label>
+      <label class="setting">
+        <input type="checkbox" id="set-reminder">
+        <span>
+          <strong>Recordar a la IA que tiene herramientas</strong>
+          <small>Añade una línea corta (~45 tokens) a cada mensaje, para que la IA no olvide que dispone de tus MCP locales.</small>
+        </span>
+      </label>
+      <label class="setting column">
+        <strong>Reenviar las instrucciones completas cada N mensajes</strong>
+        <small>Por si la conversación se hace larga y la IA pierde el contexto. 0 = nunca. También se reenvían solas si la IA dice que no tiene acceso.</small>
+        <input type="number" id="set-reinjectEvery" min="0" max="100" step="1">
+      </label>
+      <label class="setting">
+        <input type="checkbox" id="set-focusFallback">
+        <span>
+          <strong>Despertar la pestaña si se queda pegada</strong>
+          <small>Si el chat no acepta el resultado con la pestaña oculta, la trae al frente un instante y vuelve a la anterior.</small>
+        </span>
+      </label>
+      <label class="setting column">
+        <strong>Máximo de caracteres por resultado</strong>
+        <small>Nada se recorta: lo que pase de este límite se adjunta completo al chat como archivo y en el mensaje queda un extracto.</small>
+        <input type="number" id="set-maxResultChars" min="500" max="100000" step="500">
+      </label>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

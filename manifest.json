@@ -1,0 +1,70 @@
+{
+  "manifest_version": 3,
+  "name": "Web MCP Bridge",
+  "version": "1.2.0",
+  "description": "Conecta ChatGPT, Gemini y Claude Web con servidores MCP locales mediante WebSocket.",
+  "minimum_chrome_version": "116",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "Web MCP Bridge",
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png"
+    }
+  },
+  "permissions": ["storage", "alarms"],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://gemini.google.com/*",
+    "https://claude.ai/*",
+    "ws://localhost/*",
+    "ws://127.0.0.1/*"
+  ],
+  "background": {
+    "service_worker": "background/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": [
+        "content_scripts/utils.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/chatgpt.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://gemini.google.com/*"],
+      "js": [
+        "content_scripts/utils.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/gemini.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://claude.ai/*"],
+      "js": [
+        "content_scripts/utils.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/claude.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}
