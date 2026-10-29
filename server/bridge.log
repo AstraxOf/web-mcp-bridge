@@ -3,3 +3,16 @@
 07:06:07 INFO    server listening on 127.0.0.1:8090
 07:06:07 INFO    ✔ «demo» disponible en ws://127.0.0.1:8090  →  C:\Users\Unknown\AppData\Local\Programs\Python\Python311\python.exe C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\examples\demo_mcp_server.py
 07:10:31 ERROR   No se pudo abrir el puerto: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8080): solo se permite un uso de cada dirección de socket (protocolo/dirección de red/puerto)
+07:31:05 INFO    server listening on 127.0.0.1:8080
+07:31:05 INFO    ✔ «astrax-mcp» disponible en ws://127.0.0.1:8080  →  python -m astrax_mcp
+07:31:05 INFO    server listening on 127.0.0.1:8083
+07:31:05 INFO    ✔ «openscad-mcp» disponible en ws://127.0.0.1:8083  →  python -m openscad_mcp
+07:31:05 INFO    server listening on 127.0.0.1:8091
+07:31:05 INFO    ✔ «filesystem» disponible en ws://127.0.0.1:8091  →  npx -y @modelcontextprotocol/server-filesystem C:/Users/Unknown/.local/share/openscad-mcp/models
+07:31:05 INFO    server listening on 127.0.0.1:8090
+07:31:05 INFO    ✔ «demo» disponible en ws://127.0.0.1:8090  →  python server/examples/demo_mcp_server.py
+07:31:35 INFO    connection open
+07:31:35 INFO    [filesystem] Cliente conectado → pid 10020
+07:31:42 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+07:31:42 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+07:58:23 INFO    [filesystem] Cliente desconectado
