@@ -25,6 +25,9 @@
 </div>
 
 ---
+<div align="center">
+  <video src="assets/demo.mp4" width="700" autoplay loop muted playsinline></video>
+</div>
 
 Las interfaces web gratuitas de IA no hablan MCP. **Web MCP Bridge** les añade esa capacidad:
 la IA pide una herramienta con un bloque JSON, la extensión la ejecuta en tu servidor MCP local

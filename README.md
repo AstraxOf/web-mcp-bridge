@@ -25,6 +25,9 @@
 </div>
 
 ---
+<div align="center">
+  <video src="assets/demo.mp4" width="700" autoplay loop muted playsinline></video>
+</div>
 
 Free AI chat UIs don't speak MCP. **Web MCP Bridge** adds it: the model asks for a tool with a JSON block,
 the extension runs it on your local MCP server over WebSocket and pastes the result back into the chat.
