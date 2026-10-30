@@ -16,3 +16,337 @@
 07:31:42 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
 07:31:42 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
 07:58:23 INFO    [filesystem] Cliente desconectado
+09:24:47 INFO    connection open
+09:24:47 INFO    [filesystem] Cliente conectado → pid 12716
+09:25:00 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+09:25:00 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+09:35:52 INFO    connection open
+09:35:52 INFO    [openscad-mcp] Cliente conectado → pid 17296
+09:35:58 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:00 INFO    [openscad-mcp] Cliente desconectado
+09:36:01 INFO    connection open
+09:36:01 INFO    [openscad-mcp] Cliente conectado → pid 8612
+09:36:04 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:05 INFO    [openscad-mcp] Cliente desconectado
+09:36:08 INFO    connection open
+09:36:08 INFO    [openscad-mcp] Cliente conectado → pid 17084
+09:36:12 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:12 INFO    [openscad-mcp] Cliente desconectado
+09:36:16 INFO    connection open
+09:36:16 INFO    [openscad-mcp] Cliente conectado → pid 17268
+09:36:19 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:20 INFO    [openscad-mcp] Cliente desconectado
+09:36:28 INFO    connection open
+09:36:28 INFO    [openscad-mcp] Cliente conectado → pid 17252
+09:36:34 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:34 INFO    [openscad-mcp] Cliente desconectado
+09:36:50 INFO    connection open
+09:36:50 INFO    [openscad-mcp] Cliente conectado → pid 14008
+09:36:53 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+09:36:53 INFO    [openscad-mcp] Cliente desconectado
+09:37:23 INFO    connection open
+09:37:23 INFO    [openscad-mcp] Cliente conectado → pid 16984
+09:37:27 INFO    [openscad-mcp] Cliente desconectado
+10:20:53 INFO    [filesystem] Cliente desconectado
+12:46:38 ERROR   No se pudo abrir el puerto: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8080): solo se permite un uso de cada dirección de socket (protocolo/dirección de red/puerto)
+13:02:02 INFO    connection open
+13:02:02 INFO    [filesystem] Cliente conectado → pid 26556
+13:02:11 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+13:02:11 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+13:26:54 INFO    [filesystem] Cliente desconectado
+16:55:07 INFO    connection open
+16:55:07 INFO    [filesystem] Cliente conectado → pid 2632
+16:55:15 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+16:55:15 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+19:53:31 INFO    connection open
+19:53:38 INFO    [filesystem] Cliente desconectado
+19:53:38 INFO    [filesystem] Cliente conectado → pid 37384
+19:53:50 INFO    connection open
+19:53:50 INFO    [filesystem] Cliente conectado → pid 39368
+19:53:54 INFO    [filesystem] Cliente desconectado
+19:54:14 INFO    connection open
+19:54:17 INFO    [filesystem] Cliente desconectado
+19:54:17 INFO    [filesystem] Cliente conectado → pid 39324
+19:54:48 INFO    [filesystem] Cliente desconectado
+19:54:49 INFO    connection open
+19:54:50 INFO    [filesystem] Cliente conectado → pid 40348
+19:55:20 INFO    [filesystem] Cliente desconectado
+19:55:26 INFO    connection open
+19:55:30 INFO    [filesystem] Cliente conectado → pid 32804
+19:55:54 INFO    [filesystem] Cliente desconectado
+19:56:17 INFO    connection open
+19:56:17 INFO    [filesystem] Cliente conectado → pid 41688
+19:56:46 INFO    [filesystem] Cliente desconectado
+19:57:06 INFO    connection open
+19:57:06 INFO    [filesystem] Cliente conectado → pid 32176
+19:57:37 INFO    [filesystem] Cliente desconectado
+19:58:03 INFO    connection open
+19:58:03 INFO    [filesystem] Cliente conectado → pid 34116
+19:58:27 INFO    [filesystem] Cliente desconectado
+19:58:55 INFO    connection open
+19:58:56 INFO    [filesystem] Cliente conectado → pid 36140
+19:59:21 ERROR   connection handler failed
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 490, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 137, in wait
+    return await self._transport._wait()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 230, in _wait
+    return await waiter
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 116, in _stop
+    await asyncio.wait_for(proc.wait(), 3)
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 492, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\site-packages\websockets\asyncio\server.py", line 374, in conn_handler
+    await self.handler(connection)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 201, in handle_client
+    await _stop(proc)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 118, in _stop
+    proc.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 146, in kill
+    self._transport.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 153, in kill
+    self._check_proc()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 142, in _check_proc
+    raise ProcessLookupError()
+ProcessLookupError
+19:59:45 INFO    connection open
+19:59:47 INFO    [filesystem] Cliente conectado → pid 40952
+20:00:14 INFO    [filesystem] Cliente desconectado
+20:00:36 INFO    connection open
+20:00:40 INFO    [filesystem] Cliente conectado → pid 40664
+20:01:08 ERROR   connection handler failed
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 490, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 137, in wait
+    return await self._transport._wait()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 230, in _wait
+    return await waiter
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 116, in _stop
+    await asyncio.wait_for(proc.wait(), 3)
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 492, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\site-packages\websockets\asyncio\server.py", line 374, in conn_handler
+    await self.handler(connection)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 201, in handle_client
+    await _stop(proc)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 118, in _stop
+    proc.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 146, in kill
+    self._transport.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 153, in kill
+    self._check_proc()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 142, in _check_proc
+    raise ProcessLookupError()
+ProcessLookupError
+20:01:28 INFO    connection open
+20:01:28 INFO    [filesystem] Cliente conectado → pid 38616
+20:01:56 INFO    [filesystem] Cliente desconectado
+20:02:22 INFO    connection open
+20:02:26 INFO    [filesystem] Cliente conectado → pid 41620
+20:02:49 INFO    [filesystem] Cliente desconectado
+20:03:13 INFO    connection open
+20:03:16 INFO    [filesystem] Cliente conectado → pid 41856
+20:03:32 INFO    [filesystem] Cliente desconectado
+20:03:58 INFO    connection open
+20:03:58 INFO    [filesystem] Cliente conectado → pid 41448
+20:04:02 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+20:04:02 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+20:40:04 INFO    [filesystem] Cliente desconectado
+20:42:44 INFO    connection open
+20:42:44 INFO    [filesystem] Cliente conectado → pid 40712
+20:42:52 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+20:42:53 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+20:46:44 INFO    [filesystem] Cliente desconectado
+21:31:41 INFO    connection open
+21:31:41 INFO    [filesystem] Cliente conectado → pid 46048
+21:31:52 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+21:31:52 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+21:33:15 INFO    [filesystem] Cliente desconectado
+21:33:29 INFO    connection open
+21:33:29 INFO    [filesystem] Cliente conectado → pid 42508
+21:33:34 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+21:33:34 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+21:47:01 INFO    [filesystem] Cliente desconectado
+22:10:56 INFO    connection open
+22:10:56 INFO    [filesystem] Cliente conectado → pid 49900
+22:11:02 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:11:02 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:12:35 INFO    [filesystem] Cliente desconectado
+22:12:36 INFO    connection open
+22:12:36 INFO    [filesystem] Cliente conectado → pid 46036
+22:12:44 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:12:44 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:16:45 INFO    connection open
+22:16:45 INFO    [filesystem] Cliente conectado → pid 49996
+22:16:45 INFO    [filesystem] Cliente desconectado
+22:16:46 INFO    connection open
+22:16:46 INFO    [filesystem] Cliente conectado → pid 45872
+22:16:51 INFO    [filesystem] Cliente desconectado
+22:16:55 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:16:55 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:20:33 INFO    connection open
+22:20:33 INFO    [filesystem] Cliente conectado → pid 49204
+22:20:33 INFO    [filesystem] Cliente desconectado
+22:20:35 INFO    connection open
+22:20:35 INFO    [filesystem] Cliente conectado → pid 50604
+22:20:39 INFO    [filesystem] Cliente desconectado
+22:20:51 INFO    connection open
+22:20:51 INFO    [filesystem] Cliente conectado → pid 46652
+22:20:53 INFO    [filesystem] Cliente desconectado
+22:21:15 INFO    [filesystem] Cliente desconectado
+22:21:16 INFO    connection open
+22:21:16 INFO    [filesystem] Cliente conectado → pid 44124
+22:21:38 INFO    connection open
+22:21:38 INFO    [filesystem] Cliente conectado → pid 48680
+22:21:38 INFO    [filesystem] Cliente desconectado
+22:21:47 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:21:47 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:25:19 INFO    [filesystem] Cliente desconectado
+22:25:19 INFO    connection open
+22:25:20 INFO    [filesystem] Cliente conectado → pid 50436
+22:25:21 INFO    connection open
+22:25:21 INFO    [filesystem] Cliente conectado → pid 50412
+22:25:26 INFO    [filesystem] Cliente desconectado
+22:25:37 INFO    connection open
+22:25:37 INFO    [filesystem] Cliente conectado → pid 51020
+22:25:38 INFO    [filesystem] Cliente desconectado
+22:25:45 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:25:45 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:34:25 INFO    connection open
+22:34:25 INFO    [filesystem] Cliente conectado → pid 33144
+22:34:26 INFO    [filesystem] Cliente desconectado
+22:34:27 INFO    connection open
+22:34:27 INFO    [filesystem] Cliente conectado → pid 50448
+22:34:31 INFO    [filesystem] Cliente desconectado
+22:34:44 INFO    connection open
+22:34:44 INFO    [filesystem] Cliente conectado → pid 47084
+22:34:45 INFO    [filesystem] Cliente desconectado
+22:34:51 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:34:51 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:47:49 INFO    connection open
+22:47:49 INFO    [filesystem] Cliente conectado → pid 33560
+22:47:49 INFO    [filesystem] Cliente desconectado
+22:47:54 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:47:55 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:55:00 INFO    connection open
+22:55:00 INFO    [filesystem] Cliente conectado → pid 51004
+22:55:00 INFO    [filesystem] Cliente desconectado
+22:55:09 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:55:09 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:06:33 INFO    connection open
+23:06:33 INFO    [filesystem] Cliente conectado → pid 51612
+23:06:34 INFO    [filesystem] Cliente desconectado
+23:06:52 INFO    [filesystem] Cliente desconectado
+23:06:53 INFO    connection open
+23:06:53 INFO    [filesystem] Cliente conectado → pid 46364
+23:07:04 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:07:04 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:16:12 INFO    connection open
+23:16:12 INFO    [filesystem] Cliente conectado → pid 36544
+23:16:13 INFO    [filesystem] Cliente desconectado
+23:16:22 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:16:22 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:16:24 INFO    connection open
+23:16:24 INFO    [filesystem] Cliente conectado → pid 51372
+23:16:24 INFO    [filesystem] Cliente desconectado
+23:16:35 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:16:35 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:26:50 INFO    [filesystem] Cliente desconectado
+23:26:50 INFO    connection open
+23:26:50 INFO    [filesystem] Cliente conectado → pid 52380
+23:27:05 INFO    [filesystem] Cliente desconectado
+23:27:06 INFO    connection open
+23:27:06 INFO    [filesystem] Cliente conectado → pid 52936
+23:27:16 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:27:16 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:33:34 INFO    connection open
+23:33:34 INFO    [filesystem] Cliente conectado → pid 52880
+23:33:35 INFO    [filesystem] Cliente desconectado
+23:33:53 INFO    connection open
+23:33:53 INFO    [filesystem] Cliente conectado → pid 51336
+23:33:56 INFO    [filesystem] Cliente desconectado
+23:34:08 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:34:08 INFO    [filesystem] Cliente desconectado
+23:34:10 INFO    connection open
+23:34:10 INFO    [filesystem] Cliente conectado → pid 52808
+23:34:26 INFO    [filesystem] Cliente desconectado
+23:34:30 INFO    connection open
+23:34:30 INFO    [filesystem] Cliente conectado → pid 51760
+23:34:51 INFO    [filesystem] Cliente desconectado
+23:34:56 INFO    connection open
+23:34:56 INFO    [filesystem] Cliente conectado → pid 52724
+23:35:18 INFO    [filesystem] Cliente desconectado
+23:35:35 INFO    connection open
+23:35:35 INFO    [filesystem] Cliente conectado → pid 52388
+23:35:55 INFO    [filesystem] Cliente desconectado
+23:36:10 INFO    connection open
+23:36:10 INFO    [filesystem] Cliente conectado → pid 52508
+23:36:17 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:36:17 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:42:00 INFO    [filesystem] Cliente desconectado
+23:42:11 INFO    connection open
+23:42:11 INFO    [filesystem] Cliente conectado → pid 48784
+23:42:27 INFO    connection open
+23:42:27 INFO    [filesystem] Cliente conectado → pid 45268
+23:42:29 INFO    [filesystem] Cliente desconectado
+23:42:32 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:42:32 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:44:07 INFO    connection open
+23:44:07 INFO    [filesystem] Cliente conectado → pid 49712
+23:44:07 INFO    [filesystem] Cliente desconectado
+23:44:09 INFO    connection open
+23:44:10 INFO    [filesystem] Cliente conectado → pid 48900
+23:44:13 INFO    [filesystem] Cliente desconectado
+23:44:27 INFO    connection open
+23:44:27 INFO    [filesystem] Cliente conectado → pid 49096
+23:44:30 INFO    [filesystem] Cliente desconectado
+23:44:46 INFO    [filesystem] Cliente desconectado
+23:44:48 INFO    connection open
+23:44:48 INFO    [filesystem] Cliente conectado → pid 52644
+23:44:59 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:44:59 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+00:00:49 INFO    [filesystem] Cliente desconectado
+00:00:49 INFO    connection open
+00:00:49 INFO    [filesystem] Cliente conectado → pid 54176
+00:00:50 INFO    connection open
+00:00:50 INFO    [filesystem] Cliente conectado → pid 49528
+00:00:53 INFO    [filesystem] Cliente desconectado
+00:01:02 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+00:01:02 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+00:06:55 INFO    [filesystem] Cliente desconectado
+00:06:56 INFO    connection open
+00:06:56 INFO    [filesystem] Cliente conectado → pid 53364
+00:06:57 INFO    connection open
+00:06:57 INFO    [filesystem] Cliente conectado → pid 53252
+00:07:02 INFO    [filesystem] Cliente desconectado
+00:07:04 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+00:07:05 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+00:12:57 INFO    [filesystem] Cliente desconectado

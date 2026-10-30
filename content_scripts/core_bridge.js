@@ -62,6 +62,9 @@
     },
   });
 
+  // Los adaptadores pueden escribir mensajes de depuración en el panel flotante (p. ej. ChatGPT).
+  adapter.debug = (kind, message) => widget.log(kind, message);
+
   function injectionStatus() {
     if (document.body.textContent.includes(`[WMB:${WMB.toolsSignature(state.tools)}]`)) return 'ok';
     return sessionStorage.getItem(INJECT_KEY) ? 'stale' : 'none';

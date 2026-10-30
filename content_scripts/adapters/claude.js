@@ -5,7 +5,7 @@
 (() => {
   'use strict';
   const WMB = globalThis.WMB;
-
+ 
   class ClaudeAdapter extends WMB.BaseAdapter {
     constructor() {
       super({
