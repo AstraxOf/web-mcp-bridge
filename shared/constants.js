@@ -49,4 +49,5 @@ export const SUPPORTED_URL_PATTERNS = [
   'https://chatgpt.com/*',
   'https://gemini.google.com/*',
   'https://claude.ai/*',
+  'https://chat.deepseek.com/*',
 ];

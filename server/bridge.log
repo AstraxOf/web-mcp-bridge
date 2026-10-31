@@ -350,3 +350,572 @@ ProcessLookupError
 00:07:04 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
 00:07:05 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
 00:12:57 INFO    [filesystem] Cliente desconectado
+00:18:23 INFO    connection open
+00:18:23 INFO    [filesystem] Cliente conectado → pid 55108
+00:18:29 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+00:18:29 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+00:30:39 INFO    [filesystem] Cliente desconectado
+17:50:36 INFO    connection open
+17:50:36 INFO    [filesystem] Cliente conectado → pid 63928
+17:50:53 INFO    connection open
+17:50:53 INFO    [filesystem] Cliente conectado → pid 64340
+17:50:56 INFO    [filesystem] Cliente desconectado
+17:51:02 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:51:02 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+17:51:32 INFO    [filesystem] Cliente desconectado
+17:52:03 INFO    connection open
+17:52:03 INFO    [filesystem] Cliente conectado → pid 61784
+17:52:11 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:52:11 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+17:52:17 INFO    connection open
+17:52:17 INFO    [filesystem] Cliente conectado → pid 64044
+17:52:17 INFO    [filesystem] Cliente desconectado
+17:52:19 INFO    connection open
+17:52:19 INFO    [filesystem] Cliente conectado → pid 62660
+17:52:20 INFO    [filesystem] Cliente desconectado
+17:52:28 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:52:30 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+17:53:46 INFO    connection open
+17:53:46 INFO    [filesystem] Cliente conectado → pid 64148
+17:53:46 INFO    [filesystem] Cliente desconectado
+17:53:51 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:53:51 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+17:53:57 INFO    [filesystem] Cliente desconectado
+17:53:57 INFO    connection open
+17:53:57 INFO    [filesystem] Cliente conectado → pid 64368
+17:54:01 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:54:01 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+17:54:14 INFO    [filesystem] Cliente desconectado
+17:54:15 INFO    connection open
+17:54:15 INFO    [filesystem] Cliente conectado → pid 64580
+17:54:18 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+17:54:18 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+18:01:32 INFO    connection open
+18:01:32 INFO    [filesystem] Cliente conectado → pid 48200
+18:01:32 INFO    [filesystem] Cliente desconectado
+18:01:33 INFO    connection open
+18:01:33 INFO    [filesystem] Cliente conectado → pid 64840
+18:01:38 INFO    [filesystem] Cliente desconectado
+18:01:51 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+18:01:51 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+18:04:11 INFO    connection open
+18:04:11 INFO    [filesystem] Cliente conectado → pid 64536
+18:04:11 INFO    [filesystem] Cliente desconectado
+18:04:11 INFO    connection open
+18:04:11 INFO    [filesystem] Cliente conectado → pid 63592
+18:04:14 INFO    connection open
+18:04:14 INFO    [filesystem] Cliente conectado → pid 54564
+18:04:16 INFO    [filesystem] Cliente desconectado
+18:04:19 INFO    [filesystem] Cliente desconectado
+18:04:21 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+18:04:21 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+18:05:50 INFO    connection open
+18:05:50 INFO    [filesystem] Cliente desconectado
+18:05:50 INFO    [filesystem] Cliente conectado → pid 43132
+18:05:51 INFO    connection open
+18:05:51 INFO    [filesystem] Cliente conectado → pid 64188
+18:05:55 INFO    connection open
+18:05:55 INFO    [filesystem] Cliente conectado → pid 64772
+18:05:56 INFO    [filesystem] Cliente desconectado
+18:05:58 INFO    [filesystem] Cliente desconectado
+18:06:01 INFO    [filesystem] Cliente desconectado
+18:06:39 INFO    connection open
+18:06:39 INFO    [filesystem] Cliente conectado → pid 62672
+18:06:45 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+18:06:45 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+18:11:49 INFO    server listening on 127.0.0.1:8080
+18:11:49 INFO    ✔ «astrax-mcp» disponible en ws://127.0.0.1:8080  →  python -m astrax_mcp
+18:11:49 INFO    server listening on 127.0.0.1:8083
+18:11:49 INFO    ✔ «openscad-mcp» disponible en ws://127.0.0.1:8083  →  python -m openscad_mcp
+18:11:49 INFO    server listening on 127.0.0.1:8091
+18:11:49 INFO    ✔ «filesystem» disponible en ws://127.0.0.1:8091  →  npx -y @modelcontextprotocol/server-filesystem C:/Users/Unknown/Desktop/videos sebas
+18:11:49 INFO    server listening on 127.0.0.1:8090
+18:11:49 INFO    ✔ «demo» disponible en ws://127.0.0.1:8090  →  python server/examples/demo_mcp_server.py
+18:11:49 INFO    server listening on 127.0.0.1:8092
+18:11:49 INFO    ✔ «vmakermcp» disponible en ws://127.0.0.1:8092  →  python -m vmakermcp
+18:11:51 INFO    connection open
+18:11:51 INFO    [filesystem] Cliente conectado → pid 64788
+18:11:57 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+18:11:57 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\Desktop\\videos sebas' ]
+18:12:22 INFO    connection open
+18:12:22 INFO    [vmakermcp] Cliente conectado → pid 65184
+18:29:25 INFO    [vmakermcp] Cliente desconectado
+18:29:56 INFO    connection open
+18:29:56 INFO    [filesystem] Cliente conectado → pid 66220
+18:30:01 INFO    [filesystem] Cliente desconectado
+18:30:13 INFO    connection open
+18:30:13 INFO    [filesystem] Cliente conectado → pid 60116
+18:30:17 INFO    [filesystem] Cliente desconectado
+18:30:30 ERROR   No se pudo abrir el puerto: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8080): solo se permite un uso de cada dirección de socket (protocolo/dirección de red/puerto)
+18:30:31 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+18:30:32 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\Desktop\\videos sebas' ]
+18:41:46 ERROR   connection handler failed
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 490, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 137, in wait
+    return await self._transport._wait()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 230, in _wait
+    return await waiter
+           ^^^^^^^^^^^^
+asyncio.exceptions.CancelledError
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 116, in _stop
+    await asyncio.wait_for(proc.wait(), 3)
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 492, in wait_for
+    raise exceptions.TimeoutError() from exc
+TimeoutError
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\site-packages\websockets\asyncio\server.py", line 374, in conn_handler
+    await self.handler(connection)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 201, in handle_client
+    await _stop(proc)
+  File "C:\Users\Unknown\Desktop\Cronos_mini_app\web-mcp-bridge\server\mcp_ws_bridge.py", line 118, in _stop
+    proc.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\subprocess.py", line 146, in kill
+    self._transport.kill()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 153, in kill
+    self._check_proc()
+  File "C:\Users\Unknown\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_subprocess.py", line 142, in _check_proc
+    raise ProcessLookupError()
+ProcessLookupError
+19:51:10 INFO    connection open
+19:51:10 INFO    [filesystem] Cliente conectado → pid 68876
+19:51:29 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+19:51:31 INFO    [filesystem] Cliente desconectado
+19:51:33 INFO    connection open
+19:51:34 INFO    [filesystem] Cliente conectado → pid 69600
+19:51:52 INFO    connection open
+19:51:52 INFO    [filesystem] Cliente conectado → pid 46272
+19:51:55 INFO    [filesystem] Cliente desconectado
+19:52:20 INFO    [filesystem] Cliente desconectado
+19:52:31 INFO    connection open
+19:52:31 INFO    [filesystem] Cliente conectado → pid 10388
+19:52:37 INFO    [filesystem] Cliente desconectado
+19:53:53 INFO    connection open
+19:53:53 INFO    [openscad-mcp] Cliente conectado → pid 70612
+19:53:56 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:53:56 INFO    [openscad-mcp] Cliente desconectado
+19:53:58 INFO    connection open
+19:53:58 INFO    [openscad-mcp] Cliente conectado → pid 70292
+19:54:01 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:54:02 INFO    [openscad-mcp] Cliente desconectado
+19:54:04 INFO    connection open
+19:54:04 INFO    [openscad-mcp] Cliente conectado → pid 69240
+19:54:07 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:54:07 INFO    [openscad-mcp] Cliente desconectado
+19:54:11 INFO    connection open
+19:54:11 INFO    [openscad-mcp] Cliente conectado → pid 63668
+19:54:13 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:54:13 INFO    [openscad-mcp] Cliente desconectado
+19:54:22 INFO    connection open
+19:54:22 INFO    [openscad-mcp] Cliente conectado → pid 69828
+19:54:22 INFO    connection open
+19:54:22 INFO    [filesystem] Cliente conectado → pid 69700
+19:54:25 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:54:26 INFO    [openscad-mcp] Cliente desconectado
+19:54:30 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+19:54:30 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\Desktop\\videos sebas' ]
+19:54:43 INFO    connection open
+19:54:43 INFO    [openscad-mcp] Cliente conectado → pid 69868
+19:54:45 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:54:45 INFO    [openscad-mcp] Cliente desconectado
+19:55:15 INFO    connection open
+19:55:15 INFO    [openscad-mcp] Cliente conectado → pid 46044
+19:55:18 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:55:18 INFO    [openscad-mcp] Cliente desconectado
+19:55:48 INFO    connection open
+19:55:48 INFO    [openscad-mcp] Cliente conectado → pid 47264
+19:55:54 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:55:54 INFO    [openscad-mcp] Cliente desconectado
+19:55:59 ERROR   No se pudo abrir el puerto: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8080): solo se permite un uso de cada dirección de socket (protocolo/dirección de red/puerto)
+19:56:01 INFO    [filesystem] Cliente desconectado
+19:56:04 INFO    connection open
+19:56:04 INFO    connection open
+19:56:04 INFO    [openscad-mcp] Cliente conectado → pid 70260
+19:56:04 INFO    [filesystem] Cliente conectado → pid 70500
+19:56:10 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:10 INFO    [openscad-mcp] Cliente desconectado
+19:56:12 INFO    connection open
+19:56:12 INFO    [openscad-mcp] Cliente conectado → pid 66924
+19:56:13 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+19:56:13 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\Desktop\\videos sebas' ]
+19:56:14 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:15 INFO    [openscad-mcp] Cliente desconectado
+19:56:17 INFO    connection open
+19:56:17 INFO    [openscad-mcp] Cliente conectado → pid 69664
+19:56:19 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:20 INFO    [openscad-mcp] Cliente desconectado
+19:56:24 INFO    connection open
+19:56:24 INFO    [openscad-mcp] Cliente conectado → pid 69324
+19:56:27 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:27 INFO    [openscad-mcp] Cliente desconectado
+19:56:35 INFO    connection open
+19:56:35 INFO    [openscad-mcp] Cliente conectado → pid 68992
+19:56:37 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:38 INFO    [openscad-mcp] Cliente desconectado
+19:56:54 INFO    connection open
+19:56:54 INFO    [openscad-mcp] Cliente conectado → pid 70152
+19:56:58 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:56:59 INFO    [openscad-mcp] Cliente desconectado
+19:57:29 INFO    connection open
+19:57:29 INFO    [openscad-mcp] Cliente conectado → pid 69844
+19:57:41 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:57:42 INFO    [openscad-mcp] Cliente desconectado
+19:58:12 INFO    connection open
+19:58:12 INFO    [openscad-mcp] Cliente conectado → pid 66376
+19:58:19 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:58:19 INFO    [openscad-mcp] Cliente desconectado
+19:58:49 INFO    connection open
+19:58:49 INFO    [openscad-mcp] Cliente conectado → pid 69792
+19:58:52 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:58:52 INFO    [openscad-mcp] Cliente desconectado
+19:59:23 INFO    connection open
+19:59:23 INFO    [openscad-mcp] Cliente conectado → pid 68708
+19:59:27 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+19:59:27 INFO    [openscad-mcp] Cliente desconectado
+19:59:57 INFO    connection open
+19:59:57 INFO    [openscad-mcp] Cliente conectado → pid 69536
+20:00:03 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:00:03 INFO    [openscad-mcp] Cliente desconectado
+20:00:34 INFO    connection open
+20:00:34 INFO    [openscad-mcp] Cliente conectado → pid 70048
+20:00:40 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:00:40 INFO    [openscad-mcp] Cliente desconectado
+20:01:11 INFO    connection open
+20:01:11 INFO    [openscad-mcp] Cliente conectado → pid 70488
+20:01:16 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:01:16 INFO    [openscad-mcp] Cliente desconectado
+20:01:46 INFO    connection open
+20:01:46 INFO    [openscad-mcp] Cliente conectado → pid 59112
+20:01:56 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:01:56 INFO    [openscad-mcp] Cliente desconectado
+20:02:26 INFO    connection open
+20:02:26 INFO    [openscad-mcp] Cliente conectado → pid 69016
+20:02:30 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:02:30 INFO    [openscad-mcp] Cliente desconectado
+20:03:01 INFO    connection open
+20:03:01 INFO    [openscad-mcp] Cliente conectado → pid 70144
+20:03:04 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:03:05 INFO    [openscad-mcp] Cliente desconectado
+20:03:35 INFO    connection open
+20:03:35 INFO    [openscad-mcp] Cliente conectado → pid 62632
+20:03:39 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:03:40 INFO    [openscad-mcp] Cliente desconectado
+20:04:10 INFO    connection open
+20:04:10 INFO    [openscad-mcp] Cliente conectado → pid 70240
+20:04:27 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:04:28 INFO    [openscad-mcp] Cliente desconectado
+20:04:43 INFO    [filesystem] Cliente desconectado
+20:10:08 INFO    server listening on 127.0.0.1:8080
+20:10:08 INFO    ✔ «astrax-mcp» disponible en ws://127.0.0.1:8080  →  python -m astrax_mcp
+20:10:08 INFO    server listening on 127.0.0.1:8083
+20:10:08 INFO    ✔ «openscad-mcp» disponible en ws://127.0.0.1:8083  →  python -m openscad_mcp
+20:10:08 INFO    server listening on 127.0.0.1:8091
+20:10:08 INFO    ✔ «filesystem» disponible en ws://127.0.0.1:8091  →  npx -y @modelcontextprotocol/server-filesystem C:/Users/Unknown/.local/share/openscad-mcp/models
+20:10:08 INFO    server listening on 127.0.0.1:8090
+20:10:08 INFO    ✔ «demo» disponible en ws://127.0.0.1:8090  →  python server/examples/demo_mcp_server.py
+20:10:09 INFO    connection open
+20:10:09 INFO    [filesystem] Cliente conectado → pid 49472
+20:10:14 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+20:10:14 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+20:10:28 INFO    connection open
+20:10:28 INFO    [openscad-mcp] Cliente conectado → pid 61516
+20:10:32 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:10:33 INFO    [openscad-mcp] Cliente desconectado
+20:11:03 INFO    connection open
+20:11:03 INFO    [openscad-mcp] Cliente conectado → pid 70420
+20:11:06 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:11:06 INFO    [openscad-mcp] Cliente desconectado
+20:11:37 INFO    connection open
+20:11:37 INFO    [openscad-mcp] Cliente conectado → pid 71136
+20:11:41 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:11:41 INFO    [openscad-mcp] Cliente desconectado
+20:12:11 INFO    connection open
+20:12:11 INFO    [openscad-mcp] Cliente conectado → pid 62632
+20:12:14 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:12:15 INFO    [openscad-mcp] Cliente desconectado
+20:12:45 INFO    connection open
+20:12:45 INFO    [openscad-mcp] Cliente conectado → pid 70420
+20:12:54 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:12:54 INFO    [openscad-mcp] Cliente desconectado
+20:13:24 INFO    connection open
+20:13:24 INFO    [openscad-mcp] Cliente conectado → pid 70992
+20:13:28 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:13:28 INFO    [openscad-mcp] Cliente desconectado
+20:13:59 INFO    connection open
+20:13:59 INFO    [openscad-mcp] Cliente conectado → pid 62376
+20:14:03 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:14:05 INFO    [openscad-mcp] Cliente desconectado
+20:14:35 ERROR   No se pudo abrir el puerto: [Errno 10048] error while attempting to bind on address ('127.0.0.1', 8080): solo se permite un uso de cada dirección de socket (protocolo/dirección de red/puerto)
+20:14:35 INFO    connection open
+20:14:35 INFO    [openscad-mcp] Cliente conectado → pid 67556
+20:14:41 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:14:41 INFO    [openscad-mcp] Cliente desconectado
+20:15:12 INFO    connection open
+20:15:12 INFO    [openscad-mcp] Cliente conectado → pid 67800
+20:15:17 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:15:18 INFO    [openscad-mcp] Cliente desconectado
+20:15:48 INFO    connection open
+20:15:48 INFO    [openscad-mcp] Cliente conectado → pid 70420
+20:15:50 INFO    [openscad-mcp] OpenSCAD not found. Install it or set OPENSCAD_EXECUTABLE to its executable.
+20:15:51 INFO    [openscad-mcp] Cliente desconectado
+21:00:05 INFO    server listening on 127.0.0.1:8080
+21:00:05 INFO    ✔ «astrax-mcp» disponible en ws://127.0.0.1:8080  →  python -m astrax_mcp
+21:00:05 INFO    server listening on 127.0.0.1:8083
+21:00:05 INFO    ✔ «openscad-mcp» disponible en ws://127.0.0.1:8083  →  python -m openscad_mcp
+21:00:05 INFO    server listening on 127.0.0.1:8091
+21:00:05 INFO    ✔ «filesystem» disponible en ws://127.0.0.1:8091  →  npx -y @modelcontextprotocol/server-filesystem C:/Users/Unknown/.local/share/openscad-mcp/models
+21:00:05 INFO    server listening on 127.0.0.1:8090
+21:00:05 INFO    ✔ «demo» disponible en ws://127.0.0.1:8090  →  python server/examples/demo_mcp_server.py
+21:00:24 INFO    connection open
+21:00:24 INFO    [astrax-mcp] Cliente conectado → pid 67104
+21:00:33 INFO    connection open
+21:00:33 INFO    [filesystem] Cliente conectado → pid 69828
+21:00:35 INFO    [astrax-mcp] [Astrax] Iniciando servidor Astrax (stdio)...
+21:00:35 INFO    [astrax-mcp] [10/30/26 21:00:35] INFO     Processing request of type           server.py:733
+21:00:35 INFO    [astrax-mcp]                              ListToolsRequest
+21:00:43 INFO    [filesystem] Cliente desconectado
+21:00:52 INFO    [astrax-mcp] [10/30/26 21:00:52] INFO     Processing request of type           server.py:733
+21:00:52 INFO    [astrax-mcp]                              CallToolRequest
+21:00:52 INFO    [astrax-mcp] [Astrax] Ejecutando: powershell -Command "Get-Process | Where-Object {$_.MainWindowTitle -ne '' -and $_.ProcessName -ne 'brave' -and $_.ProcessName -ne 'explorer'} | Stop-Process -Force"
+21:01:22 INFO    [astrax-mcp] [10/30/26 21:01:22] INFO     Processing request of type           server.py:733
+21:01:22 INFO    [astrax-mcp]                              CallToolRequest
+21:01:22 INFO    [astrax-mcp] [Astrax] Ejecutando: powershell -Command "Get-Process | Where-Object {$_.MainWindowTitle -ne '' -and $_.ProcessName -ne 'brave' -and $_.ProcessName -ne 'explorer'} | Stop-Process -Force"
+21:04:30 INFO    [astrax-mcp] [10/30/26 21:04:30] INFO     Processing request of type           server.py:733
+21:04:30 INFO    [astrax-mcp]                              CallToolRequest
+21:04:30 INFO    [astrax-mcp] [Astrax] Ejecutando: powershell -Command "Start-Process 'chrome.exe' 'https://mail.google.com'"
+21:05:00 INFO    [astrax-mcp] [10/30/26 21:05:00] INFO     Processing request of type           server.py:733
+21:05:00 INFO    [astrax-mcp]                              CallToolRequest
+21:05:00 INFO    [astrax-mcp] [Astrax] Ejecutando: powershell -Command "Start-Process 'brave.exe' 'https://mail.google.com'"
+21:07:50 INFO    [astrax-mcp] [10/30/26 21:07:50] INFO     Processing request of type           server.py:733
+21:07:50 INFO    [astrax-mcp]                              CallToolRequest
+21:08:31 INFO    [astrax-mcp] [10/30/26 21:08:31] INFO     Processing request of type           server.py:733
+21:08:31 INFO    [astrax-mcp]                              CallToolRequest
+21:08:41 INFO    [astrax-mcp] [10/30/26 21:08:41] INFO     Processing request of type           server.py:733
+21:08:41 INFO    [astrax-mcp]                              CallToolRequest
+21:08:59 INFO    [astrax-mcp] [10/30/26 21:08:59] INFO     Processing request of type           server.py:733
+21:08:59 INFO    [astrax-mcp]                              CallToolRequest
+21:09:06 INFO    [astrax-mcp] [10/30/26 21:09:06] INFO     Processing request of type           server.py:733
+21:09:06 INFO    [astrax-mcp]                              CallToolRequest
+21:09:06 INFO    [astrax-mcp] [Astrax] Ejecutando: powershell -Command "Start-Process 'brave.exe' 'https://lichess.org/cpu'"
+21:10:10 INFO    [astrax-mcp] [10/30/26 21:10:10] INFO     Processing request of type           server.py:733
+21:10:10 INFO    [astrax-mcp]                              CallToolRequest
+21:10:19 INFO    [astrax-mcp] [10/30/26 21:10:19] INFO     Processing request of type           server.py:733
+21:10:19 INFO    [astrax-mcp]                              CallToolRequest
+21:10:42 INFO    [astrax-mcp] [10/30/26 21:10:42] INFO     Processing request of type           server.py:733
+21:10:42 INFO    [astrax-mcp]                              CallToolRequest
+21:10:59 INFO    [astrax-mcp] [10/30/26 21:10:59] INFO     Processing request of type           server.py:733
+21:10:59 INFO    [astrax-mcp]                              CallToolRequest
+21:11:07 INFO    [astrax-mcp] [10/30/26 21:11:07] INFO     Processing request of type           server.py:733
+21:11:07 INFO    [astrax-mcp]                              CallToolRequest
+21:11:08 INFO    [astrax-mcp] [Astrax] Captura guardada en C:\Users\Unknown\AppData\Local\astrax\screens\astrax_screen.png
+21:11:34 INFO    [astrax-mcp] [10/30/26 21:11:34] INFO     Processing request of type           server.py:733
+21:11:34 INFO    [astrax-mcp]                              CallToolRequest
+21:11:42 INFO    [astrax-mcp] [10/30/26 21:11:42] INFO     Processing request of type           server.py:733
+21:11:42 INFO    [astrax-mcp]                              CallToolRequest
+21:11:50 INFO    [astrax-mcp] [10/30/26 21:11:50] INFO     Processing request of type           server.py:733
+21:11:50 INFO    [astrax-mcp]                              CallToolRequest
+21:12:05 INFO    [astrax-mcp] [10/30/26 21:12:05] INFO     Processing request of type           server.py:733
+21:12:05 INFO    [astrax-mcp]                              CallToolRequest
+21:12:13 INFO    [astrax-mcp] [10/30/26 21:12:13] INFO     Processing request of type           server.py:733
+21:12:13 INFO    [astrax-mcp]                              CallToolRequest
+21:12:31 INFO    [astrax-mcp] [10/30/26 21:12:31] INFO     Processing request of type           server.py:733
+21:12:31 INFO    [astrax-mcp]                              CallToolRequest
+21:12:39 INFO    [astrax-mcp] [10/30/26 21:12:39] INFO     Processing request of type           server.py:733
+21:12:39 INFO    [astrax-mcp]                              CallToolRequest
+21:13:21 INFO    [astrax-mcp] [10/30/26 21:13:21] INFO     Processing request of type           server.py:733
+21:13:21 INFO    [astrax-mcp]                              CallToolRequest
+21:13:39 INFO    [astrax-mcp] [10/30/26 21:13:39] INFO     Processing request of type           server.py:733
+21:13:39 INFO    [astrax-mcp]                              CallToolRequest
+21:13:48 INFO    [astrax-mcp] [10/30/26 21:13:48] INFO     Processing request of type           server.py:733
+21:13:48 INFO    [astrax-mcp]                              CallToolRequest
+21:13:48 INFO    [astrax-mcp] [Astrax] Imagen enviada (1280x720, escala 0.94, 60158 bytes)
+21:14:01 INFO    [astrax-mcp] [10/30/26 21:14:01] INFO     Processing request of type           server.py:733
+21:14:01 INFO    [astrax-mcp]                              CallToolRequest
+21:14:01 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.50s
+21:14:13 INFO    [astrax-mcp] [10/30/26 21:14:13] INFO     Processing request of type           server.py:733
+21:14:13 INFO    [astrax-mcp]                              CallToolRequest
+21:14:13 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:14:26 INFO    [astrax-mcp] [10/30/26 21:14:26] INFO     Processing request of type           server.py:733
+21:14:26 INFO    [astrax-mcp]                              CallToolRequest
+21:14:27 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:14:39 INFO    [astrax-mcp] [10/30/26 21:14:39] INFO     Processing request of type           server.py:733
+21:14:39 INFO    [astrax-mcp]                              CallToolRequest
+21:14:39 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.52s
+21:14:51 INFO    [astrax-mcp] [10/30/26 21:14:51] INFO     Processing request of type           server.py:733
+21:14:51 INFO    [astrax-mcp]                              CallToolRequest
+21:14:52 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:15:05 INFO    [astrax-mcp] [10/30/26 21:15:05] INFO     Processing request of type           server.py:733
+21:15:05 INFO    [astrax-mcp]                              CallToolRequest
+21:15:05 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.47s
+21:15:19 INFO    [astrax-mcp] [10/30/26 21:15:19] INFO     Processing request of type           server.py:733
+21:15:19 INFO    [astrax-mcp]                              CallToolRequest
+21:15:19 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.47s
+21:15:31 INFO    [astrax-mcp] [10/30/26 21:15:31] INFO     Processing request of type           server.py:733
+21:15:31 INFO    [astrax-mcp]                              CallToolRequest
+21:15:32 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.58s
+21:15:45 INFO    [astrax-mcp] [10/30/26 21:15:45] INFO     Processing request of type           server.py:733
+21:15:45 INFO    [astrax-mcp]                              CallToolRequest
+21:15:45 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:15:58 INFO    [astrax-mcp] [10/30/26 21:15:58] INFO     Processing request of type           server.py:733
+21:15:58 INFO    [astrax-mcp]                              CallToolRequest
+21:15:58 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.55s
+21:16:10 INFO    [astrax-mcp] [10/30/26 21:16:10] INFO     Processing request of type           server.py:733
+21:16:10 INFO    [astrax-mcp]                              CallToolRequest
+21:16:11 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.55s
+21:16:51 INFO    [astrax-mcp] [10/30/26 21:16:51] INFO     Processing request of type           server.py:733
+21:16:51 INFO    [astrax-mcp]                              CallToolRequest
+21:17:02 INFO    [astrax-mcp] [10/30/26 21:17:02] INFO     Processing request of type           server.py:733
+21:17:02 INFO    [astrax-mcp]                              CallToolRequest
+21:17:03 INFO    [astrax-mcp] [Astrax] Lote: 3/3 ok=True frames=1 1.20s
+21:17:16 INFO    [astrax-mcp] [10/30/26 21:17:16] INFO     Processing request of type           server.py:733
+21:17:16 INFO    [astrax-mcp]                              CallToolRequest
+21:17:17 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.61s
+21:17:30 INFO    [astrax-mcp] [10/30/26 21:17:30] INFO     Processing request of type           server.py:733
+21:17:30 INFO    [astrax-mcp]                              CallToolRequest
+21:17:31 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.48s
+21:17:45 INFO    [astrax-mcp] [10/30/26 21:17:45] INFO     Processing request of type           server.py:733
+21:17:45 INFO    [astrax-mcp]                              CallToolRequest
+21:17:46 INFO    [astrax-mcp] [Astrax] Lote: 3/3 ok=True frames=1 1.41s
+21:18:00 INFO    [astrax-mcp] [10/30/26 21:18:00] INFO     Processing request of type           server.py:733
+21:18:00 INFO    [astrax-mcp]                              CallToolRequest
+21:18:00 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:18:42 INFO    [astrax-mcp] [10/30/26 21:18:42] INFO     Processing request of type           server.py:733
+21:18:42 INFO    [astrax-mcp]                              CallToolRequest
+21:18:44 INFO    [astrax-mcp] [Astrax] Lote: 5/5 ok=True frames=1 2.76s
+21:19:45 INFO    [astrax-mcp] [10/30/26 21:19:45] INFO     Processing request of type           server.py:733
+21:19:45 INFO    [astrax-mcp]                              CallToolRequest
+21:19:48 INFO    [astrax-mcp] [Astrax] Lote: 6/6 ok=True frames=1 2.94s
+21:20:02 INFO    [astrax-mcp] [10/30/26 21:20:02] INFO     Processing request of type           server.py:733
+21:20:02 INFO    [astrax-mcp]                              CallToolRequest
+21:20:06 INFO    [astrax-mcp] [Astrax] Lote: 7/7 ok=True frames=1 4.30s
+21:20:24 INFO    [astrax-mcp] [10/30/26 21:20:24] INFO     Processing request of type           server.py:733
+21:20:24 INFO    [astrax-mcp]                              CallToolRequest
+21:20:27 INFO    [astrax-mcp] [Astrax] Lote: 5/5 ok=True frames=1 2.97s
+21:20:50 INFO    [astrax-mcp] [10/30/26 21:20:50] INFO     Processing request of type           server.py:733
+21:20:50 INFO    [astrax-mcp]                              CallToolRequest
+21:20:50 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.58s
+21:21:04 INFO    [astrax-mcp] [10/30/26 21:21:04] INFO     Processing request of type           server.py:733
+21:21:04 INFO    [astrax-mcp]                              CallToolRequest
+21:21:04 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:21:15 INFO    [astrax-mcp] [10/30/26 21:21:15] INFO     Processing request of type           server.py:733
+21:21:15 INFO    [astrax-mcp]                              CallToolRequest
+21:21:15 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.45s
+21:21:32 INFO    [astrax-mcp] [10/30/26 21:21:32] INFO     Processing request of type           server.py:733
+21:21:32 INFO    [astrax-mcp]                              CallToolRequest
+21:21:32 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:21:43 INFO    [astrax-mcp] [10/30/26 21:21:43] INFO     Processing request of type           server.py:733
+21:21:43 INFO    [astrax-mcp]                              CallToolRequest
+21:21:43 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.42s
+21:21:57 INFO    [astrax-mcp] [10/30/26 21:21:57] INFO     Processing request of type           server.py:733
+21:21:57 INFO    [astrax-mcp]                              CallToolRequest
+21:21:57 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:22:08 INFO    [astrax-mcp] [10/30/26 21:22:08] INFO     Processing request of type           server.py:733
+21:22:08 INFO    [astrax-mcp]                              CallToolRequest
+21:22:08 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:22:23 INFO    [astrax-mcp] [10/30/26 21:22:23] INFO     Processing request of type           server.py:733
+21:22:23 INFO    [astrax-mcp]                              CallToolRequest
+21:22:23 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:22:33 INFO    [astrax-mcp] [10/30/26 21:22:33] INFO     Processing request of type           server.py:733
+21:22:33 INFO    [astrax-mcp]                              CallToolRequest
+21:22:34 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.42s
+21:22:45 INFO    [astrax-mcp] [10/30/26 21:22:45] INFO     Processing request of type           server.py:733
+21:22:45 INFO    [astrax-mcp]                              CallToolRequest
+21:22:46 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:23:03 INFO    [astrax-mcp] [10/30/26 21:23:03] INFO     Processing request of type           server.py:733
+21:23:03 INFO    [astrax-mcp]                              CallToolRequest
+21:23:03 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:23:14 INFO    [astrax-mcp] [10/30/26 21:23:14] INFO     Processing request of type           server.py:733
+21:23:14 INFO    [astrax-mcp]                              CallToolRequest
+21:23:14 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.41s
+21:23:27 INFO    [astrax-mcp] [10/30/26 21:23:27] INFO     Processing request of type           server.py:733
+21:23:27 INFO    [astrax-mcp]                              CallToolRequest
+21:23:27 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:23:37 INFO    [astrax-mcp] [10/30/26 21:23:37] INFO     Processing request of type           server.py:733
+21:23:37 INFO    [astrax-mcp]                              CallToolRequest
+21:23:37 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.41s
+21:23:51 INFO    [astrax-mcp] [10/30/26 21:23:51] INFO     Processing request of type           server.py:733
+21:23:51 INFO    [astrax-mcp]                              CallToolRequest
+21:23:51 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.42s
+21:24:06 INFO    [astrax-mcp] [10/30/26 21:24:06] INFO     Processing request of type           server.py:733
+21:24:06 INFO    [astrax-mcp]                              CallToolRequest
+21:24:06 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+21:24:16 INFO    [astrax-mcp] [10/30/26 21:24:16] INFO     Processing request of type           server.py:733
+21:24:16 INFO    [astrax-mcp]                              CallToolRequest
+21:24:16 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.41s
+21:24:27 INFO    [astrax-mcp] [10/30/26 21:24:27] INFO     Processing request of type           server.py:733
+21:24:27 INFO    [astrax-mcp]                              CallToolRequest
+21:24:28 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.41s
+21:24:41 INFO    [astrax-mcp] [10/30/26 21:24:41] INFO     Processing request of type           server.py:733
+21:24:41 INFO    [astrax-mcp]                              CallToolRequest
+21:24:42 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.59s
+21:25:10 INFO    [astrax-mcp] [10/30/26 21:25:10] INFO     Processing request of type           server.py:733
+21:25:10 INFO    [astrax-mcp]                              CallToolRequest
+21:25:11 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.45s
+21:25:29 INFO    [astrax-mcp] [10/30/26 21:25:29] INFO     Processing request of type           server.py:733
+21:25:29 INFO    [astrax-mcp]                              CallToolRequest
+21:25:29 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.44s
+21:25:47 INFO    [astrax-mcp] [10/30/26 21:25:47] INFO     Processing request of type           server.py:733
+21:25:47 INFO    [astrax-mcp]                              CallToolRequest
+21:25:47 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.55s
+21:26:28 INFO    [astrax-mcp] [10/30/26 21:26:28] INFO     Processing request of type           server.py:733
+21:26:28 INFO    [astrax-mcp]                              CallToolRequest
+21:26:28 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.52s
+21:26:46 INFO    [astrax-mcp] [10/30/26 21:26:46] INFO     Processing request of type           server.py:733
+21:26:46 INFO    [astrax-mcp]                              CallToolRequest
+21:26:47 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.45s
+21:27:05 INFO    [astrax-mcp] [10/30/26 21:27:05] INFO     Processing request of type           server.py:733
+21:27:05 INFO    [astrax-mcp]                              CallToolRequest
+21:27:05 INFO    [astrax-mcp] [Astrax] Lote: 1/1 ok=True frames=1 0.48s
+21:27:23 INFO    [astrax-mcp] [10/30/26 21:27:23] INFO     Processing request of type           server.py:733
+21:27:23 INFO    [astrax-mcp]                              CallToolRequest
+21:27:23 INFO    [astrax-mcp] [Astrax] Lote: 0/1 ok=False frames=0 0.00s
+22:11:02 INFO    [astrax-mcp] Cliente desconectado
+22:43:01 INFO    connection open
+22:43:01 INFO    [astrax-mcp] Cliente conectado → pid 75732
+22:43:07 INFO    [astrax-mcp] [Astrax] Iniciando servidor Astrax (stdio)...
+22:43:07 INFO    [astrax-mcp] [10/30/26 22:43:07] INFO     Processing request of type           server.py:733
+22:43:07 INFO    [astrax-mcp]                              ListToolsRequest
+22:43:17 INFO    connection open
+22:43:17 INFO    [filesystem] Cliente conectado → pid 75152
+22:43:26 INFO    [astrax-mcp] Cliente desconectado
+22:43:30 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+22:43:30 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+22:50:23 INFO    [filesystem] Cliente desconectado
+23:19:34 INFO    connection open
+23:19:34 INFO    [filesystem] Cliente conectado → pid 77412
+23:19:38 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+23:19:39 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+23:42:07 INFO    [filesystem] Cliente desconectado
+01:05:43 INFO    connection open
+01:05:44 INFO    [filesystem] Cliente conectado → pid 52600
+01:05:55 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+01:05:55 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+01:11:45 INFO    [filesystem] Cliente desconectado
+01:11:59 INFO    connection open
+01:11:59 INFO    [filesystem] Cliente conectado → pid 81700
+01:12:10 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+01:12:10 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+01:31:27 INFO    connection open
+01:31:27 INFO    [filesystem] Cliente conectado → pid 84324
+01:31:28 INFO    [filesystem] Cliente desconectado
+01:31:29 INFO    connection open
+01:31:29 INFO    [filesystem] Cliente conectado → pid 83796
+01:31:35 INFO    [filesystem] Cliente desconectado
+01:31:41 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+01:31:43 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+01:36:49 INFO    [filesystem] Cliente desconectado
+01:39:41 INFO    connection open
+01:39:41 INFO    [filesystem] Cliente conectado → pid 85720
+01:39:49 INFO    [filesystem] Secure MCP Filesystem Server running on stdio
+01:39:49 INFO    [filesystem] Client does not support MCP Roots, using allowed directories set from server args: [ 'C:\\Users\\Unknown\\.local\\share\\openscad-mcp\\models' ]
+01:39:54 INFO    [filesystem] Cliente desconectado
