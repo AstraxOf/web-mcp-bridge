@@ -3,8 +3,8 @@
     {
       "id": "2026-11-v1.5.0",
       "title": "Web MCP Bridge 1.5.0",
-      "message": "Nueva version con avisos del autor, correcciones para DeepSeek y pie con version. Gracias por usar la extension.",
-      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases",
+      "message": "Nueva version con correcciones para DeepSeek, fix JSON y cambio de diseño. Gracias por usar la extension.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge",
       "level": "info",
       "date": "2026-11-02",
       "expires": "2027-02-01"
