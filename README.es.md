@@ -29,6 +29,7 @@
   <img src="assets/demo.gif" width="700" alt="Demostración de Web MCP Bridge">
 </div>
 
+---
 Las interfaces web gratuitas de IA no hablan MCP. **Web MCP Bridge** les añade esa capacidad:
 la IA pide una herramienta con un bloque JSON, la extensión la ejecuta en tu servidor MCP local
 y devuelve el resultado al chat. Tú decides qué se ejecuta.
