@@ -34,6 +34,10 @@
       this.name = name;
       this.selectors = selectors;
       this.executed = this.#loadExecuted();
+      this.deliveries = 0;            // resultados entregados a la IA (para distinguir repeticiones reales de repintados)
+      this.lastDeliveryAt = 0;
+      this.genSinceDelivery = false;  // la IA ya contesto despues del ultimo resultado entregado
+      this.msgsAtDelivery = 0;
       this.baselineUntil = 0;
       this.lastActivity = 0;
       this.freshChat = false;
@@ -110,6 +114,7 @@
         const now = Date.now();
         const streaming = this.isStreaming();
         const messages = this.getAssistantMessages();
+        if (this.lastDeliveryAt && (streaming || messages.length > this.msgsAtDelivery)) this.genSinceDelivery = true;
         if (streaming) {
           this.lastActivity = now;
           this.baselineUntil = 0;                              // hay generación en vivo: la conversación no es «antigua»
@@ -136,12 +141,23 @@
           const element = messages[i];
           const calls = WMB.extractMcpCalls(i === last ? text : element.textContent || '');
           calls.forEach((call, n) => {
-            const id = `${this.getMessageKey(element, i)}#${n}:${WMB.hash(JSON.stringify(call))}`;
-            if (this.executed.has(id)) return;
+            let id = `${this.getMessageKey(element, i)}#${n}:${WMB.hash(JSON.stringify(call))}`;
+            if (this.executed.has(id)) {
+              // Misma llamada ya ejecutada. Solo es una REPETICION real (la IA espera respuesta otra vez) si contesto despues de
+              // recibir el resultado y esta es su ultima respuesta; si no, es un repintado de la pagina y se ignora.
+              if (baseline || i !== last || streaming || n !== 0 || !this.genSinceDelivery) return;
+              id = `${id}~r${this.deliveries}`;
+              if (this.executed.has(id)) return;
+            }
             this.#remember(id);
             // Protocolo: una llamada por mensaje → solo se ejecuta la primera.
-            if (!baseline && n === 0) callback({ id, call, element });
+            if (!baseline && n === 0) callback({ id, call, element, extra: calls.length - 1 });
           });
+          if (!baseline && i === last && !calls.length && !streaming && WMB.looksMalformed?.(text)) {
+            // Hay intencion de llamada MCP pero el bloque no se pudo leer: se avisa a la IA (antes se quedaba esperando).
+            const badId = `${this.getMessageKey(element, i)}#bad:${WMB.hash(text)}`;
+            if (!this.executed.has(badId)) { this.#remember(badId); callback({ id: badId, malformed: true, text, element }); }
+          }
           if (!baseline && i === last && !calls.length && !streaming && onDone) {
             const doneKey = `${this.getMessageKey(element, i)}:${text.length}`;
             if (doneKey !== lastDone) { lastDone = doneKey; onDone({ text, element }); }
@@ -269,6 +285,10 @@
       const composer = await WMB.waitFor(() => this.getComposer(), { timeout: 5000 });
       if (!composer) return { ok: false, error: 'No se encontró el cuadro de texto del chat.' };
       this.lastActivity = Date.now();
+      this.deliveries += 1;
+      this.lastDeliveryAt = Date.now();
+      this.genSinceDelivery = false;
+      this.msgsAtDelivery = this.getAssistantMessages().length;
       if (!(await WMB.dom.setText(composer, text, { append: true }))) {
         return { ok: false, error: 'No se pudo escribir en el cuadro de texto.' };
       }

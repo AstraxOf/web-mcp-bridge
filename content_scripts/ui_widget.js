@@ -27,7 +27,8 @@
     .wrap {
       --bg:#ffffff; --fg:#16211d; --muted:#67736d; --line:#dde2dc; --accent:#0f766e; --accent-fg:#fff;
       --ok:#16a34a; --warn:#d97706; --err:#dc2626;
-      position: fixed; left: 16px; bottom: 16px; z-index: 2147483647;
+      position: fixed; left: var(--x, 16px); top: var(--y, auto); bottom: var(--y, 16px); z-index: 2147483647;
+      touch-action: none; user-select: none;
       font: 13px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg);
       display: flex; flex-direction: column; gap: 8px; align-items: flex-start;
     }
@@ -37,8 +38,15 @@
     .pill, .panel { background: var(--bg); border: 1px solid var(--line); box-shadow: 0 6px 24px rgba(0,0,0,.18); }
     .pill {
       display: flex; gap: 8px; align-items: center; padding: 7px 12px; border-radius: 999px;
-      cursor: pointer; color: inherit; font: inherit;
+      cursor: grab; color: inherit; font: inherit;
     }
+    .wrap.dragging .pill { cursor: grabbing; }
+    .wrap.dragging { transition: none !important; }
+    .wrap:not(.dragging) { transition: left .12s ease, top .12s ease; }
+    .wrap.flip { flex-direction: column-reverse; }
+    .wrap.flip .panel { margin-bottom: 4px; }
+    @media (prefers-reduced-motion: reduce) { .wrap:not(.dragging) { transition: none; } }
+    .panel { max-width: calc(100vw - 24px); max-height: min(70vh, calc(100vh - 40px)); }
     .pill.alert { border-color: var(--warn); }
     .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
     .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); }
@@ -64,6 +72,7 @@
     select { font: inherit; font-size: 12px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
     select.allow { border-color: var(--ok); } select.deny { border-color: var(--err); }
     li.srv .grow { flex: 1; min-width: 0; }
+    .foot { margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); }
   `;
 
   class Widget {
@@ -81,7 +90,128 @@
       this.root = h('div', { class: 'wrap' });
       this.shadow.append(h('style', {}, CSS), this.root);
       document.documentElement.append(this.host);
+      this.#initDrag();
       this.render();
+    }
+
+    // ═════════════════════════════ Arrastre de la ventana ═════════════════════════════
+    // La pill es el asa. La posición se recuerda por URL en sessionStorage; doble clic la resetea.
+    #posKey() { return `wmb-widget-pos:${location.origin}${location.pathname}`; }
+
+    #applyPosition(pos) {
+      if (!pos || typeof pos.x !== 'number' || typeof pos.y !== 'number') {
+        this.root.style.removeProperty('--x');
+        this.root.style.removeProperty('--y');
+        return;
+      }
+      // Guardamos con left/top. Como el default es bottom, pasamos a top para que sea estable al arrastrar.
+      const w = this.root.getBoundingClientRect().width || 0;
+      const hgt = this.root.getBoundingClientRect().height || 0;
+      const x = Math.min(Math.max(0, pos.x), Math.max(0, window.innerWidth - w));
+      const y = Math.min(Math.max(0, pos.y), Math.max(0, window.innerHeight - hgt));
+      this.root.style.setProperty('--x', `${x}px`);
+      this.root.style.setProperty('--y', `${y}px`);
+      this.root.style.setProperty('bottom', 'auto');
+    }
+
+    #savePosition(x, y) {
+      try { sessionStorage.setItem(this.#posKey(), JSON.stringify({ x, y })); } catch { /* almacenamiento no disponible */ }
+    }
+
+    #resetPosition() {
+      try { sessionStorage.removeItem(this.#posKey()); } catch { /* noop */ }
+      this.root.style.removeProperty('--x');
+      this.root.style.removeProperty('--y');
+      this.root.style.removeProperty('bottom');
+    }
+
+    // Empuja el conjunto (pill + panel si está abierto) dentro del viewport.
+    // Prioridad: mantenerlo lo más cerca posible de donde está, sin salirse.
+    #fitToViewport() {
+      const r = this.root.getBoundingClientRect();
+      const vw = window.innerWidth, vh = window.innerHeight;
+      let dx = 0, dy = 0;
+      if (r.right > vw) dx -= (r.right - vw);
+      if (r.left < 0) dx -= r.left; // si cabe entero, deja a 0
+      if (r.bottom > vh) dy -= (r.bottom - vh);
+      if (r.top < 0) dy -= r.top;
+      if (dx === 0 && dy === 0) return;
+      const nx = r.left + dx;
+      const ny = r.top + dy;
+      this.root.style.setProperty('--x', `${Math.round(nx)}px`);
+      this.root.style.setProperty('--y', `${Math.round(ny)}px`);
+      this.root.style.setProperty('bottom', 'auto');
+    }
+
+    #initDrag() {
+      // Restaurar posición previa (si la hay) en cuanto haya layout.
+      requestAnimationFrame(() => {
+        try {
+          const raw = sessionStorage.getItem(this.#posKey());
+          if (raw) this.#applyPosition(JSON.parse(raw));
+        } catch { /* ignore */ }
+        // Reclampear al redimensionar la ventana
+        window.addEventListener('resize', () => {
+          const raw = sessionStorage.getItem(this.#posKey());
+          if (!raw) return;
+          try { const pos = JSON.parse(raw); this.#applyPosition(pos); } catch { /* ignore */ }
+        }, { passive: true });
+      });
+
+      // Delegación de eventos: el asa es la pill (o su contenido).
+      this.root.addEventListener('pointerdown', (e) => this.#onPointerDown(e));
+      // Doble clic en la pill → volver al default
+      this.root.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.pill')) { this.#resetPosition(); }
+      });
+    }
+
+    #onPointerDown(e) {
+      if (e.button !== 0 && e.pointerType === 'mouse') return;
+      // Asa: la pill completa, o el head del panel (excepto sus botones).
+      let handle = e.target.closest('.pill');
+      if (!handle) {
+        const head = e.target.closest('.head[data-drag]');
+        if (head && !e.target.closest('button, select, input, a, textarea')) handle = head;
+      }
+      if (!handle) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = this.root.getBoundingClientRect();
+      const startX = e.clientX, startY = e.clientY;
+      const origX = rect.left, origY = rect.top;
+      let moved = false;
+      this.root.classList.add('dragging');
+      try { handle.setPointerCapture(e.pointerId); } catch { /* navegadores antiguos */ }
+
+      const onMove = (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        if (!moved && Math.hypot(dx, dy) < 4) return; // umbral anti-click
+        moved = true;
+        this.root.style.setProperty('--x', `${Math.round(origX + dx)}px`);
+        this.root.style.setProperty('--y', `${Math.round(origY + dy)}px`);
+        this.root.style.setProperty('bottom', 'auto');
+        // Reajustar al viewport teniendo en cuenta el conjunto completo (pill+panel).
+        this.#fitToViewport();
+      };
+      const onUp = () => {
+        try { handle.releasePointerCapture(e.pointerId); } catch { /* noop */ }
+        this.root.classList.remove('dragging');
+        // Listeners en document: no dependen de que la pill siga existiendo tras un render().
+        document.removeEventListener('pointermove', onMove, true);
+        document.removeEventListener('pointerup', onUp, true);
+        document.removeEventListener('pointercancel', onUp, true);
+        if (moved) {
+          const r = this.root.getBoundingClientRect();
+          this.#savePosition(r.left, r.top);
+          this._suppressClickUntil = Date.now() + 250;
+        }
+      };
+      document.addEventListener('pointermove', onMove, true);
+      document.addEventListener('pointerup', onUp, true);
+      document.addEventListener('pointercancel', onUp, true);
     }
 
     update(patch) { Object.assign(this.model, patch); this.render(); }
@@ -116,12 +246,14 @@
       const pill = h('button', {
         class: `pill${pending ? ' alert' : ''}`,
         'aria-expanded': String(this.open),
-        onclick: () => { this.open = !this.open; this.render(); },
+        onclick: () => { if (this._suppressClickUntil && Date.now() < this._suppressClickUntil) return; this.open = !this.open; this.render(); },
       },
       h('i', { class: `dot ${pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
       h('span', {}, pending ? `${pending} llamada${pending > 1 ? 's' : ''} por aprobar` : activeLabel));
 
       this.root.replaceChildren(...(this.open ? [this.#panel()] : []), pill);
+      // Al abrir (o si quedó fuera), ajustar para que nada quede fuera de pantalla.
+      if (this.open) requestAnimationFrame(() => this.#fitToViewport());
     }
 
     /** Selector de 3 estados. `value` puede ser 'mixed' cuando los MCP tienen permisos distintos. */
@@ -148,7 +280,7 @@
       const common = perms.size === 1 ? [...perms][0] : 'mixed';
 
       return h('div', { class: 'panel', role: 'dialog', 'aria-label': 'Web MCP Bridge' },
-        h('div', { class: 'head' },
+        h('div', { class: 'head', 'data-drag': '1', style: 'cursor: move;' },
           h('strong', {}, `Web MCP Bridge · ${adapterName}`),
           h('button', { 'aria-label': 'Cerrar', onclick: () => { this.open = false; this.render(true); } }, '✕')),
 
@@ -178,7 +310,9 @@
         this.logs.length
           ? h('ul', { class: 'log' }, this.logs.map((l) => h('li', { class: l.kind },
             `${l.ts.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${l.text}`)))
-          : null);
+          : null,
+
+        h('div', { class: 'foot' }, h('div', {}, `Web MCP Bridge v${WMB.VERSION}`), h('div', {}, 'Github: @AstraxOf')));
     }
 
     #approvalCard(item) {

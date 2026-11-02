@@ -2,8 +2,7 @@
 """
 install_service.py — Instala el puente MCP para que arranque SOLO al iniciar sesión.
 
-Una sola vez:
-    python server/install_service.py
+Un
 
 Después basta con la extensión: el puente ya estará escuchando en segundo plano.
 
@@ -21,12 +20,15 @@ import json
 import os
 import subprocess
 import sys
+import time
+import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 BRIDGE = HERE / "mcp_ws_bridge.py"
 CONFIG = HERE / "servers.json"
 LOG = HERE / "bridge.log"
+LAUNCHER = HERE / "start_bridge_loop.pyw"
 NAME = "WebMCPBridge"
 
 
@@ -49,6 +51,61 @@ def ensure_config(dry: bool) -> None:
         CONFIG.write_text(json.dumps(default_config(), indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def launcher_command(windowless: bool = False) -> list[str]:
+    """Comando del lanzador: es lo que arranca con Windows y mantiene vivo el puente."""
+    py = sys.executable
+    if windowless and sys.platform == "win32":
+        pyw = Path(py).with_name("pythonw.exe")
+        py = str(pyw) if pyw.exists() else py
+    return [py, str(LAUNCHER)]
+
+
+def _ports() -> tuple[int, int]:
+    """(puerto de control del puente, puerto del lanzador) segun servers.json."""
+    try:
+        cfg = json.loads(CONFIG.read_text(encoding="utf-8-sig"))
+    except Exception:
+        cfg = {}
+    return int(cfg.get("control_port", 8099)), int(cfg.get("launcher_port", 8098))
+
+
+def _post(port: int, path: str, timeout: float = 4) -> bool:
+    """POST sin cabecera Origin (la aceptan el puente y el lanzador). True si respondio."""
+    try:
+        req = urllib.request.Request(f"http://127.0.0.1:{port}{path}", method="POST", data=b"")
+        with urllib.request.urlopen(req, timeout=timeout):
+            return True
+    except Exception:
+        return False
+
+
+def start_launcher() -> None:
+    """Deja el lanzador corriendo ahora mismo: si ya hay uno le pide reiniciar; si no, lo arranca desacoplado."""
+    control, launcher = _ports()
+    if _post(launcher, "/restart"):
+        print("-> Lanzador ya activo: puente reiniciado.")
+        return
+    _post(control, "/shutdown")  # un puente suelto (sin lanzador) ocuparia los puertos
+    time.sleep(1.5)
+    flags = 0
+    if sys.platform == "win32":
+        flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
+    subprocess.Popen(launcher_command(windowless=True), cwd=str(HERE), creationflags=flags, close_fds=True,
+                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    print("-> Lanzador iniciado en segundo plano.")
+
+
+def stop_launcher() -> None:
+    control, launcher = _ports()
+    _post(launcher, "/quit")
+    _post(control, "/shutdown")
+
+def restart_bridge() -> int:
+    """Reinicia el puente: apaga el anterior (o un puente viejo que ocupe los puertos) y arranca uno nuevo en segundo plano."""
+    cmd = [sys.executable, str(BRIDGE), "--config", str(CONFIG), "--log-file", str(LOG), "--restart"]
+    return subprocess.run(cmd).returncode
+
+
 def bridge_command(windowless: bool = False) -> list[str]:
     py = sys.executable
     if windowless and sys.platform == "win32":
@@ -64,14 +121,14 @@ def windows_startup_file() -> Path:
 
 
 def install_windows(dry: bool) -> None:
-    cmd = " ".join(f'""{part}""' for part in bridge_command(windowless=True))
+    cmd = " ".join(f'""{part}""' for part in launcher_command(windowless=True))
     script = f'CreateObject("Wscript.Shell").Run "{cmd}", 0, False\n'
     target = windows_startup_file()
     print(f"• Registrando arranque automático: {target}")
     if dry:
         return
     target.write_text(script, encoding="utf-8")
-    subprocess.Popen(bridge_command(windowless=True), creationflags=0x00000008 | 0x00000200, close_fds=True)  # DETACHED | NEW_GROUP
+    start_launcher()  # arranca el lanzador ya (o lo reinicia si estaba corriendo); el lanzador levanta el puente
 
 
 def uninstall_windows(dry: bool) -> None:
@@ -79,6 +136,7 @@ def uninstall_windows(dry: bool) -> None:
     print(f"• Eliminando {target}")
     if not dry:
         target.unlink(missing_ok=True)
+        stop_launcher()
         subprocess.run(["taskkill", "/F", "/FI", "WINDOWTITLE eq mcp_ws_bridge*"], capture_output=True)
 
 
@@ -148,7 +206,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Instala el puente MCP como servicio de inicio automático.")
     parser.add_argument("--uninstall", action="store_true", help="Quita el arranque automático")
     parser.add_argument("--dry-run", action="store_true", help="Muestra los pasos sin ejecutarlos")
+    parser.add_argument("--restart", action="store_true", help="Reinicia el puente ahora (cierra el anterior aunque este ocupando los puertos)")
     args = parser.parse_args()
+
+    if args.restart:
+        return restart_bridge()
 
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
     actions = {

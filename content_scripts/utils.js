@@ -5,7 +5,7 @@
 (() => {
   'use strict';
   const WMB = (globalThis.WMB = globalThis.WMB || {});
-  WMB.VERSION = '1.2.0';
+  WMB.VERSION = '1.6.0';
 
   const nativeSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -49,7 +49,8 @@
   };
 
   /** Hash rápido (djb2) para generar IDs de llamadas. */
-  WMB.hash = (text) => {
+  WMB.hash = (input) => {
+    const text = String(input ?? '');
     let h = 5381;
     for (let i = 0; i < text.length; i += 1) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);

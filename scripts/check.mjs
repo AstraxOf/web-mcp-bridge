@@ -3,7 +3,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const skip = new Set(['node_modules', '.git', 'dist']);
+const skip = new Set(['node_modules', '.git', 'dist', 'rea-main', 'python']);
 const files = [];
 (function walk(dir) {
   for (const name of readdirSync(dir)) {

@@ -5,3 +5,16 @@ __pycache__/
 .DS_Store
 servers.json
 .venv/
+server/rea-main/
+server/servers.json
+server/*.bak*
+server/*.log
+server/python
+server/_*.out
+server/_*.err
+.paused
+server/.paused
+*.bak
+*.bak_*
+*.log
+Thumbs.db

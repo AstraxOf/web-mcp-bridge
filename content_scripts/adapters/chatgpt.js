@@ -253,6 +253,7 @@
 
         const streaming = this.isStreaming();
         if (streaming) this.lastActivity = now;
+        if (streaming && this.lastDeliveryAt) this.genSinceDelivery = true;
         const baseline = now - this.lastActivity >= ACTIVE_MS;
 
         const tally = new Map();
@@ -274,10 +275,19 @@
             tally.set(hash, occurrence + 1);
             const id = `${hash}:${occurrence}`;
             present.add(id);
-            if (!ready || done.has(id)) return;
-            done.set(id, { absentSince: 0 });
+            if (!ready) return;
+            let fireId = id;
+            if (done.has(id)) {
+              // Llamada identica a una ya ejecutada: solo es una repeticion real (la IA espera respuesta otra vez) si contesto despues
+              // de recibir el resultado y este es su ultimo bloque; si no, es un repintado de la pagina.
+              if (baseline || streaming || n !== 0 || el !== blocks[blocks.length - 1] || !this.genSinceDelivery) return;
+              fireId = `${id}~r${this.deliveries}`;
+              if (done.has(fireId)) return;
+              present.add(fireId);
+            }
+            done.set(fireId, { absentSince: 0 });
             // Protocolo: una llamada por mensaje → solo se ejecuta la primera. En línea base solo se memoriza.
-            if (!baseline && n === 0) { say('llamada detectada, ejecutando…'); callback({ id, call, element: wrap(el) }); }
+            if (!baseline && n === 0) { say('llamada detectada, ejecutando…'); callback({ id: fireId, call, element: wrap(el) }); }
           });
         }
 

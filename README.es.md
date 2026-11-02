@@ -30,25 +30,135 @@
 </div>
 
 ---
-Las interfaces web gratuitas de IA no hablan MCP. **Web MCP Bridge** les añade esa capacidad:
-la IA pide una herramienta con un bloque JSON, la extensión la ejecuta en tu servidor MCP local
-y devuelve el resultado al chat. Tú decides qué se ejecuta.
+
+> **Web MCP Bridge** le da a ChatGPT, Gemini, Claude y DeepSeek (las versiones web gratuitas) la capacidad de **usar herramientas de tu propio ordenador**: leer archivos, controlar programas, consultar tus datos… sin API keys y sin pagar suscripciones extra. **Tú apruebas cada acción.**
 
 > [!IMPORTANT]
 > Solo conecta servidores MCP en los que confíes: una herramienta con acceso al sistema de archivos puede leer lo que le permitas.
 
+**Ir directo a:** [Instalar](#-instalación-paso-a-paso) · [Primer uso](#-tu-primera-vez-60-segundos) · [Añadir mis MCP](#-añade-tus-propios-mcp) · [¿Algo falla?](#-algo-no-funciona)
+
+## 🧩 Cómo funciona (en 20 segundos)
+
+Son **dos piezas** que trabajan juntas:
+
+| Pieza | Qué es | Dónde vive |
+|---|---|---|
+| 🌐 **La extensión** | Se instala en tu navegador. Lee lo que pide la IA y te muestra los botones y permisos. | Chrome, Edge o Brave |
+| 🌉 **El puente** | Un programa pequeño en Python que conecta la extensión con tus herramientas (servidores MCP). | Tu ordenador, en segundo plano |
+
 ```mermaid
 flowchart LR
-    subgraph Navegador
-      A[ChatGPT / Gemini / Claude] <--> B[Content script<br/>+ adaptador]
-      B <--> C[Service Worker]
-      D[Popup] --> C
-    end
-    C <-- WebSocket --> E[mcp_ws_bridge.py]
-    E <-- stdio --> F[astrax-mcp]
-    E2[mcp_ws_bridge.py] <-- stdio --> G[filesystem-mcp]
-    C <-- WebSocket --> E2
+    A["💬 Chat<br/>ChatGPT · Gemini · Claude"] <--> B["🌐 Extensión"]
+    B <-->|"WebSocket local"| C["🌉 Puente (Python)"]
+    C <--> D["🧰 Tus herramientas MCP"]
 ```
+
+1. Le pides algo a la IA en el chat.
+2. La IA responde con una "orden" (un bloque JSON) pidiendo una herramienta.
+3. La extensión te pregunta si la permites → la ejecuta en tu PC → **pega el resultado en el chat** para que la IA siga.
+
+> 🔒 Todo ocurre en tu ordenador. Nada se envía a servidores de terceros.
+
+## ✅ Qué necesitas
+
+| Requisito | Cómo comprobarlo |
+|---|---|
+| **Chrome, Edge o Brave** (versión 116 o superior) | Menú → *Acerca de*. |
+| **Python 3.9 o superior** | Abre una terminal y escribe `python --version`. Si no lo tienes, descárgalo de [python.org/downloads](https://www.python.org/downloads/) y **marca la casilla «Add Python to PATH»** al instalar. |
+| **Este proyecto descargado** | Botón verde **Code → Download ZIP** en GitHub y descomprímelo (o `git clone`). **Déjalo en una carpeta fija**: la extensión se carga desde ahí, no lo borres ni lo muevas después. |
+
+Opcional: **Node.js** si vas a usar servidores MCP que se lanzan con `npx` (por ejemplo el de archivos).
+
+## 🚀 Instalación paso a paso
+
+### 🪟 Windows
+
+**Paso 1 · Instala el lanzador (una sola vez)**
+Entra en la carpeta `server` y haz **doble clic en `install.cmd`**. Espera a que diga *Listo*.
+Esto hace tres cosas por ti: instala lo que falta (`websockets`), hace que el puente **arranque solo cuando inicies sesión** y lo enciende ahora mismo.
+
+**Paso 2 · Carga la extensión en el navegador**
+1. Escribe `chrome://extensions` en la barra de direcciones (en Edge: `edge://extensions`).
+2. Activa **Modo de desarrollador** (arriba a la derecha).
+3. Pulsa **Cargar descomprimida** y elige la carpeta del proyecto (la que contiene el archivo `manifest.json`).
+4. Se abrirá solo una **página de bienvenida** que te guía y comprueba cada paso en vivo. Te recomendamos fijar la extensión con el icono del puzle 🧩.
+
+**Paso 3 · Comprueba que está todo en verde**
+Abre el icono de la extensión: arriba debe poner **«Puente conectado»** con un punto verde y debajo tus servidores.
+
+¡Listo! Sigue con [Tu primera vez](#-tu-primera-vez-60-segundos).
+
+### 🍎 macOS / 🐧 Linux
+
+```bash
+python3 server/install_service.py
+```
+
+Instala lo necesario y deja el puente arrancando con tu sesión (launchd en macOS, systemd en Linux). Después carga la extensión igual que en el Paso 2.
+Los botones **Iniciar / Apagar** del popup necesitan el *lanzador*, que por ahora está preparado solo para Windows. En macOS/Linux el puente igualmente funciona y se reinicia solo si se cae.
+
+## 🎛️ Controla el puente desde la extensión
+
+No necesitas terminal para el día a día. En el popup, tarjeta **Puente**:
+
+| Botón | Qué hace |
+|---|---|
+| **Iniciar puente** | Enciende el puente (si estaba apagado). |
+| **Apagar puente** | Lo apaga y **se queda apagado** hasta que lo inicies de nuevo (aunque reinicies el PC). |
+| **Reiniciar puente** | Lo cierra y lo vuelve a abrir. Úsalo si cambiaste algo o algo se atascó. |
+| **Editar servers.json** | Abre el archivo donde se listan tus MCP. Al guardar, se recarga solo. |
+
+> 💡 **Interruptor de arriba vs. «Apagar puente».** El interruptor grande de la cabecera solo hace que la *extensión* deje de actuar (el icono muestra `OFF`). «Apagar puente» cierra el *programa* de tu PC.
+
+Si el botón **Iniciar/Apagar** aparece desactivado, es que falta el lanzador: haz doble clic en `server/install.cmd`.
+
+## 💬 Tu primera vez (60 segundos)
+
+El proyecto trae un **servidor de prueba (`demo`)** para que lo pruebes sin instalar nada más.
+
+1. Abre el popup → pestaña **Servidores** → activa el interruptor de **demo**.
+2. Entra en [ChatGPT](https://chatgpt.com), [Gemini](https://gemini.google.com), [Claude](https://claude.ai) o [DeepSeek](https://chat.deepseek.com).
+3. Escribe tu mensaje, por ejemplo: **«¿Qué hora es? Usa tus herramientas.»** (las instrucciones se añaden solas al primer mensaje; si no, abre el panel **Web MCP Bridge** abajo a la izquierda y pulsa *Inyectar instrucciones*).
+4. La IA pedirá una herramienta → te aparece un aviso → pulsa **Permitir**.
+5. El resultado se pega en el chat y la IA te responde. 🎉
+
+> Por defecto el permiso es **«Preguntar siempre»**: nada se ejecuta sin que lo apruebes. Puedes cambiarlo por servidor o para todos a la vez.
+
+## ➕ Añade tus propios MCP
+
+Tus servidores se definen en **`server/servers.json`** (se crea solo en la instalación). Cada uno necesita un **nombre**, un **puerto distinto** y el **comando** que lo arranca:
+
+```json
+{
+  "servers": [
+    { "name": "demo",   "port": 8090, "command": ["python", "server/examples/demo_mcp_server.py"] },
+    { "name": "mi-mcp", "port": 8081, "command": ["python", "-m", "mi_servidor_mcp"] },
+    { "name": "archivos", "port": 8082, "command": ["npx", "-y", "@modelcontextprotocol/server-filesystem", "C:/Users/tu/Documentos"] }
+  ]
+}
+```
+
+- Más ejemplos en `server/servers.example.json`.
+- Pulsa **Editar servers.json** en el popup, guarda y en ~2 segundos aparece en la lista. Actívalo con su interruptor (hasta **5** a la vez; con **1** gastas menos tokens).
+- Para desactivar uno sin borrarlo: añade `"disabled": true`.
+- En las rutas usa `/` (`C:/Users/...`) en lugar de `\`.
+
+## 🩺 ¿Algo no funciona?
+
+| Síntoma | Solución |
+|---|---|
+| El popup dice **«Puente apagado»** | Pulsa **Iniciar puente**. Si el botón está desactivado, haz doble clic en `server/install.cmd`. |
+| **«Falta el lanzador»** | Es normal la primera vez: ejecuta `server/install.cmd` una vez. |
+| `python` no se reconoce | Reinstala Python marcando **Add Python to PATH**, o prueba con `py` en lugar de `python`. |
+| **«Puerto ocupado»** (8080, 8090…) | Pulsa **Reiniciar puente**. Si persiste, cambia el `port` de ese servidor en `servers.json`. |
+| Un servidor sale **con error** (p. ej. `astrax-mcp`) | Viene de ejemplo: si no lo tienes instalado, bórralo de `servers.json` o ponle `"disabled": true`. |
+| Aviso rojo **«servers.json tiene un error»** | Hay una coma o comilla mal puesta. Corrígela y guarda: el puente se recarga solo. |
+| El chat no reacciona o no aparece el panel | Recarga la pestaña (F5) y revisa que el interruptor de la cabecera esté activado. Si la web cambió su interfaz, abre un *issue*. |
+| Moví o renombré la carpeta del proyecto | Vuelve a ejecutar `server/install.cmd` y pulsa ⟳ en `chrome://extensions`. |
+| Quiero quitarlo todo | `python server/install_service.py --uninstall` y quita la extensión. |
+
+¿Sigues atascado? Cuéntalo en el [canal de Telegram](https://t.me/AstraxMCP) o abre un *issue*.
 
 ## 🧩 Plataformas compatibles
 
@@ -74,44 +184,56 @@ flowchart LR
 | ![selectors](https://img.shields.io/badge/Selectores%20resilientes-0d9488?style=flat-square) | **Resistente a cambios de UI** | Varios candidatos por elemento + detección de visibilidad. |
 | ![secure](https://img.shields.io/badge/Seguro%20por%20dise%C3%B1o-b91c1c?style=flat-square&logo=letsencrypt&logoColor=white) | **Blindado** | El puente escucha en `127.0.0.1`, solo acepta orígenes `chrome-extension://` y admite token. Las webs no pueden conectarse a tus herramientas. |
 | ![reliable](https://img.shields.io/badge/Fiabilidad-9333ea?style=flat-square) | **Sin duplicados y con reconexión** | ID por llamada, línea base al cargar un chat, solo se actúa sobre el último mensaje, backoff exponencial, keep-alive MV3, historial y tema claro/oscuro. |
+| ![parser](https://img.shields.io/badge/Parser%20tolerante-0ea5e9?style=flat-square) | **JSON mal escapado, sin colgarse** | Si la IA manda rutas de Windows con `\`, saltos de línea reales, comillas sin escapar o comas sobrantes, la extensión **repara el JSON**. Si aun así no se lee, busca las *banderas* `server` / `name` / `arguments` por separado y extrae cada argumento con el schema de la herramienta. Si no hay forma, **avisa a la IA con el motivo exacto** (antes se quedaba esperando). |
+| ![discover](https://img.shields.io/badge/Autodetecci%C3%B3n-0d9488?style=flat-square) | **Servidores detectados solos** | La extensión lee `server/servers.json` a través del puerto de control del puente (`http://127.0.0.1:8099/servers`): los MCP nuevos aparecen solos y los que quitas desaparecen. Un servidor que borras a mano no vuelve a aparecer. |
+| ![restart](https://img.shields.io/badge/Reinicio%20f%C3%A1cil-f59e0b?style=flat-square) | **Adiós al «puerto 8080 ocupado»** | `--restart` / `--stop` / `--status` / `--reload`, recarga en caliente al guardar `servers.json` y reinicio que cierra por sí solo un puente anterior. |
+| ![retry](https://img.shields.io/badge/Reconexi%C3%B3n%20segura-9333ea?style=flat-square) | **Reintento sin duplicados** | Si el servidor estaba caído *antes* de enviar la llamada, la extensión espera la reconexión y reintenta. Si la IA manda varias llamadas en un mensaje, se le avisa de que solo se ejecutó la primera. |
 
-> [!TIP]
-> ¿Quieres probarlo en 60 segundos? Incluye un **servidor MCP de demostración**. Ve a [Prueba en 60 segundos](#-prueba-en-60-segundos).
+## 🧰 Para usuarios avanzados
 
-## ⚡ Instalación en 2 pasos (y después solo un botón)
-
-Los navegadores no pueden lanzar programas de tu equipo, así que hace falta **una sola vez** este comando.
-Deja el puente corriendo en segundo plano y arrancando solo con tu sesión (Windows, macOS y Linux):
-
-```bash
-python server/install_service.py
-```
-
-Luego carga la extensión (`chrome://extensions` → Modo desarrollador → *Cargar descomprimida*).
-Desde ese momento todo se controla con el **interruptor del popup** (o el botón *Desactivar bridge* del panel dentro del chat).
-Con el bridge apagado no hay conexiones, no se inyecta nada y el icono muestra `OFF`.
-Para quitar el arranque automático: `python server/install_service.py --uninstall`.
-
-## 🚀 Prueba en 60 segundos
+Todo lo anterior también se puede hacer desde la terminal.
 
 ```bash
-pip install -r server/requirements.txt
-python server/mcp_ws_bridge.py --port 8080 --name demo -- python server/examples/demo_mcp_server.py
+# Lanzador (Windows): encender, apagar y reiniciar
+python server/start_bridge_loop.pyw --ctl start | stop | restart | status | quit
+
+# Puente directo
+python server/mcp_ws_bridge.py --config server/servers.json --restart   # reinicia (cierra el anterior aunque ocupe el 8080)
+python server/mcp_ws_bridge.py --config server/servers.json --status    # estado de cada servidor
+python server/mcp_ws_bridge.py --config server/servers.json --reload    # relee servers.json
+python server/mcp_ws_bridge.py --config server/servers.json --stop      # apaga el puente
+python server/install_service.py --uninstall                            # quita el arranque automático
 ```
 
-1. Abre `chrome://extensions` → activa **Modo desarrollador** → **Cargar descomprimida** → elige esta carpeta.
-2. Abre el popup y añade tu servidor (nombre `astrax_mcp`, dirección `ws://localhost:8080`); se pone en verde al conectar. Para probar sin nada propio, usa *Añadir servidor de prueba (demo)*.
-3. Entra en ChatGPT, Gemini o Claude, abre el panel **Web MCP Bridge** (abajo a la izquierda) y pulsa **Inyectar instrucciones**.
-4. Escribe: *«¿Qué hora es? Usa tus herramientas.»* → aprueba la llamada → listo.
+En Windows también: `server\restart_bridge.cmd` y `server\bridge_status.cmd` (doble clic).
 
-### Con tu propio MCP (por ejemplo `astrax-mcp`)
+| Puerto | Para qué |
+|---|---|
+| `8080`, `8081`… | Un puerto por servidor MCP (los defines tú en `servers.json`). |
+| `8099` | Control del puente (`/servers`, `/reload`, `/restart`, `/shutdown`). |
+| `8098` | Lanzador (`/start`, `/stop`, `/restart`, `/status`). Configurable con `"launcher_port"`. |
 
-```bash
-python server/mcp_ws_bridge.py --port 8080 --name astrax -- python -m astrax_mcp
+- Si ya hay un puente corriendo, `--config` lo **recarga** en lugar de fallar con «puerto ocupado».
+- `--restart` solo cierra procesos que sean un `mcp_ws_bridge`; si otro programa usa el puerto, te dice cuál y no lo toca.
+- `servers.json` admite BOM (el que añade PowerShell), `"control_port"`, `"launcher_port"` y `"disabled": true` por servidor.
+- Un solo servidor sin archivo de configuración: `python server/mcp_ws_bridge.py --port 8080 --name demo -- python server/examples/demo_mcp_server.py`
+
+### Arquitectura
+
+```mermaid
+flowchart LR
+    subgraph Navegador
+      A[ChatGPT / Gemini / Claude] <--> B[Content script<br/>+ adaptador]
+      B <--> C[Service Worker]
+      D[Popup] --> C
+    end
+    C <-- WebSocket --> E[mcp_ws_bridge.py]
+    E <-- stdio --> F[astrax-mcp]
+    E2[mcp_ws_bridge.py] <-- stdio --> G[filesystem-mcp]
+    C <-- WebSocket --> E2
+    C <-- HTTP local --> L[Lanzador :8098]
+    L --> E
 ```
-
-Varios a la vez: copia `server/servers.example.json` a `servers.json` y ejecuta
-`python server/mcp_ws_bridge.py --config servers.json`. Después regístralos en el popup.
 
 ## 📡 Protocolo de llamada
 
@@ -140,15 +262,32 @@ El resultado vuelve como mensaje del usuario:
 > [!NOTE]
 > El contenido de `MCP_RESULT` se presenta a la IA como *datos*, no como instrucciones (mitigación de *prompt injection*).
 
+### Formatos tolerantes y avisos de error
+
+El parser lee la llamada en tres capas: **1)** JSON estricto, **2)** JSON reparado (rutas con `\`, saltos de línea reales, comillas sin escapar, comillas tipográficas, comas finales) y **3)** *banderas*: busca por separado `server`, `name` y `arguments` y extrae cada argumento por su nombre usando el schema de la herramienta. Solo se acepta si el servidor y la herramienta existen entre los MCP activos y el mensaje no está cortado.
+
+Si hay intención de llamada pero no se puede leer, la extensión responde a la IA (máx. 3 avisos seguidos) y no se queda esperando:
+
+```
+[MCP_RESULT server="bridge" tool="mcp_call" status="format_error"]
+No se ejecuto nada: tu bloque mcp_call no se pudo leer. Motivo: secuencia de escape invalida (... cerca de: ...)
+[/MCP_RESULT]
+```
+
+> [!NOTE]
+> Una ruta como `C:\new\test` es ambigua para cualquier JSON (`\n`, `\t`): por eso el prompt pide siempre rutas con `/`.
+
 ## 📁 Estructura
 
 ```
 manifest.json
 background/      background.js (service worker) · ws_client.js (conexión MCP + reconexión)
 popup/           popup.html · popup.js · popup.css
-content_scripts/ core_bridge.js · prompt_builder.js · ui_widget.js · utils.js
-  adapters/      base_adapter.js · chatgpt.js · gemini.js · claude.js
-server/          mcp_ws_bridge.py · examples/demo_mcp_server.py · servers.example.json
+welcome/         asistente de primer arranque (se abre al instalar)
+content_scripts/ core_bridge.js · prompt_builder.js · ui_widget.js · utils.js · mcp_parser.js
+  adapters/      base_adapter.js · chatgpt.js · gemini.js · claude.js · deepseek.js
+server/          mcp_ws_bridge.py (puente) · start_bridge_loop.pyw (lanzador) · install.cmd · install_service.py
+                 restart_bridge.cmd · servers.example.json · examples/demo_mcp_server.py
 tests/ scripts/  pruebas, validador, generador de iconos y empaquetado
 ```
 
@@ -166,6 +305,7 @@ Abre un issue con la plantilla «Selector roto»: suele resolverse con una líne
 | La IA ejecuta acciones no deseadas | Permiso «Preguntar siempre» por defecto; «Permitir siempre» es una decisión explícita por MCP (o global) y «No permitir» bloquea el MCP |
 | Instrucciones ocultas en resultados (*prompt injection*) | El prompt indica que `MCP_RESULT` es solo datos; tú ves cada llamada antes de ejecutarla |
 | Exposición en red | Escucha solo en `127.0.0.1`; token opcional (`--token`) |
+| Una web lee o apaga el puerto de control (`:8099`) | Solo acepta `Origin` de extensiones; `/reload` y `/shutdown` exigen POST; escucha solo en `127.0.0.1`; `--restart` únicamente cierra procesos `mcp_ws_bridge` |
 
 ## 🧪 Desarrollo
 

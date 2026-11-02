@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bienvenido a Web MCP Bridge</title>
+  <link rel="stylesheet" href="welcome.css">
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Bienvenido a Web MCP Bridge</h1>
+      <p class="lead">Conecta ChatGPT, Claude, Gemini y DeepSeek con tus herramientas locales (MCP). Solo tienes que seguir estos pasos; el asistente se actualiza solo a medida que avanzas.</p>
+    </header>
+
+    <ol class="steps">
+      <li id="step-launcher" class="step" data-state="current">
+        <span class="badge">1</span>
+        <div class="body">
+          <h2>Instala el lanzador <small id="launcher-status" class="status"></small></h2>
+          <p>El navegador no puede encender programas por s&iacute; solo. El lanzador es un peque&ntilde;o proceso que se instala <strong>una sola vez</strong>, arranca con Windows y permite encender, apagar y reiniciar el puente desde esta extensi&oacute;n.</p>
+          <div id="launcher-help">
+            <ol class="how">
+              <li>Abre la carpeta de la extensi&oacute;n y entra en <code>server</code>.</li>
+              <li>Haz doble clic en <code>install.cmd</code> y espera a que diga &laquo;Listo&raquo;.</li>
+            </ol>
+            <p class="muted">&iquest;Prefieres la terminal? <code id="cmd-text">python server/install_service.py</code> <button id="copy-cmd" type="button" class="link">Copiar</button></p>
+          </div>
+        </div>
+      </li>
+
+      <li id="step-bridge" class="step" data-state="pending">
+        <span class="badge">2</span>
+        <div class="body">
+          <h2>Enciende el puente <small id="bridge-status" class="status"></small></h2>
+          <p>El puente es el programa que publica tus servidores MCP. Puedes controlarlo desde aqu&iacute; o desde el icono de la extensi&oacute;n.</p>
+          <div class="actions">
+            <button id="btn-start" type="button">Iniciar</button>
+            <button id="btn-restart" type="button" class="soft">Reiniciar</button>
+            <button id="btn-stop" type="button" class="soft">Apagar</button>
+          </div>
+          <p id="bridge-msg" class="msg" hidden></p>
+        </div>
+      </li>
+
+      <li id="step-servers" class="step" data-state="pending">
+        <span class="badge">3</span>
+        <div class="body">
+          <h2>Tus servidores MCP <small id="servers-status" class="status"></small></h2>
+          <p>Se detectan solos a partir de <code>server/servers.json</code>. Act&iacute;valos (m&aacute;ximo 5) y elige sus permisos desde el icono de la extensi&oacute;n.</p>
+          <ul id="server-list" class="servers"></ul>
+          <div class="actions"><button id="btn-config" type="button" class="soft">Editar servers.json</button></div>
+        </div>
+      </li>
+
+      <li id="step-ready" class="step" data-state="pending">
+        <span class="badge">4</span>
+        <div class="body">
+          <h2>Pru&eacute;balo en tu chat favorito</h2>
+          <p>Abre uno de estos sitios con la extensi&oacute;n activa y pide algo que use tus herramientas.</p>
+          <div class="actions">
+            <a class="btn soft" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
+            <a class="btn soft" href="https://claude.ai/" target="_blank" rel="noopener">Claude</a>
+            <a class="btn soft" href="https://gemini.google.com/" target="_blank" rel="noopener">Gemini</a>
+            <a class="btn soft" href="https://chat.deepseek.com/" target="_blank" rel="noopener">DeepSeek</a>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </main>
+  <script src="welcome.js"></script>
+</body>
+</html>

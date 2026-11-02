@@ -82,6 +82,7 @@
     state.settings = snapshot.settings;
     state.servers = snapshot.servers.filter((s) => s.enabled && s.url);
     state.tools = active.tools;
+    WMB.tools = state.tools; // el parser tolerante usa los schemas
     adapter.configure({ focusFallback: state.settings.focusFallback !== false });
     widget.update({
       adapterName: adapter.name,
@@ -122,7 +123,7 @@
    * (y los textos muy largos) como archivos adjuntos. Si el chat no admite el adjunto, se descarga.
    * Termina con una línea de recordatorio para que la IA no olvide sus herramientas y siga con la tarea.
    */
-  async function deliver(srv, call, { status, text, raw }) {
+  async function deliver(srv, call, { status, text, raw, note }) {
     const { autoSend, maxResultChars, reminder } = state.settings;
     const plan = WMB.planResult(raw ?? { content: [{ type: 'text', text }] }, { server: srv.slug, name: call.name, status, maxChars: maxResultChars });
 
@@ -138,7 +139,7 @@
       }
     }
     const tail = reminder !== false && state.tools.length ? `\n${WMB.reminderLine(state.tools, 'result')}` : '';
-    const sent = await adapter.sendToolResult(`${plan.build(attached)}${tail}`, { autoSend, settleMs: attached && plan.files.length ? 1500 : 0 });
+    const sent = await adapter.sendToolResult(`${plan.build(attached)}${note ? `\n${note}` : ''}${tail}`, { autoSend, settleMs: attached && plan.files.length ? 1500 : 0 });
     widget.log(sent.ok ? 'ok' : 'err', sent.ok ? `Resultado enviado a ${adapter.name}.` : sent.error);
   }
 
@@ -159,14 +160,36 @@
     return found;
   }
 
+  // ------------- Llamadas repetidas: la IA vuelve a pedir EXACTAMENTE lo mismo -------------
+  // Nunca se ignoran en silencio: se ejecutan de nuevo (el dato puede haber cambiado) y se avisa a la IA en el resultado.
+  // Si repite la misma llamada demasiadas veces seguidas se le reenvia el ultimo resultado en vez de ejecutarla otra vez.
+  const REPEAT_WINDOW_MS = 15 * 60 * 1000;
+  const MAX_REPEATS = 4;
+  const recentCalls = new Map(); // clave de llamada -> { count, at, result }
+
   /** Procesa una llamada MCP detectada en la respuesta de la IA. */
-  async function handleCall({ call }) {
+  async function handleCall(detected) {
+    if (detected.malformed) return handleMalformed(detected);
+    badStreak = 0;
+    const { call } = detected;
     if (!state.settings.bridgeEnabled) return; // bridge apagado: se ignoran las llamadas
     const { srv, tool } = await resolveCall(call);
 
     // Llamada que no corresponde a ningún MCP activo (p. ej. la IA explicando el formato): se ignora.
     if (!srv) {
       widget.log('err', `Llamada ignorada: servidor «${call.server ?? '?'}» no activo.`);
+      return;
+    }
+
+    const repeatKey = WMB.hash(JSON.stringify([srv.slug, call.name, call.arguments ?? {}]) ?? '');
+    const prev = recentCalls.get(repeatKey);
+    const repeats = prev && Date.now() - prev.at < REPEAT_WINDOW_MS ? prev.count : 0;
+    if (repeats >= MAX_REPEATS && prev.result && tool && srv.permission !== 'deny') {
+      const cached = { ...prev.result, note: `[WMB] Llamada IDENTICA repetida ${repeats + 1} veces seguidas: no se ejecuto otra vez. Este es el resultado de la ultima ejecucion; usalo. Si no te sirve, cambia los argumentos o pidele otra cosa al usuario.` };
+      widget.log('err', `Llamada identica repetida ${repeats + 1} veces: reenvio el ultimo resultado sin ejecutar.`);
+      prev.count += 1;
+      prev.at = Date.now();
+      await guarded(deliver(srv, call, cached), DELIVER_TIMEOUT_MS, 'El chat no acepto el resultado a tiempo.');
       return;
     }
 
@@ -195,7 +218,7 @@
         widget.log('ok', `Ejecutando ${srv.slug} › ${call.name}…`);
         let response;
         try {
-          response = await guarded(send({ type: 'CALL_TOOL', server: srv.slug, name: call.name, arguments: call.arguments }), TOOL_TIMEOUT_MS, 'La herramienta tardó demasiado en responder.');
+          response = await callWithRetry(srv, call, 'La herramienta tardó demasiado en responder.');
         } catch (err) {
           response = { ok: false, error: err.message };
         }
@@ -204,7 +227,54 @@
         widget.log(result.status === 'ok' ? 'ok' : 'err', `${call.name}: ${result.status}`);
       }
     }
+    if (tool && srv.permission !== 'deny' && result.status !== 'rejected') {
+      recentCalls.set(repeatKey, { count: repeats + 1, at: Date.now(), result });
+      if (repeats > 0) result.note = `[WMB] Esta llamada es identica a la anterior (ya van ${repeats + 1}). Se ejecuto de nuevo y este es el resultado ACTUAL; si ya tienes el dato, no la repitas.`;
+    }
+    if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
     await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+  }
+
+  // ------------- Formato invalido y reconexion (v1.3.0) -------------
+
+  let badStreak = 0;
+  const MAX_BAD_STREAK = 3;
+  const CONN_ERR = /no est.{1,2} conectado|desconectado/i;
+
+  /** La IA envio un mcp_call ilegible: se le devuelve el motivo exacto para que lo corrija (maximo 3 avisos seguidos). */
+  async function handleMalformed({ text }) {
+    if (!state.settings.bridgeEnabled || !state.tools.length) return;
+    badStreak += 1;
+    if (badStreak > MAX_BAD_STREAK) {
+      widget.log('err', 'La IA repite un formato invalido: dejo de avisarle. Revisa el chat.');
+      return;
+    }
+    widget.log('err', `Llamada ilegible (${badStreak}/${MAX_BAD_STREAK}): aviso a la IA con el motivo.`);
+    const sent = await adapter.sendToolResult(WMB.formatCallError(text), { autoSend: state.settings.autoSend });
+    if (!sent.ok) widget.log('err', sent.error);
+  }
+
+  async function waitConnected(srv, timeoutMs) {
+    const end = Date.now() + timeoutMs;
+    while (Date.now() < end) {
+      const snap = await send({ type: 'GET_STATE' });
+      if (snap?.servers?.find((s) => s.id === srv.id)?.status === 'connected') return true;
+      await WMB.sleep(2000);
+    }
+    return false;
+  }
+
+  /** Ejecuta la herramienta; si el servidor estaba caido ANTES de enviar, espera la reconexion y reintenta (sin duplicar nada). */
+  async function callWithRetry(srv, call, timeoutMessage) {
+    let response;
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      response = await guarded(send({ type: 'CALL_TOOL', server: srv.slug, name: call.name, arguments: call.arguments }), TOOL_TIMEOUT_MS, timeoutMessage);
+      if (response?.ok || !CONN_ERR.test(response?.error ?? '') || attempt === 2) break;
+      widget.log('err', `${srv.slug} desconectado: espero la reconexion y reintento (${attempt + 1}/2).`);
+      await send({ type: 'RECONNECT', id: srv.id });
+      await waitConnected(srv, 40_000);
+    }
+    return response;
   }
 
   /** Nunca deja que un fallo o una llamada atascada bloquee las siguientes. */
@@ -231,7 +301,8 @@
    */
   function interceptSend(event) {
     if (!event.isTrusted || injecting) return;
-    adapter.markActivity(); // el usuario envía algo: la respuesta que llegue es NUEVA (no historial)
+    adapter.markActivity();
+    recentCalls.clear(); // mensaje nuevo del usuario: se reinicia el conteo de repeticiones // el usuario envía algo: la respuesta que llegue es NUEVA (no historial)
     const { bridgeEnabled, autoInject, reminder, reinjectEvery } = state.settings;
     if (!bridgeEnabled || !state.tools.length) return;
 

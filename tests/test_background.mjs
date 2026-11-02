@@ -56,7 +56,7 @@ assert.equal((await call({ type: 'GET_STATE' })).servers.length, 0);
 // 2) El usuario añade el suyo y se conecta
 assert.equal((await call({ type: 'ADD_SERVER', name: 'astrax_mcp', url: 'ws://localhost:8080' })).ok, true);
 const id = (await call({ type: 'GET_STATE' })).servers[0].id;
-await new Promise((r) => setTimeout(r, 60));
+await new Promise((r) => setTimeout(r, 300)); // margen para reconcile() + handshake del MCP falso
 state = await call({ type: 'GET_STATE' });
 assert.equal(state.servers[0].enabled, true);
 assert.equal(state.servers[0].status, 'connected');

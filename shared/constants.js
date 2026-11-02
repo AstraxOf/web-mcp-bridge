@@ -1,5 +1,5 @@
 /**
- * constants.js — Constantes compartidas entre el service worker y el popup.
+ * constants.js - Constantes compartidas entre el service worker y el popup.
  * (Los content scripts no son módulos; reciben estos valores vía mensajes.)
  */
 
@@ -13,7 +13,13 @@ export const STORAGE_KEYS = {
   servers: 'wmb_servers',
   settings: 'wmb_settings',
   history: 'wmb_history',
+  dismissed: 'wmb_dismissed',
+  notices: 'wmb_notices',
+  bridge: 'wmb_bridge',
 };
+
+/** Claves de versiones anteriores que se borran solas (v1.4: el sistema de actualizaciones automáticas se eliminó). */
+export const LEGACY_STORAGE_KEYS = ['wmb_update'];
 
 /** Permisos por MCP: allow = nunca pregunta · ask = pregunta en cada llamada · deny = bloqueado. */
 export const PERMISSIONS = ['allow', 'ask', 'deny'];
@@ -36,10 +42,31 @@ export const DEFAULT_SETTINGS = {
   reinjectEvery: 12,
   /** Si el chat no acepta el envío con la pestaña oculta, trae la pestaña al frente un instante y vuelve a la anterior. */
   focusFallback: true,
+  /** Detecta solos los servidores de servers.json preguntando al puente (control port). */
+  autoDiscover: true,
+  /** Activa también los servidores detectados (hasta el máximo). Si es false solo se activa el primero cuando no hay ninguno activo. */
+  autoEnableDiscovered: false,
+  /** Puerto de control del puente (http://127.0.0.1:PUERTO/servers). */
+  controlPort: 8099,
+  /** Muestra los avisos del autor (novedades, versiones nuevas, incidencias). No instala nada: solo informa. */
+  showNotices: true,
 };
 
 /** El servidor de prueba incluido en el repositorio (server/examples/demo_mcp_server.py). */
 export const DEMO_SERVER = { name: 'demo', url: 'ws://localhost:8090' };
+
+/**
+ * Avisos del autor: un archivo JSON público (notices.json) en el repositorio. Gratis, sin servidor propio.
+ * Se consulta cada pocas horas; nunca se descarga ni se ejecuta nada: solo se muestra texto y un enlace.
+ */
+export const NOTICES_URL = 'https://raw.githubusercontent.com/AstraxOf/web-mcp-bridge/main/notices.json';
+export const NOTICES_EVERY_MS = 6 * 60 * 60 * 1000;
+export const NOTICES_RETRY_MS = 30 * 60 * 1000;
+export const NOTICES_MAX_BYTES = 64 * 1024;
+export const NOTICES_MAX_ITEMS = 20;
+/** Los enlaces de un aviso solo pueden apuntar a estos sitios (https). */
+export const NOTICE_LINK_HOSTS = ['github.com', 'gist.github.com'];
+export const NOTICE_LINK_SUFFIXES = ['.github.io'];
 
 export const PROTOCOL_VERSION = '2025-03-26';
 export const CALL_TIMEOUT_MS = 120_000;

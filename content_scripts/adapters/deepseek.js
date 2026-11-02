@@ -37,7 +37,7 @@
   const LOCK_MAX_MS = 240_000;   // …y si el resultado nunca se envía, máximo este otro
 
   const convId = () => (location.pathname.match(/\/s\/([^/?#]+)/) || [])[1] || null;
-  const hashOf = (call) => WMB.hash(JSON.stringify(call));
+  const hashOf = (call) => WMB.hash(JSON.stringify(call) ?? '');
 
   /** ¿Es un bloque de razonamiento (no la respuesta)? */
   function isThinking(el) {
@@ -178,9 +178,10 @@
 
     observeResponses(callback, options) {
       return super.observeResponses((detected) => {
+        if (detected.malformed || !detected.call) { callback(detected); return; } // aviso de bloque ilegible: no tiene llamada que bloquear
         const hash = hashOf(detected.call);
-        if (this.#locked(hash)) { this.debug?.('ok', 'DeepSeek · llamada idéntica ya en curso: ignorada'); return; }
-        this.#lock = { hash, firedAt: Date.now(), sentAt: 0, newGen: false };
+        if (this.#locked(hash) && detected.id === this.#lock?.id) { this.debug?.('ok', 'DeepSeek · llamada idéntica ya en curso: ignorada'); return; }
+        this.#lock = { hash, id: detected.id, firedAt: Date.now(), sentAt: 0, newGen: false };
         callback(detected);
       }, options);
     }

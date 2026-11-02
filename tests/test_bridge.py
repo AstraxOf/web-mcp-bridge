@@ -32,7 +32,7 @@ async def main():
         assert (await rpc(ws, 2, "ping"))["result"] == {}
 
         tools = (await rpc(ws, 3, "tools/list"))["result"]["tools"]
-        assert {t["name"] for t in tools} == {"hora_actual", "sumar", "eco"}, tools
+        assert {t["name"] for t in tools} == {"info_sistema", "hora_actual", "sumar", "eco"}, tools
 
         res = (await rpc(ws, 4, "tools/call", {"name": "sumar", "arguments": {"a": 2, "b": 40}}))["result"]
         assert res["content"][0]["text"] == "42", res
