@@ -542,6 +542,8 @@ function notifyNotice(notice) {
       title: notice.title,
       message: notice.message || 'Abre Web MCP Bridge para ver los detalles.',
       priority: notice.level === 'warning' ? 1 : 0,
+    }, () => {
+      if (chrome.runtime.lastError) console.warn('[WMB] notificacion de aviso no mostrada:', chrome.runtime.lastError.message);
     });
   } catch { /* sin permiso de notificaciones */ }
 }
@@ -550,7 +552,8 @@ async function fetchNoticesFeed() {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 8000);
   try {
-    const res = await fetch(NOTICES_URL, { cache: 'no-store', credentials: 'omit', signal: ctl.signal });
+    // El parametro t evita la cache de GitHub (raw.githubusercontent guarda ~5 min) para ver los avisos nuevos enseguida.
+    const res = await fetch(`${NOTICES_URL}?t=${Date.now()}`, { cache: 'no-store', credentials: 'omit', signal: ctl.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     if (new URL(res.url || NOTICES_URL).hostname !== new URL(NOTICES_URL).hostname) throw new Error('Respuesta de un sitio inesperado.');
     const text = await res.text();
@@ -569,7 +572,7 @@ function checkNotices(force = false) {
 async function failNotices(message) {
   await withLock(async () => {
     const prev = (await readNoticesRecord()) ?? { items: [], read: [], dismissed: [], notified: [] };
-    // Conserva los ultimos avisos buenos y reintenta en ~30 min en lugar de esperar otras 6 h.
+    // Conserva los ultimos avisos buenos y reintenta en ~5 min en lugar de esperar el ciclo completo.
     await chrome.storage.local.set({ [KEYS.notices]: { ...prev, checkedAt: Date.now() - NOTICES_EVERY_MS + NOTICES_RETRY_MS, error: message } });
   });
   return { ok: false, error: message };

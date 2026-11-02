@@ -60,8 +60,8 @@ export const DEMO_SERVER = { name: 'demo', url: 'ws://localhost:8090' };
  * Se consulta cada pocas horas; nunca se descarga ni se ejecuta nada: solo se muestra texto y un enlace.
  */
 export const NOTICES_URL = 'https://raw.githubusercontent.com/AstraxOf/web-mcp-bridge/main/notices.json';
-export const NOTICES_EVERY_MS = 6 * 60 * 60 * 1000;
-export const NOTICES_RETRY_MS = 30 * 60 * 1000;
+export const NOTICES_EVERY_MS = 10 * 60 * 1000;
+export const NOTICES_RETRY_MS = 5 * 60 * 1000;
 export const NOTICES_MAX_BYTES = 64 * 1024;
 export const NOTICES_MAX_ITEMS = 20;
 /** Los enlaces de un aviso solo pueden apuntar a estos sitios (https). */
