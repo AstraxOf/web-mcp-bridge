@@ -334,6 +334,15 @@ Antes de participar, lee también nuestro [Código de Conducta](CODE_OF_CONDUCT.
 [![Creador en Telegram](https://img.shields.io/badge/Creador-@RufusOficial-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/RufusOficial)
 [![Correo](https://img.shields.io/badge/Correo-avpn497%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:avpn497@gmail.com)
 
+> [!TIP]
+> **¿Buscas más servidores MCP para conectar al puente?** Explora la lista curada por la comunidad [Awesome MCP Servers](https://github.com/punkpeye/awesome-mcp-servers).
+
+<div align="center">
+
+[![Awesome MCP Servers](https://img.shields.io/badge/Awesome-MCP%20Servers-fc60a8?style=for-the-badge&logo=awesomelists&logoColor=white)](https://github.com/punkpeye/awesome-mcp-servers)
+
+</div>
+
 Si te sirvió el proyecto, deja una ⭐ en el repositorio y suscríbete al canal.
 
 <div align="center">
