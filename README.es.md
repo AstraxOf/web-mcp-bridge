@@ -1,4 +1,4 @@
-<div align="center">
+﻿<div align="center">
 
 <img src="icons/icon128.png" width="96" alt="Web MCP Bridge">
 
@@ -335,7 +335,9 @@ Antes de participar, lee también nuestro [Código de Conducta](CODE_OF_CONDUCT.
 [![Correo](https://img.shields.io/badge/Correo-avpn497%40gmail.com-EA4335?style=for-the-badge&logo=gmail&logoColor=white)](mailto:avpn497@gmail.com)
 
 > [!TIP]
-> **¿Buscas más servidores MCP para conectar al puente?** Explora la lista curada por la comunidad [Awesome MCP Servers](https://github.com/punkpeye/awesome-mcp-servers).
+> **¿Buscas más servidores MCP para conectar al puente?** Explora la lista curada por la comunidad [Awesome MCP Servers](https://github.com/punkpeye/awesome-mcp-servers)
+
+[![Web MCP Bridge MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/AstraxOf/web-mcp-bridge/badges/score.svg)](https://glama.ai/mcp/servers/AstraxOf/web-mcp-bridge).
 
 <div align="center">
 
