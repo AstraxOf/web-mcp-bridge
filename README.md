@@ -275,6 +275,8 @@ npm run pack  # dist/web-mcp-bridge.zip
 
 **Astrax** is open source and grows with its community. You're welcome to open issues, send pull requests, suggest ideas, try Astrax on other systems or MCP clients, and report bugs. Read [CONTRIBUTING.md](CONTRIBUTING.md) to get started — new adapters are the best first contribution.
 
+Please also read our [Code of Conduct](CODE_OF_CONDUCT.md) before taking part, and report security issues privately by following our [Security Policy](SECURITY.md) (never in a public issue).
+
 [![Telegram Channel](https://img.shields.io/badge/Telegram-Official%20channel-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/AstraxMCP)
 [![YouTube](https://img.shields.io/badge/YouTube-@AstraxOf-FF0000?style=for-the-badge&logo=youtube&logoColor=white)](https://youtube.com/@AstraxOf)
 [![Creator on Telegram](https://img.shields.io/badge/Creator-@RufusOficial-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)](https://t.me/RufusOficial)
