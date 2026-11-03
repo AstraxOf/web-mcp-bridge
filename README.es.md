@@ -4,7 +4,7 @@
 
 # Web MCP Bridge
 
-**Usa tus servidores MCP locales con ChatGPT, Gemini y Claude Web, sin API keys ni suscripciones extra.**
+**Usa tus servidores MCP locales con ChatGPT, Gemini, Claude Web y DeepSeek, sin API keys ni suscripciones extra.**
 
 [![English](https://img.shields.io/badge/English-Click-2563eb?style=flat-square)](README.md)
 [![Español](https://img.shields.io/badge/Español-Clic-eab308?style=flat-square)](README.es.md)
@@ -49,7 +49,7 @@ Son **dos piezas** que trabajan juntas:
 
 ```mermaid
 flowchart LR
-    A["💬 Chat<br/>ChatGPT · Gemini · Claude"] <--> B["🌐 Extensión"]
+    A["💬 Chat<br/>ChatGPT · Gemini · Claude · DeepSeek"] <--> B["🌐 Extensión"]
     B <-->|"WebSocket local"| C["🌉 Puente (Python)"]
     C <--> D["🧰 Tus herramientas MCP"]
 ```
@@ -167,7 +167,8 @@ Tus servidores se definen en **`server/servers.json`** (se crea solo en la insta
 | ![ChatGPT](https://img.shields.io/badge/ChatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white) | ✅ Soportada | `adapters/chatgpt.js` |
 | ![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white) | ✅ Soportada | `adapters/gemini.js` |
 | ![Claude](https://img.shields.io/badge/Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white) | ✅ Soportada | `adapters/claude.js` |
-| ![Perplexity](https://img.shields.io/badge/Perplexity-1FB8CD?style=for-the-badge&logo=perplexity&logoColor=white) · ![DeepSeek](https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge) · ![Le Chat](https://img.shields.io/badge/Le%20Chat-FA520F?style=for-the-badge&logo=mistralai&logoColor=white) | 🗺️ Roadmap | [Contribuir](CONTRIBUTING.md) |
+| ![DeepSeek](https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge) | ✅ Soportada | `adapters/deepseek.js` |
+| ![Perplexity](https://img.shields.io/badge/Perplexity-1FB8CD?style=for-the-badge&logo=perplexity&logoColor=white) · ![Le Chat](https://img.shields.io/badge/Le%20Chat-FA520F?style=for-the-badge&logo=mistralai&logoColor=white) | 🗺️ Roadmap | [Contribuir](CONTRIBUTING.md) |
 
 ## ✨ Características de un vistazo
 
@@ -223,7 +224,7 @@ En Windows también: `server\restart_bridge.cmd` y `server\bridge_status.cmd` (d
 ```mermaid
 flowchart LR
     subgraph Navegador
-      A[ChatGPT / Gemini / Claude] <--> B[Content script<br/>+ adaptador]
+      A[ChatGPT / Gemini / Claude / DeepSeek] <--> B[Content script<br/>+ adaptador]
       B <--> C[Service Worker]
       D[Popup] --> C
     end
@@ -316,7 +317,7 @@ npm run pack    # genera dist/web-mcp-bridge.zip
 
 ## 🗺️ Roadmap
 
-- [ ] Soporte para Firefox (MV3) y Perplexity / DeepSeek / Mistral Le Chat
+- [ ] Soporte para Firefox (MV3) y Perplexity / Mistral Le Chat
 - [ ] Llamadas múltiples por mensaje
 - [ ] Selectores configurables desde el popup
 - [ ] Transporte SSE / Streamable HTTP además de WebSocket

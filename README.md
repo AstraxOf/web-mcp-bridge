@@ -4,7 +4,7 @@
 
 # Web MCP Bridge
 
-**Use your local MCP servers with ChatGPT, Gemini and Claude Web: no API keys, no extra subscriptions.**
+**Use your local MCP servers with ChatGPT, Gemini, Claude Web and DeepSeek: no API keys, no extra subscriptions.**
 
 [![English](https://img.shields.io/badge/English-Click-2563eb?style=flat-square)](README.md)
 [![Español](https://img.shields.io/badge/Español-Clic-eab308?style=flat-square)](README.es.md)
@@ -49,7 +49,7 @@ Two pieces work together:
 
 ```mermaid
 flowchart LR
-    A["💬 Chat<br/>ChatGPT · Gemini · Claude"] <--> B["🌐 Extension"]
+    A["💬 Chat<br/>ChatGPT · Gemini · Claude · DeepSeek"] <--> B["🌐 Extension"]
     B <-->|"local WebSocket"| C["🌉 Bridge (Python)"]
     C <--> D["🧰 Your MCP tools"]
 ```
@@ -167,7 +167,8 @@ Still stuck? Tell us in the [Telegram channel](https://t.me/AstraxMCP) or open a
 | ![ChatGPT](https://img.shields.io/badge/ChatGPT-74aa9c?style=for-the-badge&logo=openai&logoColor=white) | ✅ Supported | `adapters/chatgpt.js` |
 | ![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white) | ✅ Supported | `adapters/gemini.js` |
 | ![Claude](https://img.shields.io/badge/Claude-D97757?style=for-the-badge&logo=anthropic&logoColor=white) | ✅ Supported | `adapters/claude.js` |
-| ![Perplexity](https://img.shields.io/badge/Perplexity-1FB8CD?style=for-the-badge&logo=perplexity&logoColor=white) · ![DeepSeek](https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge) · ![Le Chat](https://img.shields.io/badge/Le%20Chat-FA520F?style=for-the-badge&logo=mistralai&logoColor=white) | 🗺️ Roadmap | [Contribute](CONTRIBUTING.md) |
+| ![DeepSeek](https://img.shields.io/badge/DeepSeek-4D6BFE?style=for-the-badge) | ✅ Supported | `adapters/deepseek.js` |
+| ![Perplexity](https://img.shields.io/badge/Perplexity-1FB8CD?style=for-the-badge&logo=perplexity&logoColor=white) · ![Le Chat](https://img.shields.io/badge/Le%20Chat-FA520F?style=for-the-badge&logo=mistralai&logoColor=white) | 🗺️ Roadmap | [Contribute](CONTRIBUTING.md) |
 
 ## ✨ Skills at a glance
 
