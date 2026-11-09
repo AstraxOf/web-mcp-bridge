@@ -1,16 +1,18 @@
 /**
- * mcp_parser.js - Parser tolerante de llamadas MCP (v1.3.0).
+ * mcp_parser.js - Tolerant MCP call parser (v1.3.0).
  *
- * Se carga DESPUES de utils.js y reemplaza WMB.extractMcpCalls por una version de 3 capas:
- *   1. Estricta  (utils.js): JSON valido con {"mcp_call": {...}}.
- *   2. Reparada  : arregla en el texto los fallos tipicos de las IA (barras invertidas sueltas de rutas de Windows,
- *                  saltos de linea reales dentro de textos, comillas internas sin escapar, comillas tipograficas,
- *                  comas sobrantes) y vuelve a leer el JSON.
- *   3. Banderas  : si el JSON sigue roto, busca por separado las "banderas" server / name / arguments y, con el
- *                  schema de la herramienta, extrae cada argumento por su nombre. Solo se acepta si el servidor y la
- *                  herramienta existen entre los MCP activos (evita falsos positivos).
- * Si hay intencion de llamada pero nada se puede leer, WMB.looksMalformed() lo detecta y WMB.formatCallError()
- * genera el aviso que se devuelve a la IA con el motivo exacto (antes la IA se quedaba esperando).
+ * Loaded AFTER utils.js and replaces WMB.extractMcpCalls with a 3-layer version:
+ *   1. Strict    (utils.js): valid JSON with {"mcp_call": {...}}.
+ *   2. Repaired  : fixes typical AI mistakes in the text (bare backslashes in Windows paths,
+ *                  real newlines inside strings, unescaped inner quotes, smart quotes,
+ *                  trailing commas) and re-parses the JSON.
+ *   3. Flags     : if the JSON is still broken, looks separately for the "flags" server / name /
+ *                  arguments and, using the tool schema, extracts each argument by its name.
+ *                  Only accepted if the server and tool exist among the active MCPs (avoids
+ *                  false positives).
+ * If there is a call intent but nothing can be parsed, WMB.looksMalformed() detects it and
+ * WMB.formatCallError() builds the notice sent back to the AI with the exact reason (previously
+ * the AI was left waiting).
  */
 (() => {
   'use strict';
@@ -27,8 +29,8 @@
   const nextSig = (s, i) => { let j = i; while (j < s.length && /\s/.test(s[j])) j += 1; return s[j]; };
 
   /**
-   * Lee un objeto/array JSON que empieza en `start` reparando fallos tipicos.
-   * Devuelve { json, end } o null si esta incompleto (no se auto-cierra: un mensaje cortado NO es una llamada).
+   * Reads a JSON object/array starting at `start`, repairing typical mistakes.
+   * Returns { json, end } or null if incomplete (no auto-close: a truncated message is NOT a call).
    */
   function repairObject(text, start) {
     let out = '';
@@ -63,7 +65,9 @@
       } else out += ch;
     }
     return null;
-  }function normalizeCall(obj) {
+  }
+
+  function normalizeCall(obj) {
     const c = obj && typeof obj === 'object' ? (obj.mcp_call ?? obj) : null;
     if (!c || typeof c !== 'object') return null;
     const name = c.name ?? c.tool ?? c.tool_name;
@@ -77,7 +81,7 @@
     };
   }
 
-  // Capa 2: JSON reparado
+  // Layer 2: repaired JSON
   function repairedCalls(raw) {
     const calls = [];
     let from = 0;
@@ -92,12 +96,12 @@
       try {
         const call = normalizeCall(JSON.parse(fixed.json));
         if (call) { calls.push(call); from = fixed.end + 1; }
-      } catch { /* sigue con la capa 3 */ }
+      } catch { /* fall through to layer 3 */ }
     }
     return calls;
   }
 
-  // Capa 3: banderas (server / name / arguments por patron)
+  // Layer 3: flags (server / name / arguments by pattern)
   const looseUnescape = (s) => s.replace(/\\(u[0-9a-fA-F]{4}|["\\/bfnrt])/g, (m, g) => {
     if (g[0] === 'u') return String.fromCharCode(parseInt(g.slice(1), 16));
     return ({ b: '\b', f: '\f', n: '\n', r: '\r', t: '\t' })[g] ?? g;
@@ -111,7 +115,7 @@
     }
     if (c[0] === '{' || c[0] === '[') {
       const fixed = repairObject(c, 0);
-      if (fixed) { try { return JSON.parse(fixed.json); } catch { /* texto */ } }
+      if (fixed) { try { return JSON.parse(fixed.json); } catch { /* treat as text */ } }
     }
     const bare = c.replace(/[\s,}`]+$/, '');
     if (schema?.type === 'string') return bare;
@@ -122,7 +126,7 @@
     const t = text.trimStart();
     if (t[0] === '{') {
       const fixed = repairObject(t, 0);
-      if (fixed) { try { const o = JSON.parse(fixed.json); if (o && typeof o === 'object') return o; } catch { /* por claves */ } }
+      if (fixed) { try { const o = JSON.parse(fixed.json); if (o && typeof o === 'object') return o; } catch { /* by keys */ } }
     }
     const props = tool?.inputSchema?.properties ?? {};
     const keys = Object.keys(props);
@@ -148,7 +152,7 @@
     const calls = [];
     marks.forEach((at, k) => {
       const seg = raw.slice(at, marks[k + 1] ?? raw.length);
-      if (!/\}[\s`]*$/.test(seg)) return; // cortado: no es una llamada
+      if (!/\}[\s`]*$/.test(seg)) return; // truncated: not a call
       const argsAt = seg.search(ARGS_RE);
       const head = argsAt === -1 ? seg : seg.slice(0, argsAt);
       const quoted = '["\\u201c]([^"\\u201d]+)["\\u201d]';
@@ -167,14 +171,14 @@
     return calls;
   }
 
-  // Capa 3: lector tolerante estilo JSON5 / Python (comillas simples, claves sin comillas, True/False/None, comentarios).
+  // Layer 3: tolerant JSON5 / Python-style reader (single quotes, unquoted keys, True/False/None, comments).
   const LOOSE_IDENT = /^[A-Za-z_$][\w$-]*/;
   const LOOSE_NUM = /^-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?/;
   const LOOSE_WORDS = { true: true, false: false, null: null, True: true, False: false, None: null, undefined: null };
   const OPEN_QUOTES = ['"', "'", '\u201c', '\u2018'];
   const SIMPLE_ESC = { n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', '"': '"', "'": "'", '/': '/', '\\': '\\' };
 
-  /** Lee un valor que empieza en `start`. Devuelve { value, end } o null si esta incompleto o no se entiende. */
+  /** Reads a value starting at `start`. Returns { value, end } or null if incomplete/unparseable. */
   function parseLoose(text, start) {
     let i = start;
     const bad = () => { throw new SyntaxError('loose'); };
@@ -198,13 +202,13 @@
           if (n === undefined) bad();
           if (Object.hasOwn(SIMPLE_ESC, n)) { out += SIMPLE_ESC[n]; i += 2; }
           else if (n === 'u' && isHex4(text, i + 2)) { out += String.fromCharCode(parseInt(text.slice(i + 2, i + 6), 16)); i += 6; }
-          else { out += `\\${n}`; i += 2; } // barra suelta (C:\Users): se conserva
+          else { out += `\\${n}`; i += 2; } // bare backslash (C:\Users): kept
           continue;
         }
         if (closers.includes(ch)) {
           const nx = nextSig(text, i + 1);
           if (nx === undefined || ',}]:'.includes(nx)) { i += 1; return out; }
-          out += ch; // comilla interna sin escapar
+          out += ch; // unescaped inner quote
         } else if (ch !== '\r') out += ch;
         i += 1;
       }
@@ -282,7 +286,7 @@
     return calls;
   }
 
-  /** Limpia lo que los renderizadores y las IA cuelan en el texto: caracteres de ancho cero, espacios raros y entidades HTML. */
+  /** Cleans what renderers and AIs sneak into text: zero-width chars, weird spaces, HTML entities. */
   WMB.normalizeAiText = (value) => {
     let raw = String(value ?? '').replace(/[\u200b\u200c\u200d\u2060\ufeff]/g, '').replace(/[\u00a0\u2028\u2029]/g, ' ');
     if (/&(?:quot|#34|#x22);/i.test(raw) && !raw.includes('"mcp_call"')) {
@@ -292,7 +296,7 @@
     return raw;
   };
 
-  /** Extrae las llamadas MCP: estricta, reparada, lectura tolerante y, por ultimo, banderas. */
+  /** Extracts MCP calls: strict, repaired, tolerant read, and finally flags. */
   WMB.extractMcpCalls = (rawText, tools = WMB.tools) => {
     const raw = WMB.normalizeAiText(rawText);
     const strict = strictExtract(raw);
@@ -304,7 +308,7 @@
     return loose.length ? loose : flagCalls(raw, tools);
   };
 
-  /** Hay intencion de llamada MCP (bandera mcp_call + name) pero no se pudo leer nada. */
+  /** There is an MCP call intent (mcp_call flag + name) but nothing could be parsed. */
   WMB.looksMalformed = (rawText) => {
     const raw = String(rawText);
     if (!raw.includes('mcp_call') || !raw.includes('{')) return false;
@@ -312,28 +316,28 @@
     return WMB.extractMcpCalls(raw).length === 0;
   };
 
-  /** Motivo concreto por el que no se pudo leer el bloque. */
+  /** Concrete reason why the block could not be read. */
   function diagnose(raw) {
     const at = raw.indexOf('mcp_call');
     const start = raw.lastIndexOf('{', at);
-    if (start === -1) return 'falta la llave { de apertura';
+    if (start === -1) return 'missing opening brace {';
     const fixed = repairObject(raw, start);
-    if (!fixed) return 'el bloque esta incompleto o cortado (faltan llaves } de cierre o hay una comilla sin cerrar)';
+    if (!fixed) return 'the block is incomplete or truncated (missing closing braces } or an unclosed quote)';
     const seg = raw.slice(start, fixed.end + 1);
     let msg;
-    try { JSON.parse(seg); return 'el JSON es valido pero falta "name" o el servidor/herramienta no coincide con los MCP activos'; } catch (e) { msg = String(e.message); }
+    try { JSON.parse(seg); return 'the JSON is valid but "name" is missing or the server/tool does not match the active MCPs'; } catch (e) { msg = String(e.message); }
     const pos = Number((/position (\d+)/.exec(msg) || [])[1]);
     const near = Number.isFinite(pos) ? seg.slice(Math.max(0, pos - 25), pos + 25).replace(/\s+/g, ' ') : '';
-    let why = 'JSON invalido';
-    if (/escape/i.test(msg)) why = 'secuencia de escape invalida (casi siempre una ruta de Windows con "\\": usa "/" o duplica la barra)';
-    else if (/control character|Unterminated/i.test(msg)) why = 'salto de linea real dentro de un texto: usa \\n';
-    else if (/[\u201c\u201d]/.test(seg)) why = 'comillas tipograficas en lugar de comillas rectas';
-    else if (/,\s*[}\]]/.test(seg)) why = 'coma sobrante antes de } o ]';
-    else if (/Unexpected|Expected/i.test(msg)) why = 'comilla sin escapar dentro de un texto, o JSON mal formado';
-    return near ? `${why} (cerca de: ${near})` : why;
+    let why = 'invalid JSON';
+    if (/escape/i.test(msg)) why = 'invalid escape sequence (almost always a Windows path with "\\": use "/" or double the backslash)';
+    else if (/control character|Unterminated/i.test(msg)) why = 'real newline inside a string: use \\n';
+    else if (/[\u201c\u201d]/.test(seg)) why = 'smart quotes instead of straight quotes';
+    else if (/,\s*[}\]]/.test(seg)) why = 'trailing comma before } or ]';
+    else if (/Unexpected|Expected/i.test(msg)) why = 'unescaped quote inside a string, or malformed JSON';
+    return near ? `${why} (near: ${near})` : why;
   }
   WMB.diagnoseMcp = diagnose;
 
-  /** Mensaje que se devuelve a la IA cuando su bloque no se pudo leer. */
-  WMB.formatCallError = (raw) => `[MCP_RESULT server="bridge" tool="mcp_call" status="format_error"]\nNo se ejecuto nada: tu bloque mcp_call no se pudo leer. Motivo: ${diagnose(String(raw))}.\nReenvia SOLO el bloque corregido, dentro de \`\`\`json y en UNA sola linea. Reglas: rutas con "/" (C:/Users/...), comillas internas como \\", saltos de linea como \\n, sin comas finales ni texto dentro del JSON. Para scripts largos escribe antes un archivo con una herramienta y luego ejecutalo.\nFormato: {"mcp_call":{"server":"<servidor>","name":"<herramienta>","arguments":{}}}\n[/MCP_RESULT]`;
+  /** Message sent back to the AI when its block could not be read. */
+  WMB.formatCallError = (raw) => `[MCP_RESULT server="bridge" tool="mcp_call" status="format_error"]\nNothing was executed: your mcp_call block could not be read. Reason: ${diagnose(String(raw))}.\nResend ONLY the corrected block, inside \`\`\`json and on ONE line. Rules: paths with "/" (C:/Users/...), inner quotes as \\", line breaks as \\n, no trailing commas and no text inside the JSON. For long scripts, write a file with a tool first and then run it.\nFormat: {"mcp_call":{"server":"<server>","name":"<tool>","arguments":{}}}\n[/MCP_RESULT]`;
 })();
