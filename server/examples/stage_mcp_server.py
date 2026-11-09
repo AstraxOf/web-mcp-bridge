@@ -11,21 +11,14 @@ Herramientas:
   stage_file(session_id, path, chunk_index, content, total_chunks?, stage_id?)
   flush_staged_file(stage_id, owner, repo, branch, message, sha?)
   abort_staged_file(stage_id)
-
-Diseno: el modelo envia trozos <=150 lineas; stage_store los guarda en disco;
-flush concatena y empuja a GitHub con la API Contents (sin incrustar el archivo
-completo en un unico JSON de mcp_call).
 """
 import json
 import os
 import sys
-import urllib.request
-import urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import stage_store  # noqa: E402
-
-GITHUB_API = "https://api.github.com"
+import github_push  # noqa: E402
 
 TOOLS = [
     {
@@ -34,11 +27,11 @@ TOOLS = [
         "inputSchema": {
             "type": "object",
             "properties": {
-                "path": {"type": "string", "description": "Ruta destino en el repo (ej. crates/x/src/lib.rs)"},
+                "path": {"type": "string"},
                 "chunk_index": {"type": "integer", "minimum": 0},
-                "content": {"type": "string", "description": "Contenido del trozo (sin escapar manualmente)"},
+                "content": {"type": "string"},
                 "total_chunks": {"type": "integer", "minimum": 1},
-                "stage_id": {"type": "string", "description": "Obligatorio a partir del 2o trozo (lo devuelve la 1a llamada)"},
+                "stage_id": {"type": "string"},
             },
             "required": ["path", "chunk_index", "content"],
         },
@@ -54,7 +47,7 @@ TOOLS = [
                 "repo": {"type": "string"},
                 "branch": {"type": "string"},
                 "message": {"type": "string"},
-                "sha": {"type": "string", "description": "SHA del blob actual si el archivo ya existe"},
+                "sha": {"type": "string"},
             },
             "required": ["stage_id", "owner", "repo", "branch", "message"],
         },
@@ -71,8 +64,7 @@ def call_tool(name: str, args: dict) -> str:
     if name == "stage_file":
         sid = args.get("stage_id")
         if not sid:
-            stage = stage_store.create(args["path"], args.get("total_chunks"))
-            sid = stage.stage_id
+            sid = stage_store.create(args["path"], args.get("total_chunks")).stage_id
         stage = stage_store.put(sid, int(args["chunk_index"]), args["content"], args.get("total_chunks"))
         return json.dumps({"stage_id": sid, "received": len(stage.received), "total": stage.total_chunks, "complete": stage.complete})
     if name == "abort_staged_file":
@@ -80,15 +72,10 @@ def call_tool(name: str, args: dict) -> str:
         return json.dumps({"ok": True})
     if name == "flush_staged_file":
         text, stage = stage_store.read_all(args["stage_id"])
-        result = _push_to_github(text, args, stage)
+        out = github_push.push(stage.path, text, args["owner"], args["repo"], args["branch"], args["message"], args.get("sha"))
         stage_store.abort(args["stage_id"])
-        return json.dumps(result)
+        return json.dumps(out)
     raise KeyError(name)
-
-
-# _push_to_github se implementa en el siguiente commit (separado para no truncar).
-def _push_to_github(text: str, args: dict, stage) -> dict:  # pragma: no cover
-    raise RuntimeError("flush_staged_file aun no implementado")
 
 
 def _reply(msg_id, result=None, error=None):
@@ -120,7 +107,7 @@ def main():
             try:
                 out = call_tool(p["name"], p.get("arguments", {}))
                 _reply(mid, {"content": [{"type": "text", "text": out}], "isError": False})
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 _reply(mid, {"content": [{"type": "text", "text": f"Error: {e!r}"}], "isError": True})
         elif m == "ping":
             _reply(mid, {})
