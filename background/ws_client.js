@@ -6,8 +6,10 @@
  *   - Reconecta con backoff exponencial si el servidor se cae.
  *   - Mantiene un ping periódico para que el Service Worker MV3 no se duerma
  *     mientras haya conexiones abiertas.
+ *   - Deduplica llamadas de escritura (idempotency.js) para evitar commits dobles.
  */
 import { PROTOCOL_VERSION } from '../shared/constants.js';
+import { runIdempotent } from './idempotency.js';
 
 const KEEPALIVE_MS = 20_000;
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -32,14 +34,12 @@ export class McpConnection {
   constructor(server, onChange = () => {}) {
     this.server = server;
     this.onChange = onChange;
-    this.status = 'disconnected'; // connecting | connected | disconnected | error
+    this.status = 'disconnected';
     this.tools = [];
     this.serverInfo = null;
     this.lastError = null;
     this.#resetReady();
   }
-
-  // ───────────────────────── API pública ─────────────────────────
 
   connect() {
     this.#closedByUser = false;
@@ -91,7 +91,6 @@ export class McpConnection {
     this.#setStatus('disconnected');
   }
 
-  /** Espera a que la conexión esté lista (handshake + tools/list). */
   whenReady(timeoutMs = 4000) {
     if (this.status === 'connected') return Promise.resolve(true);
     return Promise.race([
@@ -100,7 +99,6 @@ export class McpConnection {
     ]);
   }
 
-  /** Envía una petición JSON-RPC y espera la respuesta. */
   request(method, params = {}, timeoutMs = REQUEST_TIMEOUT_MS) {
     return new Promise((resolve, reject) => {
       if (!this.#ws || this.#ws.readyState !== WebSocket.OPEN) {
@@ -123,8 +121,17 @@ export class McpConnection {
     }
   }
 
-  callTool(name, args, timeoutMs) {
-    return this.request('tools/call', { name, arguments: args ?? {} }, timeoutMs);
+  /**
+   * Llama a una herramienta. Las de ESCRITURA pasan por el cache de idempotencia:
+   * una repeticion identica no vuelve a ejecutarse mientras el resultado siga fresco.
+   */
+  async callTool(name, args, timeoutMs) {
+    const run = () => this.request('tools/call', { name, arguments: args ?? {} }, timeoutMs);
+    const { result, cached } = await runIdempotent(this.server.id, name, args, run);
+    if (cached && result && typeof result === 'object') {
+      return { ...result, _wmb_cached: true };
+    }
+    return result;
   }
 
   async refreshTools() {
@@ -138,8 +145,6 @@ export class McpConnection {
     this.tools = tools;
     this.onChange({ kind: 'tools' });
   }
-
-  // ───────────────────────── Internos ─────────────────────────
 
   async #handshake() {
     const init = await this.request('initialize', {
@@ -162,7 +167,6 @@ export class McpConnection {
     let msg;
     try { msg = JSON.parse(raw); } catch { return; }
 
-    // Respuesta a una petición nuestra
     if (msg.id !== undefined && msg.method === undefined) {
       const pending = this.#pending.get(msg.id);
       if (!pending) return;
@@ -173,7 +177,6 @@ export class McpConnection {
       return;
     }
 
-    // Notificaciones / peticiones del servidor
     if (msg.method === 'notifications/tools/list_changed') {
       this.refreshTools().catch(() => {});
     } else if (msg.method && msg.id !== undefined) {
@@ -201,7 +204,6 @@ export class McpConnection {
   #startKeepalive() {
     clearInterval(this.#keepaliveTimer);
     this.#keepaliveTimer = setInterval(() => {
-      // Sin respuesta al ping la conexión está «zombi» (suspensión del equipo, red…): se cierra para que reconecte sola.
       this.request('ping', {}, 8000).catch(() => { try { this.#ws?.close(); } catch { /* noop */ } });
     }, KEEPALIVE_MS);
   }
