@@ -1,23 +1,23 @@
 /**
- * notices.js - Avisos del autor (novedades, versiones nuevas, incidencias).
+ * notices.js - Author notices (news, new versions, incidents).
  *
- * Cómo funciona: el autor edita un archivo `notices.json` en su repositorio de GitHub (gratis, sin servidor)
- * y la extensión lo consulta cada pocas horas. NO descarga ni instala nada: solo muestra título, texto y un enlace
- * (a GitHub) que el usuario decide abrir. Todo lo que llega se valida y se recorta: un archivo mal escrito se ignora
- * y la extensión conserva los últimos avisos buenos.
+ * How it works: the author edits a `notices.json` file in their GitHub repository (free, no server)
+ * and the extension checks it every few hours. It does NOT download or install anything: it only
+ * shows a title, text and a link (to GitHub) that the user chooses to open. Everything that arrives
+ * is validated and trimmed: a malformed file is ignored and the extension keeps the last good notices.
  *
- * Formato de notices.json:
- *   { "notices": [ { "id": "2026-11-v1.5.0", "title": "Versión 1.5.0", "message": "Qué cambia…",
- *       "url": "https://github.com/…/releases/tag/v1.5.0", "level": "update",
+ * notices.json format:
+ *   { "notices": [ { "id": "2026-11-v1.5.0", "title": "Version 1.5.0", "message": "What changes...",
+ *       "url": "https://github.com/.../releases/tag/v1.5.0", "level": "update",
  *       "date": "2026-11-02", "expires": "2027-02-01", "minVersion": "1.0.0", "maxVersion": "1.4.9" } ] }
- *   - id        (obligatorio) único y estable; así cada aviso se muestra y se notifica UNA sola vez.
- *   - title     (obligatorio) hasta 80 caracteres.
- *   - message   texto plano, hasta 400.
- *   - url       enlace https a github.com / *.github.io (otros se descartan).
- *   - level     info | update | warning.
- *   - expires   fecha a partir de la cual deja de mostrarse.
- *   - minVersion / maxVersion  solo lo ven las versiones dentro de ese rango (p. ej. maxVersion = la última sin el arreglo:
- *               quien ya actualizó no ve el aviso de "actualiza").
+ *   - id          (required) unique and stable; this way each notice is shown and notified only once.
+ *   - title       (required) up to 80 characters.
+ *   - message     plain text, up to 400.
+ *   - url         https link to github.com / *.github.io (others are discarded).
+ *   - level       info | update | warning.
+ *   - expires     date from which it stops being shown.
+ *   - minVersion / maxVersion  only visible to versions within that range (e.g. maxVersion = the last
+ *                 one without the fix: those who already updated do not see the "update" notice).
  */
 import {
   NOTICES_MAX_ITEMS, NOTICE_LINK_HOSTS, NOTICE_LINK_SUFFIXES,
@@ -25,13 +25,13 @@ import {
 
 export const NOTICE_LEVELS = ['info', 'update', 'warning'];
 
-/** "1.4.0" → [1,4,0]; devuelve null si no parece una versión. */
+/** "1.4.0" -> [1,4,0]; returns null if it does not look like a version. */
 export function parseVersion(value) {
   const match = /^v?(\d+(?:\.\d+){0,3})(?:[-+].*)?$/i.exec(String(value ?? '').trim());
   return match ? match[1].split('.').map((n) => parseInt(n, 10)) : null;
 }
 
-/** -1, 0 o 1. Si alguna no es una versión válida devuelve null. */
+/** -1, 0 or 1. If either one is not a valid version returns null. */
 export function compareVersions(a, b) {
   const x = parseVersion(a);
   const y = parseVersion(b);
@@ -43,7 +43,7 @@ export function compareVersions(a, b) {
   return 0;
 }
 
-/** Solo https hacia github.com / gist.github.com / *.github.io. Devuelve la URL limpia o null. */
+/** Only https to github.com / gist.github.com / *.github.io. Returns the clean URL or null. */
 export function safeLink(raw) {
   let url;
   try { url = new URL(String(raw ?? '').trim()); } catch { return null; }
@@ -56,7 +56,7 @@ export function safeLink(raw) {
 const clean = (value, max, { keepNewlines = false } = {}) => {
   let text = String(value ?? '').replace(keepNewlines ? /[\u0000-\u0009\u000b-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g : /[\u0000-\u001f\u007f\u2028\u2029\u202a-\u202e\u2066-\u2069]/g, ' ');
   text = text.replace(/[ \t]+/g, ' ').trim();
-  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}...` : text;
 };
 
 const toTime = (value) => {
@@ -66,12 +66,12 @@ const toTime = (value) => {
 };
 
 /**
- * Valida y normaliza el JSON recibido. Nunca lanza excepción.
+ * Validates and normalizes the received JSON. Never throws.
  * @returns {{ok:boolean, items:object[], skipped:number, error?:string}}
  */
 export function normalizeFeed(raw, { version = '0.0.0', now = Date.now() } = {}) {
   const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? raw.notices : null);
-  if (!Array.isArray(list)) return { ok: false, items: [], skipped: 0, error: 'El archivo de avisos no tiene la lista "notices".' };
+  if (!Array.isArray(list)) return { ok: false, items: [], skipped: 0, error: 'The notices file has no "notices" list.' };
 
   const items = [];
   const seen = new Set();
@@ -98,13 +98,12 @@ export function normalizeFeed(raw, { version = '0.0.0', now = Date.now() } = {})
     });
     if (items.length >= NOTICES_MAX_ITEMS) break;
   }
-  // Más recientes primero; sin fecha, al final y en el orden del archivo.
   items.sort((a, b) => (b.date ?? -Infinity) - (a.date ?? -Infinity));
   return { ok: true, items, skipped };
 }
 
 /**
- * Estado público para el popup a partir del registro guardado.
+ * Public state for the popup from the stored record.
  * @param {{items?:object[], read?:string[], dismissed?:string[], checkedAt?:number, error?:string|null}} record
  */
 export function publicNotices(record) {
@@ -121,9 +120,9 @@ export function publicNotices(record) {
 }
 
 /**
- * Combina el registro anterior con un feed nuevo y decide qué avisos hay que notificar.
- * - En la primera consulta de la vida de la extensión nada se notifica (no se llena el escritorio de avisos viejos).
- * - Solo se notifica un aviso una vez (aunque el popup siga mostrándolo).
+ * Merges the previous record with a new feed and decides which notices should be notified.
+ * - On the very first check of the extension nothing is notified (desktop not flooded with old notices).
+ * - Each notice is notified only once (even if the popup keeps showing it).
  */
 export function mergeFeed(prev, items, now = Date.now()) {
   const ids = new Set(items.map((n) => n.id));

@@ -1,11 +1,14 @@
 /**
- * claude.js — Adaptador para Claude Web (claude.ai).
- * El editor es ProseMirror (contenteditable).
+ * claude.js - Adapter for Claude Web (claude.ai).
+ * The editor is ProseMirror (contenteditable).
+ *
+ * Note: the Spanish-language aria-labels are real DOM selectors for Claude's
+ * Spanish UI, not user-facing strings. Keep them as-is.
  */
 (() => {
   'use strict';
   const WMB = globalThis.WMB;
- 
+
   class ClaudeAdapter extends WMB.BaseAdapter {
     constructor() {
       super({

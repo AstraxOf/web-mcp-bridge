@@ -1,6 +1,9 @@
 /**
- * gemini.js — Adaptador para Google Gemini (gemini.google.com).
- * El editor es Quill (`.ql-editor`) dentro del componente <rich-textarea>.
+ * gemini.js - Adapter for Google Gemini (gemini.google.com).
+ * The editor is Quill (`.ql-editor`) inside the <rich-textarea> component.
+ *
+ * Note: the Spanish-language aria-labels are real DOM selectors for Gemini's
+ * Spanish UI, not user-facing strings. Keep them as-is.
  */
 (() => {
   'use strict';
