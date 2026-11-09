@@ -1,7 +1,7 @@
 /**
- * prompt_extra_rules.js — Reglas adicionales para cargas grandes.
- * Se carga DESPUES de prompt_builder.js y envuelve WMB.buildSystemPrompt
- * para anadir reglas de chunking y anti-duplicado sin tocar el archivo original.
+ * prompt_extra_rules.js — Extra rules for large payloads.
+ * Loaded AFTER prompt_builder.js and wraps WMB.buildSystemPrompt
+ * to append chunking and anti-duplicate rules without touching the original file.
  */
 (() => {
   'use strict';
@@ -11,19 +11,19 @@
 
   WMB.EXTRA_RULES = [
     '',
-    '## Reglas para cargas grandes (archivos de codigo)',
-    '6. NUNCA incrustes en mcp_call el contenido completo de un archivo de mas de 150 lineas: el JSON se corta por limite de tokens y la llamada falla con status="format_error".',
-    '7. Para archivos grandes, divide el contenido en bloques de <= 150 lineas y llama a create_or_update_file una vez por bloque (misma rama, mismo path), en orden, esperando el resultado de cada llamada antes de enviar la siguiente.',
-    '8. Para los bloques 2 y siguientes, vuelve a leer el archivo con get_file_contents para obtener el sha actualizado antes de cada create_or_update_file.',
-    '9. Si existe una herramienta de staging (stage_file / flush_staged_file), usala en lugar de incrustar contenido grande en un unico JSON.',
-    '10. No repitas una llamada identica que ya devolvio status="ok": usa el resultado anterior. Si necesitas reejecutar, cambia los argumentos o explica por que.',
+    '## Rules for large payloads (code files)',
+    '6. NEVER embed the full content of a file with more than 150 lines inside mcp_call: the JSON gets truncated by the token limit and the call fails with status="format_error".',
+    '7. For large files, split the content into chunks of <= 150 lines and call create_or_update_file once per chunk (same branch, same path), in order, waiting for the result of each call before sending the next one.',
+    '8. For chunks 2 and beyond, re-read the file with get_file_contents to obtain the updated sha before each create_or_update_file.',
+    '9. If a staging tool (stage_file / flush_staged_file) is available, use it instead of embedding large content in a single JSON.',
+    '10. Do not repeat an identical call that already returned status="ok": use the previous result. If you must re-run it, change the arguments or explain why.',
   ];
 
   const orig = WMB.buildSystemPrompt;
   if (typeof orig !== 'function') return;
   WMB.buildSystemPrompt = (tools) => {
     const base = orig(tools);
-    const marker = '\n## Herramientas';
+    const marker = '\n## Tools';
     const i = base.indexOf(marker);
     if (i === -1) return base + '\n' + WMB.EXTRA_RULES.join('\n');
     return base.slice(0, i) + '\n' + WMB.EXTRA_RULES.join('\n') + base.slice(i);
