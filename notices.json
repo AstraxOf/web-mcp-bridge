@@ -1,24 +1,14 @@
 {
   "notices": [
     {
-      "id": "2026-11-v1.7.0-approval-buttons",
-      "title": "Web MCP Bridge 1.7.0: botones de aprobación",
-      "message": "Corregido: en el panel flotante, los botones Ejecutar / Permitir siempre / Rechazar de la aprobación de una herramienta quedaban cortados y no se podían pulsar. Ahora la tarjeta aparece arriba y los botones siempre se ven. Actualiza desde GitHub y recarga la extensión y la pestaña de la IA.",
-      "url": "https://github.com/AstraxOf/web-mcp-bridge/commit/7be685d",
+      "id": "2026-11-v1.7.0-r2",
+      "title": "Web MCP Bridge 1.7.0",
+      "message": "Corregido: respuestas viejas que se reenviaban (eco), envíos que no salían (ahora 3 reintentos automáticos), falsos avisos de JSON ilegible y puentes antiguos que seguían vivos. Nuevo: Editor JSON para añadir MCP, tiempo de respuesta configurable, botón global de encender/apagar/reiniciar el puente y botón Reescanear. Corregido: botones Permitir siempre / Ejecutar cortados.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.7.0",
       "level": "update",
       "date": "2026-11-10",
       "expires": "2027-02-10",
       "maxVersion": "1.7.0"
-    },
-    {
-      "id": "2026-11-v1.7.0",
-      "title": "Web MCP Bridge 1.7.0",
-      "message": "Corregido: respuestas viejas que se reenviaban (eco), envíos que no salían (ahora 3 reintentos automáticos), falsos avisos de JSON ilegible y puentes antiguos que seguían vivos. Nuevo: Editor JSON para añadir MCP, tiempo de respuesta configurable, botón global de encender/apagar/reiniciar el puente y botón Reescanear.",
-      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.7.0",
-      "level": "update",
-      "date": "2026-11-09",
-      "expires": "2027-02-09",
-      "maxVersion": "1.6.9"
     },
     {
       "id": "2026-11-v1.5.0",
