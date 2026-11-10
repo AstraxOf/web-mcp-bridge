@@ -1,13 +1,24 @@
 {
   "notices": [
     {
+      "id": "2026-11-v1.7.0",
+      "title": "Web MCP Bridge 1.7.0",
+      "message": "Corregido: respuestas viejas que se reenviaban (eco), envíos que no salían (ahora 3 reintentos automáticos), falsos avisos de JSON ilegible y puentes antiguos que seguían vivos. Nuevo: Editor JSON para añadir MCP, tiempo de respuesta configurable, botón global de encender/apagar/reiniciar el puente y botón Reescanear.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.7.0",
+      "level": "update",
+      "date": "2026-11-09",
+      "expires": "2027-02-09",
+      "maxVersion": "1.6.9"
+    },
+    {
       "id": "2026-11-v1.5.0",
       "title": "Web MCP Bridge 1.5.0",
       "message": "Nueva version con correcciones para DeepSeek, fix JSON y cambio de diseño. Gracias por usar la extension.",
       "url": "https://github.com/AstraxOf/web-mcp-bridge",
       "level": "info",
       "date": "2026-11-02",
-      "expires": "2027-02-01"
+      "expires": "2027-02-01",
+      "maxVersion": "1.5.0"
     }
   ]
 }
