@@ -36,6 +36,20 @@ def call(method, path, origin=None):
         return None, None
 
 
+def post_body(path, text, origin=None):
+    req = urllib.request.Request(f"http://127.0.0.1:{CONTROL}{path}", method="POST", data=text.encode("utf-8"))
+    req.add_header("Content-Type", "application/json")
+    if origin:
+        req.add_header("Origin", origin)
+    try:
+        with urllib.request.urlopen(req, timeout=8) as res:
+            return res.status, json.loads(res.read())
+    except urllib.error.HTTPError as err:
+        return err.code, json.loads(err.read() or b"{}")
+    except OSError:
+        return None, None
+
+
 def wait_for(cond, timeout=15):
     end = time.time() + timeout
     while time.time() < end:
@@ -75,7 +89,7 @@ def main():
             assert set(found) == {"uno", "dos"} and all(s["status"] == "listening" for s in found.values()), found
             assert found["uno"]["url"] == "ws://127.0.0.1:18771", found
             info = call("GET", "/servers")[1]
-            assert info["config_error"] is None and info["version"] == "1.6.0", info
+            assert info["config_error"] is None and info["version"] == "1.7.0", info
 
             # Una web NO puede leer ni apagar el puente
             assert call("GET", "/servers", origin="https://chatgpt.com")[0] == 403
@@ -95,6 +109,25 @@ def main():
             # La extension (origen chrome-extension://) si puede abrir el archivo
             status, body = call("POST", "/open-config", origin="chrome-extension://abcdefghijklmnop")
             assert status == 200 and body["ok"] and body["path"].endswith("servers.json"), (status, body)
+
+            # v1.7.0 - editor JSON de la extension: GET/POST /config
+            EXT = "chrome-extension://abcdefghijklmnop"
+            status, snap = call("GET", "/config", origin=EXT)
+            assert status == 200 and snap["ok"] and '"uno"' in snap["text"] and snap["path"].endswith("servers.json"), (status, snap)
+            assert call("GET", "/config", origin="https://evil.example")[0] == 403          # una web NO puede leer el archivo
+            assert post_body("/config", "{}", origin="https://evil.example")[0] == 403       # ni escribirlo
+            before = config.read_text(encoding="utf-8-sig")
+            status, body = post_body("/config", '{"servers": [ {"name": "x" ', origin=EXT)   # JSON roto: se rechaza y NO se toca el archivo
+            assert status == 400 and "JSON mal escrito" in body["error"], (status, body)
+            status, body = post_body("/config", json.dumps({"servers": [{"name": "x", "command": ["a"]}]}), origin=EXT)
+            assert status == 400 and "port" in body["error"], (status, body)
+            assert config.read_text(encoding="utf-8-sig") == before and not config.with_name("servers.json.wmb-tmp").exists()
+            new_text = json.dumps({"servers": [entry("uno", 18771), entry("tres", 18773)]}, indent=2)
+            status, body = post_body("/config", new_text, origin=EXT)                       # valido: se guarda, deja .bak y recarga al instante
+            assert status == 200 and body["ok"] and body["backup"].endswith("servers.json.bak"), (status, body)
+            assert config.read_text(encoding="utf-8") == new_text and config.with_name("servers.json.bak").exists()
+            assert wait_for(lambda: set(names()) == {"uno", "tres"}, 10), names()
+            assert call("GET", "/health")[1]["config"].endswith("servers.json")
 
             # Recarga en caliente: se agrega un servidor y se quita otro sin reiniciar
             config.write_text(json.dumps({"servers": [entry("uno", 18771), entry("tres", 18773)]}), encoding="utf-8")

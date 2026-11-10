@@ -1,13 +1,16 @@
 """Prueba del lanzador (start_bridge_loop.pyw): control Iniciar/Apagar/Reiniciar, marca .paused, seguridad de Origin/Host y supervisor."""
 import http.client
+import http.server
 import importlib.machinery
 import importlib.util
 import json
+import os
 import tempfile
 import threading
 import time
 from pathlib import Path
 
+os.environ["WMB_NO_KILL"] = "1"  # las pruebas NUNCA cierran puentes reales del equipo
 ROOT = Path(__file__).resolve().parent.parent
 LAUNCHER_PORT = 18798
 DEAD_CONTROL = 18797  # nadie escucha aqui: el puente "no existe"
@@ -89,6 +92,43 @@ assert spawned == [], "estando apagado no debe arrancar el puente"
 call("POST", "/start")
 assert wait_for(lambda: len(spawned) >= 1), "al iniciar debe arrancar el puente"
 print("OK supervisor")
+
+# --- v1.7.0: puente AJENO (otra carpeta) y estado con carpeta ---
+st, body = call("GET", "/status")
+assert body["dir"] == mod.DIR and body["version"] == mod.VERSION, body
+
+FAKE_PORT = 18796
+
+
+class FakeBridge(http.server.BaseHTTPRequestHandler):
+    config = "C:/otra/carpeta/servers.json"
+
+    def log_message(self, *_a):
+        pass
+
+    def do_GET(self):
+        body = json.dumps({"ok": True, "config": FakeBridge.config}).encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
+fake = http.server.ThreadingHTTPServer(("127.0.0.1", FAKE_PORT), FakeBridge)
+threading.Thread(target=fake.serve_forever, daemon=True).start()
+cfg2 = tmp / "servers2.json"
+cfg2.write_text(json.dumps({"servers": [], "control_port": FAKE_PORT, "launcher_port": 18795}), encoding="utf-8")
+other = mod.Launcher(config=str(cfg2), paused_file=str(tmp / ".paused2"), spawn=fake_spawn)
+assert other.foreign_bridge() is True, "un puente con OTRO servers.json debe detectarse como ajeno"
+FakeBridge.config = str(cfg2)
+assert other.foreign_bridge() is False, "un puente con MI servers.json no es ajeno"
+fake.shutdown()
+fake.server_close()
+assert mod.kill_bridges() == [], "con WMB_NO_KILL no se cierra nada"
+st, body = call("POST", "/killall")
+assert st == 200 and body["killed"] == []
+print("OK puente ajeno / killall")
 
 # --- salir ---
 st, body = call("POST", "/quit")

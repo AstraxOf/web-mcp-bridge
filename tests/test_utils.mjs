@@ -81,4 +81,12 @@ assert.match(plan.build(true), /contenido COMPLETO en el archivo adjunto s_t_com
 assert.ok(plan.build(false).includes(long), 'sin adjunto, el texto completo va en línea');
 assert.equal(WMB.planResult({ content: [{ type: 'text', text: 'corto' }] }, { server: 's', name: 't', status: 'ok' }).files.length, 0);
 
+// v1.7.0 (B1/B2): resultados viejos que quedan en el input NO deben acumularse con el nuevo
+const stale = 'hola\n[MCP_RESULT server="a" tool="b" status="ok"]\nviejo\n[/MCP_RESULT]\n[WMB] aviso viejo\nmi pregunta';
+assert.equal(WMB.dom.hasStale(stale), true);
+assert.equal(WMB.dom.stripStale(stale), 'hola\n\nmi pregunta');
+assert.equal(WMB.dom.hasStale('texto normal sin bloques'), false);
+assert.equal(WMB.dom.stripStale('[MCP_RESULT server="a" tool="b" status="ok"]\nx\n[/MCP_RESULT]'), '');
+assert.equal(WMB.VERSION, '1.7.0');
+
 console.log('✔ test_utils: todo correcto');
