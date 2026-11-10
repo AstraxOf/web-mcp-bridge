@@ -5,7 +5,7 @@
 (() => {
   'use strict';
   const WMB = (globalThis.WMB = globalThis.WMB || {});
-  WMB.VERSION = '1.6.0';
+  WMB.VERSION = '1.7.0';
 
   const nativeSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -246,6 +246,18 @@
 
   dom.getText = (el) => ('value' in el ? el.value : (el.innerText || el.textContent || ''));
 
+  // ── v1.7.0 · Anti-acumulación ──────────────────────────────────────────────
+  // Causa del bug «la respuesta vieja vuelve al input y se adjunta otra vez»: el resultado se escribía con `append`
+  // sobre lo que hubiera en el cuadro. Si el chat no lo vaciaba tras enviar (DeepSeek/React, pestaña lenta…), el
+  // siguiente resultado se pegaba DESPUÉS del anterior y el contexto crecía en cada vuelta.
+  // Estos bloques los escribe SOLO la extensión; nunca deben sobrevivir en el cuadro de texto.
+  const STALE_BLOCK = /\[MCP_RESULT\b[\s\S]*?\[\/MCP_RESULT\]/g;
+  const STALE_LINE = /^[ \t]*\[WMB\][^\n]*$/gm;
+  /** ¿Quedan en el texto restos de resultados/avisos que escribió la extensión? */
+  dom.hasStale = (text) => /\[MCP_RESULT\b|\[\/MCP_RESULT\]|^[ \t]*\[WMB\]/m.test(String(text ?? ''));
+  /** Quita los restos de la extensión y conserva lo que haya escrito el usuario. */
+  dom.stripStale = (text) => String(text ?? '').replace(STALE_BLOCK, '').replace(STALE_LINE, '').replace(/\n{3,}/g, '\n\n').trim();
+
   /** Construye un `File` a partir de `{name, mime, b64}` o `{name, mime, text}`. */
   dom.fileFrom = ({ name, mime, b64, text }) => {
     if (b64 === undefined) return new File([text ?? ''], name, { type: mime });
@@ -321,5 +333,41 @@
     el.textContent = append && hadText ? `${dom.getText(el)}\n\n${text}` : text;
     el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText', data: text }));
     return dom.getText(el).length > before;
+  };
+
+  /** Vacía el cuadro de texto avisando al framework de la página. Devuelve true si quedó vacío. */
+  dom.clear = async (el) => {
+    el.focus();
+    if (el instanceof HTMLTextAreaElement || el instanceof HTMLInputElement) {
+      const proto = el instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, '');
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      return !el.value;
+    }
+    const selection = getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    selection.removeAllRanges();
+    selection.addRange(range);
+    document.execCommand('delete');
+    await WMB.sleep(40);
+    if (dom.getText(el).trim()) {
+      el.textContent = '';
+      el.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'deleteContent' }));
+    }
+    return !dom.getText(el).trim();
+  };
+
+  /**
+   * Quita del cuadro los restos de resultados/avisos de la extensión (los de un envío anterior que no salió)
+   * y conserva lo que haya escrito el usuario. Devuelve true si había algo que limpiar.
+   */
+  dom.purgeStale = async (el) => {
+    const current = dom.getText(el);
+    if (!dom.hasStale(current)) return false;
+    const keep = dom.stripStale(current);
+    await dom.clear(el);
+    if (keep) await dom.setText(el, keep, { append: false });
+    return true;
   };
 })();

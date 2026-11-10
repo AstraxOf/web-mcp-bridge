@@ -237,7 +237,10 @@
         const idle = await WMB.waitFor(() => !this.isStreaming(), { timeout, interval: 200 });
         if (!idle) return false;
       }
-      const gone = () => !hasText() || this.isStreaming();
+      // v1.7.0: solo cuenta como enviado si el texto SALIÓ del cuadro. Antes bastaba «está generando», pero eso puede ser
+      // la respuesta anterior aún en pantalla: se daba por enviado, el texto seguía dentro y el siguiente resultado se
+      // pegaba detrás (la respuesta vieja volvía al input y se adjuntaba otra vez).
+      const gone = () => !hasText();
 
       composer.focus();
       const init = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
@@ -250,7 +253,10 @@
         const b = this.getSendButton();
         return b && !b.disabled && b.getAttribute('aria-disabled') !== 'true' ? b : null;
       }, { timeout, interval: 150 });
-      if (button && hasText() && !this.isStreaming()) { button.click(); return true; }
+      if (button && hasText() && !this.isStreaming()) {
+        button.click();
+        if (await WMB.waitFor(gone, { timeout: 1500, interval: 150 })) return true;
+      }
       return !hasText();
     }
   }
