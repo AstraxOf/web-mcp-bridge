@@ -18,3 +18,9 @@ server/.paused
 *.bak_*
 *.log
 Thumbs.db
+
+# Local notes, plans and launcher leftovers
+PLAN_*.txt
+ERRORES*.txt
+server/_autostart_backup/
+server/servers.json
