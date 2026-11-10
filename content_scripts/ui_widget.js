@@ -77,6 +77,12 @@
     ul.log::-webkit-scrollbar-track { background: transparent; }
     ul.log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
     ul.log::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    /* v1.7.2: con una aprobación pendiente la tarjeta sube arriba y su bloque de código se compacta; los botones siempre se ven */
+    .approvals { flex: none; }
+    .approvals .card { margin: 0 0 8px; }
+    .panel.has-approval .card pre { max-height: 96px; }
+    .approvals .queue { margin: 0 0 8px; text-align: center; }
+    .panel.has-approval .bridge { margin-top: 4px; }
     .log { font-size: 12px; color: var(--muted); }
     .log .err { color: var(--err); } .log .ok { color: var(--ok); }
     .perm { display: flex; gap: 8px; align-items: center; justify-content: space-between; margin-top: 10px; font-size: 12px; }
@@ -335,10 +341,12 @@
       const perms = new Set(servers.map((s) => s.permission));
       const common = perms.size === 1 ? [...perms][0] : 'mixed';
 
-      return h('div', { class: 'panel', role: 'dialog', 'aria-label': 'Web MCP Bridge' },
+      return h('div', { class: `panel${this.approvals.length ? ' has-approval' : ''}`, role: 'dialog', 'aria-label': 'Web MCP Bridge' },
         h('div', { class: 'head', 'data-drag': '1', style: 'cursor: move;' },
           h('strong', {}, `Web MCP Bridge · ${adapterName}`),
           h('button', { 'aria-label': 'Cerrar', onclick: () => { this.open = false; this.render(true); } }, '✕')),
+
+        this.#approvalSection(),
 
         servers.length
           ? h('ul', {}, servers.map((s) => h('li', { class: 'srv' },
@@ -360,14 +368,22 @@
           h('button', { onclick: () => this.handlers.onRefresh() }, 'Actualizar'),
           h('button', { title: 'Vuelve a leer la última respuesta de la IA (si la pestaña iba lenta y no la tomó)', onclick: () => this.handlers.onRescan?.() }, 'Reescanear')),
 
-        this.approvals.map((item) => this.#approvalCard(item)),
-
         this.logs.length
           ? h('ul', { class: 'log' }, this.logs.map((l) => h('li', { class: l.kind },
             `${l.ts.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${l.text}`)))
           : null,
 
         h('div', { class: 'foot' }, h('div', {}, `Web MCP Bridge v${WMB.VERSION}`), h('div', {}, 'Github: @AstraxOf')));
+    }
+
+    /** v1.7.2 · La aprobación va SIEMPRE arriba (bajo el encabezado) para que sus botones nunca queden fuera del panel.
+     *  Se muestra una tarjeta a la vez; las demás esperan en cola. */
+    #approvalSection() {
+      if (!this.approvals.length) return null;
+      const rest = this.approvals.length - 1;
+      return h('div', { class: 'approvals' },
+        this.#approvalCard(this.approvals[0]),
+        rest > 0 ? h('p', { class: 'muted queue' }, `+${rest} más en cola`) : null);
     }
 
     #approvalCard(item) {
