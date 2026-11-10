@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Editor MCP · Web MCP Bridge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+  <link rel="stylesheet" href="editor.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <img src="../icons/icon48.png" alt="" width="32" height="32">
+      <h1>MCP <span>Editor</span> <small id="version" class="version"></small></h1>
+    </div>
+    <div class="top-actions">
+      <div class="bridge-chip" id="bridge-chip">
+        <i id="bridge-dot" class="dot connecting"></i>
+        <span id="bridge-text">Comprobando…</span>
+      </div>
+      <button id="bridge-toggle" type="button" class="ghost" disabled><span>Iniciar</span></button>
+      <button id="bridge-restart" type="button" class="ghost" disabled><span>Reiniciar</span></button>
+    </div>
+  </header>
+
+  <p id="banner" class="callout warn" hidden></p>
+
+  <main class="bento">
+    <!-- Editor: pieza grande -->
+    <section class="tile tile-editor">
+      <div class="toolbar">
+        <div class="file">
+          <strong>servers.json</strong>
+          <small id="path" class="muted"></small>
+        </div>
+        <div class="toolbar-actions">
+          <button id="b-reload" type="button" class="ghost" title="Recargar del disco"><span>Recargar</span></button>
+          <button id="b-format" type="button" class="ghost" title="Ordenar el JSON"><span>Formatear</span></button>
+          <button id="b-download" type="button" class="ghost" title="Descargar archivo"><span>Descargar</span></button>
+          <button id="b-save" type="button" class="primary" disabled><span>Guardar</span></button>
+        </div>
+      </div>
+      <div class="code">
+        <pre id="gutter" aria-hidden="true">1</pre>
+        <textarea id="editor" wrap="off" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="Contenido de servers.json"></textarea>
+      </div>
+      <div class="statusbar">
+        <span id="status" class="status">Cargando…</span>
+        <span id="dirty" class="muted"></span>
+      </div>
+      <ul id="issues" class="issues" hidden></ul>
+    </section>
+
+    <!-- Nuevo MCP -->
+    <section class="tile tile-add">
+      <h2>Nuevo MCP</h2>
+      <div id="templates" class="chips" aria-label="Plantillas"></div>
+
+      <div class="fields">
+        <label class="field"><span>Nombre</span><input id="f-name" type="text" placeholder="mi-mcp" autocomplete="off" spellcheck="false"></label>
+        <label class="field"><span>Comando</span><input id="f-cmd" type="text" placeholder="python -m mi_mcp" autocomplete="off" spellcheck="false"></label>
+
+        <details class="more">
+          <summary>Opciones</summary>
+          <div class="fields inner">
+            <label class="field"><span>Puerto</span><input id="f-port" type="number" min="1" max="65535" step="1"></label>
+            <label class="field"><span>Carpeta</span><input id="f-cwd" type="text" placeholder="C:/proyecto" autocomplete="off" spellcheck="false"></label>
+            <label class="field"><span>Variables</span><textarea id="f-env" rows="2" spellcheck="false" placeholder="CLAVE=valor"></textarea></label>
+          </div>
+        </details>
+      </div>
+
+      <p id="form-error" class="callout bad" hidden></p>
+      <div class="actions">
+        <button id="f-add" type="button" class="primary wide"><span>Añadir</span></button>
+        <button id="f-clear" type="button" class="ghost"><span>Limpiar</span></button>
+      </div>
+    </section>
+
+    <!-- Importar -->
+    <section class="tile tile-import">
+      <details>
+        <summary><h2>Importar JSON</h2></summary>
+        <div class="fields inner">
+          <textarea id="import-text" rows="5" spellcheck="false" placeholder='{ "mcpServers": { … } }'></textarea>
+          <p id="import-error" class="callout bad" hidden></p>
+          <div class="actions"><button id="import-btn" type="button" class="ghost wide"><span>Importar</span></button></div>
+        </div>
+      </details>
+    </section>
+  </main>
+
+  <footer class="app-foot"><span id="version-line"></span></footer>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script type="module" src="editor.js"></script>
+</body>
+</html>
