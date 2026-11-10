@@ -83,7 +83,13 @@ function prune() {
 }
 
 export function isWriteTool(name) {
-  return WRITE_TOOLS.has(name);
+  if (!name) return false;
+  if (WRITE_TOOLS.has(name)) return true;
+  // Los servidores MCP pueden prefijar el nombre (ej. github_create_or_update_file)
+  for (const tool of WRITE_TOOLS) {
+    if (name.endsWith(`_${tool}`)) return true;
+  }
+  return false;
 }
 
 /**
