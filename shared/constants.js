@@ -50,7 +50,15 @@ export const DEFAULT_SETTINGS = {
   controlPort: 8099,
   /** Muestra los avisos del autor (novedades, versiones nuevas, incidencias). No instala nada: solo informa. */
   showNotices: true,
+  /** v1.7.0: pausa (ms) antes de entregar cada resultado al chat. Evita saturar a la IA («Too many requests») con preguntas cortas. 0 = al instante. Se cambia desde el panel flotante. */
+  responseDelayMs: 1500,
 };
+
+/** Límites del tiempo de respuesta configurable (ms). */
+export const RESPONSE_DELAY_MAX_MS = 60_000;
+
+/** Puerto del lanzador (start_bridge_loop.pyw): enciende, apaga y reinicia el puente. */
+export const DEFAULT_LAUNCHER_PORT = 8098;
 
 /** El servidor de prueba incluido en el repositorio (server/examples/demo_mcp_server.py). */
 export const DEMO_SERVER = { name: 'demo', url: 'ws://localhost:8090' };

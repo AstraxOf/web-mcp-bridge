@@ -45,7 +45,10 @@
           <button id="toggle-bridge" type="button" class="soft" disabled><i class="ico" data-ico="power"></i><span>Iniciar puente</span></button>
           <button id="restart-bridge" type="button" class="soft"><i class="ico" data-ico="refresh"></i><span>Reiniciar puente</span></button>
         </div>
-        <button id="open-config" type="button" class="link cfg"><i class="ico" data-ico="file"></i><span>Editar servers.json</span></button>
+        <div class="btn-row one">
+          <button id="open-editor" type="button" class="primary"><i class="ico" data-ico="edit"></i><span>Editor JSON / Agregar MCP</span></button>
+        </div>
+        <button id="open-config" type="button" class="link cfg"><i class="ico" data-ico="file"></i><span>Abrir servers.json en el Bloc de notas</span></button>
       </div>
 
       <div class="summary">
@@ -69,7 +72,7 @@
 
       <ul id="server-list" class="server-list"></ul>
       <div id="empty" class="empty" hidden>
-        <p>Todavía no hay servidores. Abre <code>servers.json</code>, añade tus MCP y guarda: aparecerán aquí solos.</p>
+        <p>Todavía no hay servidores. Abre el <b>Editor JSON</b>, añade tus MCP y guarda: aparecerán aquí solos.</p>
       </div>
     </section>
 
@@ -173,6 +176,11 @@
           <strong>Máximo de caracteres por resultado</strong>
           <small>Nada se recorta: lo que pase de este límite se adjunta completo al chat como archivo y en el mensaje queda un extracto.</small>
           <input type="number" id="set-maxResultChars" min="500" max="100000" step="500">
+        </label>
+        <label class="setting column">
+          <strong>Tiempo de respuesta (segundos)</strong>
+          <small>Espera antes de entregar el resultado de una herramienta a la IA. Súbelo si la IA se satura o dice «Too many requests». 0 = inmediato.</small>
+          <input type="number" id="set-responseDelaySec" min="0" max="60" step="0.5">
         </label>
       </div>
 

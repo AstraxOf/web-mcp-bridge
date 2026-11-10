@@ -9,7 +9,7 @@
 import { McpConnection } from './ws_client.js';
 import {
   STORAGE_KEYS as KEYS, LEGACY_STORAGE_KEYS, DEFAULT_SETTINGS, MAX_ACTIVE_SERVERS,
-  CALL_TIMEOUT_MS, HISTORY_LIMIT, SUPPORTED_URL_PATTERNS, PERMISSIONS,
+  CALL_TIMEOUT_MS, HISTORY_LIMIT, SUPPORTED_URL_PATTERNS, PERMISSIONS, RESPONSE_DELAY_MAX_MS,
   NOTICES_URL, NOTICES_EVERY_MS, NOTICES_RETRY_MS, NOTICES_MAX_BYTES,
 } from '../shared/constants.js';
 import { compareVersions, normalizeFeed, publicNotices, mergeFeed, safeLink } from './notices.js';
@@ -83,12 +83,14 @@ chrome.storage.local.get(KEYS.bridge).then((data) => {
   if (!bridge.config) bridge.config = storedConfig;
 }).catch(() => {});
 
-async function bridgeFetch(path, { method = 'GET', timeout = 1500 } = {}) {
+async function bridgeFetch(path, { method = 'GET', timeout = 1500, body: payload } = {}) {
   const { settings } = await loadState();
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeout);
   try {
-    const res = await fetch(`http://127.0.0.1:${settings.controlPort || 8099}${path}`, { method, cache: 'no-store', signal: ctl.signal });
+    // text/plain: es una petición «simple» (sin preflight CORS); el puente lo interpreta como JSON.
+    const extra = payload === undefined ? {} : { body: payload, headers: { 'Content-Type': 'text/plain; charset=utf-8' } };
+    const res = await fetch(`http://127.0.0.1:${settings.controlPort || 8099}${path}`, { method, cache: 'no-store', signal: ctl.signal, ...extra });
     let body = null;
     try { body = await res.json(); } catch { /* respuesta sin cuerpo */ }
     return { status: res.status, body };
@@ -100,6 +102,7 @@ function probeBridge(force = false) {
   if (!force && Date.now() - lastProbe < 2500) return Promise.resolve(bridge);
   if (probing) return probing;
   probing = (async () => {
+    const launcherProbe = probeLauncher(); // en paralelo: con el puente apagado cada sondeo puede tardar ~2 s (Windows)
     try {
       const { status, body } = await bridgeFetch('/servers');
       if (status !== 200 || !body?.ok) throw new Error('Respuesta inesperada del puente.');
@@ -118,7 +121,7 @@ function probeBridge(force = false) {
         error: err?.name === 'AbortError' ? 'sin respuesta' : (err?.message ?? 'sin conexion'),
       });
     }
-    await probeLauncher();
+    await launcherProbe;
     lastProbe = Date.now();
     return bridge;
   })().finally(() => { probing = null; });
@@ -387,7 +390,11 @@ const mutations = {
   }),
 
   UPDATE_SETTINGS: ({ settings: patch }) => mutate(async (_servers, settings) => {
-    await chrome.storage.local.set({ [KEYS.settings]: { ...settings, ...patch } });
+    const clean = { ...patch };
+    if ('responseDelayMs' in clean) { // v1.7.0: tiempo de respuesta configurable (0 – 60 s)
+      clean.responseDelayMs = Math.min(RESPONSE_DELAY_MAX_MS, Math.max(0, Math.round(Number(clean.responseDelayMs)) || 0));
+    }
+    await chrome.storage.local.set({ [KEYS.settings]: { ...settings, ...clean } });
   }),
 };
 
@@ -443,7 +450,7 @@ async function launcherFetch(path, { method = 'GET', timeout = 1500 } = {}) {
 
 async function probeLauncher() {
   try {
-    const { status, body } = await launcherFetch('/status');
+    const { status, body } = await launcherFetch('/status', { timeout: 5000 });
     bridge.launcherOnline = status === 200 && Boolean(body?.launcher);
     bridge.paused = bridge.launcherOnline && Boolean(body?.paused);
   } catch {
@@ -486,7 +493,7 @@ async function controlBridge(action) {
 }
 async function restartBridge() {
   const before = await probeBridge(true);
-  if (before.launcherOnline && (!before.online || !bridgeCanControl())) return controlBridge('restart');
+  if (before.launcherOnline) return controlBridge('restart'); // v1.7.0: siempre por el lanzador (cierra tambien puentes de OTRAS copias)
   if (!before.online) {
     return { ok: false, error: 'El puente no está encendido, así que no hay nada que reiniciar desde aquí. Ábrelo con server/start_bridge_loop.pyw.' };
   }
@@ -511,6 +518,86 @@ async function restartBridge() {
   await discoverServers(true).catch(() => {});
   scheduleBroadcast();
   return { ok: true, pid: after.pid, supervised: after.supervised, configError: after.configError };
+}
+
+// ------------- v1.7.0: botón GLOBAL del puente + editor de servers.json -------------
+
+/** Sin lanzador: se le pide al propio puente que se apague por su puerto de control. */
+async function stopViaControlPort() {
+  const before = await probeBridge(true);
+  if (!before.online) return { ok: true, stopped: true, already: true };
+  try { await bridgeFetch('/shutdown', { method: 'POST', timeout: 4000 }); } catch { /* ya se estaba cerrando */ }
+  const end = Date.now() + 15_000;
+  while (Date.now() < end) {
+    await delay(600);
+    if (!(await probeBridge(true)).online) { scheduleBroadcast(); return { ok: true, stopped: true }; }
+  }
+  return { ok: false, error: 'El puente no se apagó en 15 segundos.' };
+}
+
+/**
+ * Encender / apagar / reiniciar el puente, GLOBAL y esté como esté:
+ *   · con lanzador: él mata TODOS los puentes (de cualquier carpeta) y levanta el de esta copia;
+ *   · sin lanzador: apaga por el puerto de control; para encender hace falta el lanzador (install.cmd).
+ * Además el interruptor general de la extensión sigue al proceso (apagar = nada se conecta).
+ */
+async function bridgeGlobal(action) {
+  if (!['start', 'stop', 'restart'].includes(action)) return { ok: false, error: 'Acción no válida.' };
+  await withLock(async () => {
+    const { settings } = await loadState();
+    await chrome.storage.local.set({ [KEYS.settings]: { ...settings, bridgeEnabled: action !== 'stop' } });
+  });
+  await reconcile();
+  scheduleBroadcast();
+
+  const before = await probeBridge(true);
+  let res;
+  if (action === 'stop') {
+    res = before.launcherOnline ? await controlBridge('stop') : await stopViaControlPort();
+    if (!res.ok && before.online) res = await stopViaControlPort(); // el lanzador no pudo: se intenta por el puente
+  } else if (action === 'start') {
+    if (before.launcherOnline) res = await controlBridge('start');
+    else if (before.online) res = { ok: true, already: true, pid: before.pid };
+    else res = { ok: false, noLauncher: true, error: NO_LAUNCHER };
+  } else if (before.launcherOnline || before.online) {
+    res = await restartBridge();
+  } else {
+    res = { ok: false, noLauncher: true, error: NO_LAUNCHER };
+  }
+  await probeBridge(true);
+  scheduleBroadcast();
+  return res;
+}
+
+const OLD_BRIDGE_CONFIG = 'Tu puente es de una versión anterior a la 1.7.0 y no puede editar servers.json desde aquí. Reinícialo con «Reiniciar puente» (o con server/restart_bridge.cmd) y vuelve a intentarlo.';
+
+/** Lee servers.json a través del puente (texto tal cual, para el editor). */
+async function getBridgeConfig() {
+  const info = await probeBridge(true);
+  if (!info.online) return { ok: false, offline: true, error: 'El puente está apagado: enciéndelo para leer servers.json.' };
+  try {
+    const { status, body } = await bridgeFetch('/config', { timeout: 5000 });
+    if (status === 404) return { ok: false, oldBridge: true, error: OLD_BRIDGE_CONFIG };
+    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? 'No se pudo leer servers.json.' };
+    return { ok: true, ...body };
+  } catch { return { ok: false, error: 'No se pudo contactar con el puente.' }; }
+}
+
+/** Guarda servers.json: el puente valida, hace copia .bak, escribe y recarga los servidores. */
+async function saveBridgeConfig({ text }) {
+  if (typeof text !== 'string' || !text.trim()) return { ok: false, error: 'El contenido está vacío.' };
+  if (text.length > 1_000_000) return { ok: false, error: 'El archivo es demasiado grande.' };
+  const info = await probeBridge(true);
+  if (!info.online) return { ok: false, offline: true, error: 'El puente está apagado: enciéndelo para guardar. Mientras tanto puedes descargar el archivo.' };
+  try {
+    const { status, body } = await bridgeFetch('/config', { method: 'POST', timeout: 15_000, body: text });
+    if (status === 404) return { ok: false, oldBridge: true, error: OLD_BRIDGE_CONFIG };
+    if (!body?.ok) return { ok: false, invalid: status === 400, error: body?.error ?? 'El puente no pudo guardar el archivo.' };
+    lastDiscovery = 0;
+    await discoverServers(true).catch(() => {});
+    scheduleBroadcast();
+    return { ok: true, ...body };
+  } catch { return { ok: false, error: 'No se pudo contactar con el puente.' }; }
 }
 
 async function openConfig() {
@@ -657,8 +744,11 @@ async function handleMessage(msg, sender) {
     case 'READ_NOTICES': return markNoticesRead(msg.ids ?? 'all');
     case 'DISMISS_NOTICE': return markNoticesRead([msg.id], { dismiss: true });
     case 'RESTART_BRIDGE': return restartBridge();
-    case 'START_BRIDGE': return controlBridge('start');
-    case 'STOP_BRIDGE': return controlBridge('stop');
+    case 'START_BRIDGE': return bridgeGlobal('start');
+    case 'STOP_BRIDGE': return bridgeGlobal('stop');
+    case 'BRIDGE_GLOBAL': return bridgeGlobal(msg.action);
+    case 'GET_CONFIG': return getBridgeConfig();
+    case 'SAVE_CONFIG': return saveBridgeConfig(msg);
     case 'OPEN_CONFIG': return openConfig();
     case 'PROBE_BRIDGE': await probeBridge(true); return { ok: true, bridge: publicBridge() };
     case 'GET_HISTORY': {
@@ -689,13 +779,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // La extensión se instala SIN ningún MCP: cada usuario añade los suyos (astrax_mcp u otros) desde el popup.
 chrome.runtime.onInstalled.addListener(async (details) => {
-  const { servers } = await loadState();                 // ya descarta los marcadores sin direccion de la 1.1
-  await saveServers(servers);
-  await chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => {});
-  await reconcile();
-  if (details?.reason === 'install' || details?.reason === 'update') reinjectContentScripts().catch(() => {});
-  if (details?.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('welcome/welcome.html') }).catch(() => {});
-  checkNotices().catch(() => {});
+  try {
+    const { servers } = await loadState();                 // ya descarta los marcadores sin direccion de la 1.1
+    await saveServers(servers);
+    await chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => {});
+    await reconcile();
+    if (details?.reason === 'install' || details?.reason === 'update') reinjectContentScripts().catch(() => {});
+    if (details?.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('welcome/welcome.html') }).catch(() => {});
+    checkNotices().catch(() => {});
+  } catch (err) {
+    // Al recargar la extensión Chrome puede cerrar el service worker a mitad (error «No SW»): es inofensivo, el arranque normal lo repite.
+    console.warn('[WMB] onInstalled interrumpido:', err?.message ?? err);
+  }
 });
 // Red de seguridad: si el SW se duerme, la alarma lo despierta y reconecta.
 chrome.alarms.create('wmb-keepalive', { periodInMinutes: 0.5 });

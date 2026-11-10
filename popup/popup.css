@@ -106,6 +106,7 @@ button.busy .ico { animation: spin .9s linear infinite; }
 .bridge-head strong { display: block; font-size: 14px; }
 .bridge-head small { display: block; margin-top: 1px; }
 .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.btn-row.one { grid-template-columns: 1fr; margin-top: 10px; }
 .cfg { margin: 12px auto 0; display: flex; }
 .dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: var(--muted); transition: background .25s var(--ease), box-shadow .25s var(--ease); }
 .dot.connected, .dot.online { background: var(--ok); box-shadow: 0 0 0 4px color-mix(in srgb, var(--ok) 18%, transparent); }

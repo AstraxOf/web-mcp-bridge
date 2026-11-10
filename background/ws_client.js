@@ -145,7 +145,7 @@ export class McpConnection {
     const init = await this.request('initialize', {
       protocolVersion: PROTOCOL_VERSION,
       capabilities: {},
-      clientInfo: { name: 'web-mcp-bridge', version: '1.6.0' },
+      clientInfo: { name: 'web-mcp-bridge', version: '1.7.0' },
     });
     this.serverInfo = init?.serverInfo ?? null;
     this.notify('notifications/initialized');

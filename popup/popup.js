@@ -18,6 +18,7 @@ const ICONS = {
   play: '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>',
   refresh: '<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>',
   power: '<svg viewBox="0 0 24 24"><path d="M12 3v9"/><path d="M6.4 6.6a8 8 0 1 0 11.2 0"/></svg>',
+  edit: '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
   file: '<svg viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>',
 };
 for (const el of document.querySelectorAll('.ico[data-ico]')) el.innerHTML = ICONS[el.dataset.ico] ?? '';
@@ -113,8 +114,9 @@ function renderBridge(state) {
 
   const restart = $('#restart-bridge');
   if (!restarting) {
-    restart.disabled = !b.online;
-    restart.title = !b.online ? 'El puente está apagado' : (b.canControl ? 'Cierra y vuelve a abrir el puente (recarga servers.json y los MCP)' : 'Tu puente es antiguo: ábrelo una vez con restart_bridge.cmd para activar este botón');
+    restart.disabled = !b.checked || (!b.online && !b.launcherOnline);
+    setLabel(restart, b.online ? 'Reiniciar puente' : 'Encender (reiniciar)');
+    restart.title = (!b.online && !b.launcherOnline) ? 'Necesita el lanzador: se instala una vez con server/install.cmd' : 'Cierra TODOS los puentes (de cualquier carpeta) y abre uno nuevo; si estaba apagado, lo enciende';
   }
   $('#open-config').title = b.config ? `Abrir ${b.config}` : 'Abrir servers.json en tu editor';
 }
@@ -133,6 +135,16 @@ $('#open-config').addEventListener('click', async (event) => {
     opening = false;
     setBusy(event.currentTarget, false);
   }
+});
+
+$('#open-editor').addEventListener('click', async () => {
+  const url = chrome.runtime.getURL('editor/editor.html');
+  try {
+    const [existing] = await chrome.tabs.query({ url });
+    if (existing) { await chrome.tabs.update(existing.id, { active: true }); await chrome.windows.update(existing.windowId, { focused: true }); window.close(); return; }
+  } catch { /* sin permiso para consultar pestañas: se abre una nueva */ }
+  chrome.tabs.create({ url });
+  window.close();
 });
 
 $('#toggle-bridge').addEventListener('click', async (event) => {
@@ -160,14 +172,14 @@ $('#restart-bridge').addEventListener('click', async (event) => {
   setBusy(btn, true);
   setLabel(btn, 'Reiniciando…');
   try {
-    const res = await api('RESTART_BRIDGE');
+    const res = await api('BRIDGE_GLOBAL', { action: 'restart' });
     toast(res.configError ? 'Puente reiniciado, pero servers.json tiene un error.' : 'Puente reiniciado ✓', 4200);
   } catch (err) {
     toast(err.message, 7000);
   } finally {
     restarting = false;
     setBusy(btn, false);
-    setLabel(btn, 'Reiniciar puente');
+    setLabel(btn, latest?.bridge?.online ? 'Reiniciar puente' : 'Encender (reiniciar)');
     await refresh(true);
   }
 });
@@ -494,6 +506,7 @@ function renderSettings(state) {
   $('#set-focusFallback').checked = settings.focusFallback;
   $('#set-showNotices').checked = settings.showNotices !== false;
   if (document.activeElement?.id !== 'set-reinjectEvery') $('#set-reinjectEvery').value = settings.reinjectEvery;
+  if (document.activeElement?.id !== 'set-responseDelaySec') $('#set-responseDelaySec').value = (settings.responseDelayMs ?? 1500) / 1000;
 
   $('#version').textContent = state.version ? `v${state.version}` : '';
   $('#version-line').textContent = state.version ? `Web MCP Bridge v${state.version}` : '';
@@ -509,6 +522,10 @@ for (const key of ['autoInject', 'autoSend', 'reminder', 'focusFallback', 'autoD
 $('#set-reinjectEvery').addEventListener('change', guard((e) => {
   const value = Math.min(100, Math.max(0, Math.round(Number(e.target.value)) || 0));
   return api('UPDATE_SETTINGS', { settings: { reinjectEvery: value } });
+}));
+$('#set-responseDelaySec').addEventListener('change', guard((e) => {
+  const seconds = Math.min(60, Math.max(0, Number(e.target.value) || 0));
+  return api('UPDATE_SETTINGS', { settings: { responseDelayMs: Math.round(seconds * 1000) } });
 }));
 $('#discover-now').addEventListener('click', guard(async () => {
   const res = await api('DISCOVER', { reset: true });
