@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Web MCP Bridge",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Conecta ChatGPT, Gemini, Claude y LLMs Web con servidores MCP locales mediante WebSocket.",
   "minimum_chrome_version": "116",
   "icons": {
