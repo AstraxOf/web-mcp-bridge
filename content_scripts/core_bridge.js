@@ -55,6 +55,24 @@
       await send({ type: 'UPDATE_SETTINGS', settings: { bridgeEnabled: value } });
       await refresh();
     },
+    /** v1.7.0 · Botón GLOBAL: 'start' | 'stop' | 'restart' actúan sobre el PROCESO del puente (no solo sobre el interruptor). */
+    onBridgeAction: async (action) => {
+      const labels = { start: 'Encendiendo', stop: 'Apagando', restart: 'Reiniciando' };
+      widget.update({ bridgeBusy: action });
+      widget.log('ok', `${labels[action] ?? 'Procesando'} el puente…`);
+      const res = await send({ type: 'BRIDGE_GLOBAL', action });
+      widget.update({ bridgeBusy: null });
+      if (res?.ok) widget.log('ok', { start: 'Puente encendido.', stop: 'Puente apagado.', restart: 'Puente reiniciado.' }[action] ?? 'Hecho.');
+      else widget.log('err', res?.error ?? 'No se pudo completar la acción.');
+      await refresh();
+    },
+    /** v1.7.0 · Tiempo de respuesta configurable (ms) antes de entregar cada resultado a la IA. */
+    onSetDelay: async (ms) => {
+      await send({ type: 'UPDATE_SETTINGS', settings: { responseDelayMs: ms } });
+      await refresh();
+    },
+    /** v1.7.0 · Vuelve a analizar el último mensaje de la IA (pestaña lenta que no tomó la respuesta). */
+    onRescan: () => { adapter.forceRescan(); widget.log('ok', 'Reescaneando la última respuesta de la IA…'); },
     /** `id` = un MCP; `null` = todos los MCP a la vez. */
     onSetPermission: async (id, permission) => {
       await send(id ? { type: 'SET_PERMISSION', id, permission } : { type: 'SET_ALL_PERMISSIONS', permission });
@@ -89,6 +107,8 @@
       servers: state.servers,
       toolCount: state.tools.length,
       bridgeEnabled: state.settings.bridgeEnabled,
+      bridge: snapshot.bridge ?? null,
+      responseDelayMs: state.settings.responseDelayMs ?? 1500,
       injection: injectionStatus(),
     });
     if (announce) widget.log('ok', `Actualizado: ${state.tools.length} herramientas activas.`);
@@ -123,8 +143,22 @@
    * (y los textos muy largos) como archivos adjuntos. Si el chat no admite el adjunto, se descarga.
    * Termina con una línea de recordatorio para que la IA no olvide sus herramientas y siga con la tarea.
    */
+  // v1.7.0 · Ritmo de respuesta configurable (panel flotante): con preguntas cortas el puente contestaba tan rápido que
+  // saturaba a la IA («Too many requests»). Espera `responseDelayMs` y garantiza una separación mínima entre entregas.
+  const MIN_GAP_MS = 1200;
+  let lastDeliveredAt = 0;
+  async function paceDelivery() {
+    const wanted = Math.min(60_000, Math.max(0, Number(state.settings.responseDelayMs) || 0));
+    const gap = Math.max(0, MIN_GAP_MS - (Date.now() - lastDeliveredAt));
+    const wait = Math.max(wanted, gap);
+    if (wait < 400) return;
+    if (wanted >= 800) widget.log('ok', `Espero ${(wait / 1000).toFixed(1)} s antes de responder (se ajusta en el panel).`);
+    await WMB.sleep(wait);
+  }
+
   async function deliver(srv, call, { status, text, raw, note }) {
     const { autoSend, maxResultChars, reminder } = state.settings;
+    await paceDelivery();
     const plan = WMB.planResult(raw ?? { content: [{ type: 'text', text }] }, { server: srv.slug, name: call.name, status, maxChars: maxResultChars });
 
     let attached = true;
@@ -139,8 +173,11 @@
       }
     }
     const tail = reminder !== false && state.tools.length ? `\n${WMB.reminderLine(state.tools, 'result')}` : '';
-    const sent = await adapter.sendToolResult(`${plan.build(attached)}${note ? `\n${note}` : ''}${tail}`, { autoSend, settleMs: attached && plan.files.length ? 1500 : 0 });
+    const message = `${plan.build(attached)}${note ? `\n${note}` : ''}${tail}`;
+    const sent = await adapter.sendToolResult(message, { autoSend, settleMs: attached && plan.files.length ? 1500 : 0 });
+    lastDeliveredAt = Date.now();
     widget.log(sent.ok ? 'ok' : 'err', sent.ok ? `Resultado enviado a ${adapter.name}.` : sent.error);
+    return { ok: sent.ok, message };
   }
 
   /** Busca el MCP y la herramienta de una llamada; si el estado local pudiera estar viejo, lo refresca una vez. */
@@ -163,6 +200,8 @@
   // ------------- Llamadas repetidas: la IA vuelve a pedir EXACTAMENTE lo mismo -------------
   // Nunca se ignoran en silencio: se ejecutan de nuevo (el dato puede haber cambiado) y se avisa a la IA en el resultado.
   // Si repite la misma llamada demasiadas veces seguidas se le reenvia el ultimo resultado en vez de ejecutarla otra vez.
+  // v1.7.1 · ANTI-COLA: cada llamada detectada recibe un numero; si llega otra (de la IA) o el usuario envia algo, las anteriores\n  // que aun esperan en la cola o se estan ejecutando quedan OBSOLETAS: no se ejecutan y su resultado no se entrega (era el eco).
+  let callSeq = 0;
   const REPEAT_WINDOW_MS = 15 * 60 * 1000;
   const MAX_REPEATS = 4;
   const recentCalls = new Map(); // clave de llamada -> { count, at, result }
@@ -173,6 +212,8 @@
     badStreak = 0;
     const { call } = detected;
     if (!state.settings.bridgeEnabled) return; // bridge apagado: se ignoran las llamadas
+    const obsolete = () => detected.seq !== undefined && detected.seq !== callSeq;
+    if (obsolete()) { widget.log('err', `Llamada obsoleta descartada (${call.name}): ya hay algo mas nuevo en el chat.`); return; }
     const { srv, tool } = await resolveCall(call);
 
     // Llamada que no corresponde a ningún MCP activo (p. ej. la IA explicando el formato): se ignora.
@@ -231,10 +272,57 @@
       recentCalls.set(repeatKey, { count: repeats + 1, at: Date.now(), result });
       if (repeats > 0) result.note = `[WMB] Esta llamada es identica a la anterior (ya van ${repeats + 1}). Se ejecuto de nuevo y este es el resultado ACTUAL; si ya tienes el dato, no la repitas.`;
     }
+    if (detected.rerun) result.note = '[WMB] Reenvío automático: tu mensaje anterior con el resultado no llegó a procesarse. Este es el resultado ACTUAL de tu llamada; continúa desde aquí.';
     if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
-    await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+    if (obsolete()) { widget.log('err', `Resultado de ${call.name} descartado: ya hay algo mas nuevo en el chat (no lo envio para no repetir).`); return; }
+    const delivered = await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+    await superviseDelivery({ detected, message: delivered.message, sentOk: delivered.ok });
   }
 
+  // ------------- v1.7.0 · Vigilancia de la entrega: 3 verificaciones y, si hace falta, volver a ejecutar el JSON -------------
+  // El envío ya se intenta 3 veces solo (adapter.sendToolResult). Aquí se comprueba que la IA REACCIONÓ al resultado:
+  //   · si contestó (aunque sea sin JSON) el trabajo terminó: no se toca nada;
+  //   · si tras 3 verificaciones sigue en silencio, se vuelve a ejecutar el JSON que dejó la IA y se entrega el resultado nuevo.
+  const REACT_WAIT_MS = 20_000;
+  const VERIFY_ROUNDS = 3;
+  const MAX_RERUNS = 2;
+  let epoch = 0; // sube cuando el usuario envía algo o llega otra llamada: la vigilancia anterior se cancela sola
+
+  async function waitForReaction(ms, mine) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      if (mine !== epoch || !state.settings.bridgeEnabled) return 'cancelled';
+      if (adapter.hasReacted()) return 'replied';
+      await WMB.sleep(1000);
+    }
+    if (mine !== epoch) return 'cancelled';
+    return adapter.hasReacted() ? 'replied' : 'timeout';
+  }
+
+  async function superviseDelivery({ detected, message, sentOk }) {
+    if (!state.settings.autoSend || !message) return;
+    const mine = ++epoch;
+    let sent = sentOk;
+    for (let round = 1; round <= VERIFY_ROUNDS; round += 1) {
+      if (sent) {
+        if ((await waitForReaction(REACT_WAIT_MS, mine)) !== 'timeout') return;
+        widget.log('err', `La IA no reaccionó al resultado (verificación ${round}/${VERIFY_ROUNDS}): lo vuelvo a enviar.`);
+      } else {
+        widget.log('err', `El resultado no salió al chat (verificación ${round}/${VERIFY_ROUNDS}): lo vuelvo a enviar.`);
+      }
+      if (mine !== epoch) return;
+      sent = (await adapter.sendToolResult(message, { autoSend: true, settleMs: 0 })).ok;
+    }
+    if (sent && (await waitForReaction(REACT_WAIT_MS, mine)) !== 'timeout') return;
+    if (mine !== epoch || !state.settings.bridgeEnabled) return;
+    const reruns = detected.reruns ?? 0;
+    if (reruns >= MAX_RERUNS) {
+      widget.log('err', 'Sigo sin respuesta de la IA tras reenviar y volver a ejecutar. Revisa el chat.');
+      return;
+    }
+    widget.log('err', `Sin reacción tras ${VERIFY_ROUNDS} verificaciones: ejecuto de nuevo el JSON que dejó la IA (${reruns + 1}/${MAX_RERUNS}).`);
+    queue = queue.then(() => processCall({ ...detected, rerun: true, reruns: reruns + 1, extra: 0 }));
+  }
   // ------------- Formato invalido y reconexion (v1.3.0) -------------
 
   let badStreak = 0;
@@ -249,7 +337,16 @@
       widget.log('err', 'La IA repite un formato invalido: dejo de avisarle. Revisa el chat.');
       return;
     }
-    widget.log('err', `Llamada ilegible (${badStreak}/${MAX_BAD_STREAK}): aviso a la IA con el motivo.`);
+    widget.log('err', `Bloque sin leer (${badStreak}/${MAX_BAD_STREAK}): compruebo que la IA ya termino antes de avisarle.`);
+    await paceDelivery();
+    // v1.7.1: tras la espera se vuelve a mirar el chat. Si la IA seguia escribiendo (o el bloque ya se lee), NO se le avisa.
+    const again = adapter.getLastText();
+    if (adapter.isStreaming() || again !== text || WMB.extractMcpCalls(again).length) {
+      badStreak = Math.max(0, badStreak - 1);
+      widget.log('ok', 'La IA seguia escribiendo el bloque: no la interrumpo con un aviso.');
+      return;
+    }
+    widget.log('err', 'El bloque sigue ilegible: aviso a la IA con el motivo.');
     const sent = await adapter.sendToolResult(WMB.formatCallError(text), { autoSend: state.settings.autoSend });
     if (!sent.ok) widget.log('err', sent.error);
   }
@@ -302,6 +399,8 @@
   function interceptSend(event) {
     if (!event.isTrusted || injecting) return;
     adapter.markActivity();
+    epoch += 1; // el usuario envía algo: se cancela cualquier vigilancia de entrega anterior
+    callSeq += 1; // v1.7.1: lo que esperaba en la cola ya es viejo
     recentCalls.clear(); // mensaje nuevo del usuario: se reinicia el conteo de repeticiones // el usuario envía algo: la respuesta que llegue es NUEVA (no historial)
     const { bridgeEnabled, autoInject, reminder, reinjectEvery } = state.settings;
     if (!bridgeEnabled || !state.tools.length) return;
@@ -372,6 +471,8 @@
     adapter.observeResponses(
       (detected) => {
         // Se procesan en serie para no mezclar resultados.
+        epoch += 1; // llegó una llamada nueva de la IA: la vigilancia anterior ya no hace falta
+        detected.seq = ++callSeq; // v1.7.1
         queue = queue.then(() => processCall(detected));
       },
       {
