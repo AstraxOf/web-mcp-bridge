@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="icons/icon128.png" width="96" alt="Web MCP Bridge">
 
@@ -143,6 +143,18 @@ Your servers are defined in **`server/servers.json`** (created automatically on 
 - Click **Edit servers.json** in the popup, save, and within ~2 seconds it shows up in the list. Turn it on with its switch (up to **5** at once; **1** costs fewer tokens).
 - To disable one without deleting it: add `"disabled": true`.
 - In paths use `/` (`C:/Users/...`) instead of `\`.
+
+## 🆕 What's new in 1.7.0
+
+- **Fixed: stale/cached replies.** The extension now purges old `[MCP_RESULT]` blocks from the chat input before writing a new result and only counts a message as sent when the text actually left the input (the cause of the AI receiving the previous answer again and again, mostly on DeepSeek).
+- **Fixed: echo of old results.** Old tool calls are no longer re-run when the AI has not written anything new (page repaints, remounted messages), and calls queued behind a newer message are dropped instead of delivered late.
+- **Fixed: sending.** Results are sent with up to 3 automatic attempts (button, Enter, Ctrl+Enter / form), each one verified, and delivery is supervised: if the AI never reacts, the result is resent and finally the last call is re-run.
+- **Fixed: false "unreadable JSON" notices.** A half-written block is only reported after the text has been still for 6 s, and it is re-checked after your response delay.
+- **Fixed: the old bridge stayed alive.** The launcher now checks *whose* bridge is answering. A bridge or launcher from another copy of the project (old auto-start) is replaced. **Stop / Restart / Start are global**: they close the bridges of any folder. `python server/install_service.py --purge` removes auto-starts of other copies.
+- **New: JSON editor inside the extension** (popup → *Editor JSON / Agregar MCP*): edit `servers.json` with live validation, an *Add MCP* form, import of `mcpServers` blocks (Claude Desktop / Cursor), templates, automatic `.bak` backup and instant reload.
+- **New: configurable response time** (popup Settings and the floating panel) to avoid saturating the AI.
+- **New:** when the extension's main switch is off, the floating panel is **not shown** at all.
+
 
 ## 🩺 Something not working?
 

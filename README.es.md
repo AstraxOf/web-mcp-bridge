@@ -1,4 +1,4 @@
-﻿<div align="center">
+<div align="center">
 
 <img src="icons/icon128.png" width="96" alt="Web MCP Bridge">
 
@@ -143,6 +143,18 @@ Tus servidores se definen en **`server/servers.json`** (se crea solo en la insta
 - Pulsa **Editar servers.json** en el popup, guarda y en ~2 segundos aparece en la lista. Actívalo con su interruptor (hasta **5** a la vez; con **1** gastas menos tokens).
 - Para desactivar uno sin borrarlo: añade `"disabled": true`.
 - En las rutas usa `/` (`C:/Users/...`) en lugar de `\`.
+
+## 🆕 Novedades de la 1.7.0
+
+- **Arreglado: respuestas anteriores/cacheadas.** La extensión limpia los bloques `[MCP_RESULT]` viejos del input del chat antes de escribir un resultado nuevo y solo da el mensaje por enviado cuando el texto realmente salió del input (la causa de que la IA recibiera una y otra vez la respuesta anterior, sobre todo en DeepSeek).
+- **Corregido: eco de resultados viejos.** Las llamadas antiguas ya no se vuelven a ejecutar cuando la IA no ha escrito nada nuevo (repintados, mensajes remontados) y las llamadas en cola detrás de un mensaje más nuevo se descartan en vez de entregarse tarde.
+- **Corregido: envío.** Los resultados se envían con hasta 3 intentos automáticos (botón, Enter, Ctrl+Enter / formulario), cada uno verificado, y la entrega se supervisa: si la IA no reacciona, se reenvía y, por último, se vuelve a ejecutar la última llamada.
+- **Corregido: falsos avisos de "JSON ilegible".** Un bloque a medias solo se reporta cuando el texto lleva 6 s quieto, y se vuelve a comprobar tras tu tiempo de respuesta.
+- **Arreglado: se quedaba vivo el bridge anterior.** El lanzador comprueba *de quién* es el puente que responde. Un puente o lanzador de otra copia del proyecto (auto-inicio viejo) se reemplaza. **Apagar / Reiniciar / Iniciar son globales**: cierran los puentes de cualquier carpeta. `python server/install_service.py --purge` quita los auto-inicios de otras copias.
+- **Nuevo: editor de JSON dentro de la extensión** (popup → *Editor JSON / Agregar MCP*): edita `servers.json` con validación en vivo, formulario *Agregar MCP*, importación de bloques `mcpServers` (Claude Desktop / Cursor), plantillas, copia `.bak` automática y recarga al instante.
+- **Nuevo: tiempo de respuesta configurable** (Ajustes del popup y panel flotante) para no saturar a la IA.
+- **Nuevo:** con el interruptor general de la extensión apagado, el panel flotante **no aparece**.
+
 
 ## 🩺 ¿Algo no funciona?
 
