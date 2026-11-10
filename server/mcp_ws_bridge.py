@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.4.0
+mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.7.0
 
 Los servidores MCP locales (como `astrax-mcp`) hablan JSON-RPC por stdin/stdout.
 El navegador solo puede hablar WebSocket. Este script lanza cada servidor MCP como
@@ -23,6 +23,12 @@ Novedades 1.3.0 (modo --config)
 * `--restart` reinicia el puente (apaga el anterior con elegancia y, si hace falta, libera los puertos que
   ocupe un puente viejo); `--stop`, `--status` y `--reload` completan el control desde la terminal.
 * Un puerto ocupado por otro programa ya no tumba el puente: ese servidor queda en error y el resto sigue.
+
+Novedades 1.7.0
+---------------
+* `GET /config` y `POST /config` en el puerto de control: la extension lee y GUARDA servers.json desde su editor JSON.
+  Al guardar se valida (mismas reglas que al arrancar), se deja copia `servers.json.bak`, se escribe de forma atomica
+  y se aplican los cambios al instante.
 
 Seguridad
 ---------
@@ -55,7 +61,7 @@ try:  # websockets >= 13
 except ImportError:  # websockets 12
     from websockets import serve as ws_serve  # type: ignore[assignment]
 
-VERSION = "1.6.0"
+VERSION = "1.7.0"
 DEFAULT_CONTROL_PORT = 8099
 log = logging.getLogger("mcp_ws_bridge")
 
@@ -298,6 +304,7 @@ class Supervisor:
         self.stop_event = asyncio.Event()
         self.config_error: str | None = None   # ultimo error al leer servers.json (None = todo bien)
         self.restart_requested = False
+        self.control_port = 0                  # puerto de control en uso (lo fija run())
         self.started_at = time.time()
 
     async def _start_one(self, cfg: ServerConfig) -> None:
@@ -385,7 +392,7 @@ async def _http_reply(writer, status: int, payload: dict | None, origin: str | N
             f"Content-Length: {len(body)}", "Connection: close", "Cache-Control: no-store"]
     if origin and origin.startswith(ALLOWED_ORIGIN_PREFIXES):
         head += [f"Access-Control-Allow-Origin: {origin}", "Access-Control-Allow-Methods: GET, POST, OPTIONS",
-                 "Access-Control-Allow-Private-Network: true", "Vary: Origin"]
+                 "Access-Control-Allow-Headers: Content-Type", "Access-Control-Allow-Private-Network: true", "Vary: Origin"]
     writer.write(("\r\n".join(head) + "\r\n\r\n").encode("latin-1") + body)
     await writer.drain()
 
@@ -409,6 +416,57 @@ def _open_in_editor(path: Path) -> tuple[bool, str]:
         return False, str(err)
 
 
+CONFIG_MAX_BYTES = 1_000_000  # tope de servers.json editado desde la extension
+
+
+def _config_snapshot(config_path: Path | None) -> dict:
+    """Contenido de servers.json tal cual (para el editor JSON de la extension)."""
+    if not config_path:
+        return {"ok": False, "error": "este puente no usa servers.json"}
+    path = Path(config_path)
+    try:
+        text = path.read_text(encoding="utf-8-sig") if path.exists() else ""
+    except OSError as err:
+        return {"ok": False, "error": f"no se pudo leer {path.name}: {err.strerror or err}"}
+    mtime, size = _mtime(path)
+    return {"ok": True, "path": str(path), "exists": path.exists(), "text": text, "mtime": mtime, "size": size}
+
+
+async def _save_config(sup: "Supervisor", config_path: Path | None, text: str) -> tuple[int, dict]:
+    """Valida `text` como servers.json, deja copia .bak, escribe de forma atomica y aplica los cambios. -> (estado_http, cuerpo)."""
+    if not config_path:
+        return 400, {"ok": False, "error": "este puente no usa servers.json"}
+    if len(text.encode("utf-8")) > CONFIG_MAX_BYTES:
+        return 400, {"ok": False, "error": "el archivo es demasiado grande"}
+    path = Path(config_path)
+    tmp = path.with_name(path.name + ".wmb-tmp")
+    backup = None
+    try:
+        with open(tmp, "w", encoding="utf-8", newline="") as handle:
+            handle.write(text)
+        try:
+            configs, file_control = load_config(tmp)  # mismas reglas que al arrancar; el temporal vive en la misma carpeta
+        except ValueError as err:
+            return 400, {"ok": False, "error": f"servers.json invalido: {err}"}
+        if path.exists():
+            backup = path.with_name(path.name + ".bak")
+            shutil.copyfile(path, backup)
+        os.replace(tmp, path)
+    except OSError as err:
+        return 500, {"ok": False, "error": f"no se pudo guardar {path.name}: {err.strerror or err}"}
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+    report = await sup.apply(configs)
+    sup.config_error = None
+    log.info("servers.json guardado desde la extension: %s", report)
+    return 200, {"ok": True, "path": str(path), "backup": str(backup) if backup else None, **report, "servers": sup.snapshot(),
+                 "restart_needed": file_control is not None and file_control != sup.control_port}
+
+
 async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | None) -> None:
     origin = None
     try:
@@ -427,8 +485,26 @@ async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | 
         elif method == "OPTIONS":
             await _http_reply(writer, 204, None, origin)
         elif method == "GET" and path == "/health":
-            await _http_reply(writer, 200, {"ok": True, "version": VERSION, "pid": os.getpid(),
+            await _http_reply(writer, 200, {"ok": True, "version": VERSION, "pid": os.getpid(), "config": str(config_path) if config_path else None,
                                             "started_at": sup.started_at, "config_error": sup.config_error}, origin)
+        elif path == "/config" and method == "GET":
+            snap = _config_snapshot(config_path)
+            await _http_reply(writer, 200 if snap.get("ok") else 400, snap, origin)
+        elif path == "/config" and method == "POST":
+            length = int(headers.get("content-length") or 0)
+            if length <= 0 or length > CONFIG_MAX_BYTES:
+                await _http_reply(writer, 400, {"ok": False, "error": "cuerpo vacio o demasiado grande"}, origin)
+            else:
+                raw_body = await asyncio.wait_for(reader.readexactly(length), 10)
+                try:
+                    body_text = raw_body.decode("utf-8-sig")
+                except UnicodeDecodeError:
+                    await _http_reply(writer, 400, {"ok": False, "error": "el archivo no esta en UTF-8"}, origin)
+                else:
+                    status, payload = await _save_config(sup, config_path, body_text)
+                    await _http_reply(writer, status, payload, origin)
+        elif path == "/config":
+            await _http_reply(writer, 405, {"ok": False, "error": "usa GET o POST"}, origin)
         elif method == "GET" and path == "/servers":
             await _http_reply(writer, 200, {"ok": True, "version": VERSION, "pid": os.getpid(),
                                             "config": str(config_path) if config_path else None, "config_error": sup.config_error,
@@ -528,6 +604,7 @@ async def run(configs: list[ServerConfig], control_port: int = 0, config_path: P
               config_error: str | None = None) -> bool:
     """Corre el puente hasta que lo apaguen. Devuelve True si se pidio un REINICIO."""
     sup = Supervisor()
+    sup.control_port = control_port
     sup.config_error = config_error
     await sup.apply(configs)
     control = None

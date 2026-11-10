@@ -7,6 +7,7 @@ Un
 Después basta con la extensión: el puente ya estará escuchando en segundo plano.
 
 Otras opciones:
+    python server/install_service.py --purge       # quita los auto-inicios de OTRAS copias del proyecto (Startup + tareas)
     python server/install_service.py --uninstall   # quita el arranque automático
     python server/install_service.py --dry-run     # muestra qué haría sin tocar nada
 
@@ -17,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import os
 import subprocess
 import sys
@@ -116,6 +118,106 @@ def bridge_command(windowless: bool = False) -> list[str]:
 
 # ───────────────────────── Windows ─────────────────────────
 
+TASK_NAME = "WebMCPBridgeLauncher"          # tarea programada propia (reintenta cada minuto si el lanzador muere)
+MARKERS = ("start_bridge_loop", "mcp_ws_bridge")
+
+
+def _canon(path) -> str:
+    return str(path or "").lower().replace("\\", "/").rstrip("/")
+
+
+def _is_here(text: str) -> bool:
+    """El texto (comando, script...) apunta a un archivo de ESTA carpeta."""
+    return (_canon(HERE) + "/") in _canon(text)
+
+
+def _has_marker(text: str) -> bool:
+    low = (text or "").lower()
+    return any(m in low for m in MARKERS)
+
+
+def _ps(script: str, timeout: int = 45) -> tuple[int, str]:
+    res = subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command", script],
+                         capture_output=True, text=True, timeout=timeout, creationflags=0x08000000 if sys.platform == "win32" else 0)
+    return res.returncode, (res.stdout or "").strip()
+
+
+def _ps_quote(value: str) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def purge_foreign_autostarts(dry: bool) -> int:
+    """Windows: quita los auto-inicios del puente que apuntan a OTRAS carpetas (la causa del 'bridge anterior que no muere').
+    Carpeta Inicio: respalda y borra los archivos ajenos. Tareas programadas ajenas: se DESHABILITAN (no se borran). Devuelve cuantos toco."""
+    if sys.platform != "win32":
+        return 0
+    touched = 0
+    startup = windows_startup_file().parent
+    backup = HERE / "_autostart_backup"
+    if startup.exists():
+        for item in sorted(startup.iterdir()):
+            if not item.is_file():
+                continue
+            try:
+                if item.suffix.lower() == ".lnk":
+                    _, out = _ps("$s=(New-Object -ComObject WScript.Shell).CreateShortcut(%s); $s.TargetPath + ' ' + $s.Arguments" % _ps_quote(str(item)), 20)
+                    text = out
+                elif item.suffix.lower() in (".vbs", ".cmd", ".bat", ".ps1", ".js"):
+                    text = item.read_text(encoding="utf-8-sig", errors="replace")
+                else:
+                    continue
+            except Exception:
+                continue
+            if _has_marker(text) and not _is_here(text):
+                print(f"• Auto-inicio ajeno en Inicio: {item.name} (apunta a otra carpeta) -> respaldo y eliminacion")
+                touched += 1
+                if not dry:
+                    backup.mkdir(exist_ok=True)
+                    shutil.copy2(item, backup / item.name)
+                    item.unlink(missing_ok=True)
+    code, out = _ps("Get-ScheduledTask | ForEach-Object { $a = ($_.Actions | ForEach-Object { \"$($_.Execute) $($_.Arguments) $($_.WorkingDirectory)\" }) -join ' '; "
+                    "if ($a -match 'start_bridge_loop|mcp_ws_bridge') { [pscustomobject]@{Name=$_.TaskName;Path=$_.TaskPath;Action=$a;State=[string]$_.State} } } | ConvertTo-Json -Compress")
+    try:
+        tasks = json.loads(out or "[]")
+    except ValueError:
+        tasks = []
+    for task in ([tasks] if isinstance(tasks, dict) else tasks):
+        if task.get("Name") == TASK_NAME or _is_here(task.get("Action", "")):
+            continue
+        print(f"• Tarea programada ajena: {task.get('Name')} ({task.get('Action', '')[:90]}) -> deshabilitada")
+        touched += 1
+        if not dry and task.get("State") != "Disabled":
+            _ps("Disable-ScheduledTask -TaskName %s -TaskPath %s | Out-Null" % (_ps_quote(task["Name"]), _ps_quote(task.get("Path") or "\\")))
+    if not touched:
+        print("• No hay auto-inicios de otras copias.")
+    return touched
+
+
+def register_task(dry: bool) -> None:
+    """Tarea programada propia: arranca el lanzador al iniciar sesion y lo reintenta cada minuto si muere. Es un seguro extra del .vbs."""
+    if sys.platform != "win32":
+        return
+    cmd = launcher_command(windowless=True)
+    print(f"• Registrando tarea programada {TASK_NAME} (reintento cada minuto)")
+    if dry:
+        return
+    script = (
+        "$a = New-ScheduledTaskAction -Execute %s -Argument %s -WorkingDirectory %s; "
+        "$t = New-ScheduledTaskTrigger -AtLogOn -User $env:USERNAME; "
+        "$s = New-ScheduledTaskSettingsSet -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit ([TimeSpan]::Zero) "
+        "-StartWhenAvailable -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -MultipleInstances IgnoreNew; "
+        "Register-ScheduledTask -TaskName %s -Action $a -Trigger $t -Settings $s -Force | Out-Null"
+    ) % (_ps_quote(cmd[0]), _ps_quote('"%s"' % cmd[1]), _ps_quote(str(HERE)), _ps_quote(TASK_NAME))
+    code, out = _ps(script)
+    if code != 0:
+        print(f"  (no se pudo registrar la tarea: {out[:160]}; el auto-inicio de la carpeta Inicio sigue activo)")
+
+
+def unregister_task(dry: bool) -> None:
+    if sys.platform == "win32" and not dry:
+        _ps("Unregister-ScheduledTask -TaskName %s -Confirm:$false -ErrorAction SilentlyContinue" % _ps_quote(TASK_NAME), 20)
+
+
 def windows_startup_file() -> Path:
     return Path(os.environ["APPDATA"]) / "Microsoft/Windows/Start Menu/Programs/Startup" / f"{NAME}.vbs"
 
@@ -124,10 +226,13 @@ def install_windows(dry: bool) -> None:
     cmd = " ".join(f'""{part}""' for part in launcher_command(windowless=True))
     script = f'CreateObject("Wscript.Shell").Run "{cmd}", 0, False\n'
     target = windows_startup_file()
+    purge_foreign_autostarts(dry)  # primero se quitan los auto-inicios de otras copias: solo debe quedar UNO
     print(f"• Registrando arranque automático: {target}")
     if dry:
+        register_task(dry)
         return
     target.write_text(script, encoding="utf-8")
+    register_task(dry)
     start_launcher()  # arranca el lanzador ya (o lo reinicia si estaba corriendo); el lanzador levanta el puente
 
 
@@ -136,6 +241,7 @@ def uninstall_windows(dry: bool) -> None:
     print(f"• Eliminando {target}")
     if not dry:
         target.unlink(missing_ok=True)
+        unregister_task(dry)
         stop_launcher()
         subprocess.run(["taskkill", "/F", "/FI", "WINDOWTITLE eq mcp_ws_bridge*"], capture_output=True)
 
@@ -203,14 +309,24 @@ def uninstall_linux(dry: bool) -> None:
 # ───────────────────────── Principal ─────────────────────────
 
 def main() -> int:
+    for stream in (sys.stdout, sys.stderr):  # consolas cp1252: que los simbolos no tumben el script
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     parser = argparse.ArgumentParser(description="Instala el puente MCP como servicio de inicio automático.")
     parser.add_argument("--uninstall", action="store_true", help="Quita el arranque automático")
     parser.add_argument("--dry-run", action="store_true", help="Muestra los pasos sin ejecutarlos")
+    parser.add_argument("--purge", action="store_true", help="Quita los auto-inicios de OTRAS copias del proyecto (Inicio + tareas programadas) y sale")
     parser.add_argument("--restart", action="store_true", help="Reinicia el puente ahora (cierra el anterior aunque este ocupando los puertos)")
     args = parser.parse_args()
 
     if args.restart:
         return restart_bridge()
+    if args.purge:
+        n = purge_foreign_autostarts(args.dry_run)
+        print(f"✔ Listo: {n} auto-inicio(s) ajeno(s) tratado(s).")
+        return 0
 
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
     actions = {
