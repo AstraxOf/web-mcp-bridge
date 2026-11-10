@@ -27,7 +27,7 @@
     "ws://127.0.0.1/*",
     "http://127.0.0.1/*",
     "http://localhost/*",
-    "https://raw.githubusercontent.com/AstraxOf/web-mcp-bridge/*"
+    "https://raw.githubusercontent.com/ranggaas6/web-mcp-bridge/*"
   ],
   "background": {
     "service_worker": "background/background.js",
@@ -46,6 +46,7 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/chatgpt.js",
+        "content_scripts/core_bridge_handlers.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"
@@ -62,6 +63,7 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/gemini.js",
+        "content_scripts/core_bridge_handlers.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"
@@ -78,6 +80,7 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/claude.js",
+        "content_scripts/core_bridge_handlers.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"
@@ -94,6 +97,7 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/deepseek.js",
+        "content_scripts/core_bridge_handlers.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"

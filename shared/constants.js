@@ -59,7 +59,7 @@ export const DEMO_SERVER = { name: 'demo', url: 'ws://localhost:8090' };
  * Author notices: a public JSON file (notices.json) in the repository. Free, no server of our own.
  * Checked every few hours; nothing is ever downloaded or executed: only text and a link are shown.
  */
-export const NOTICES_URL = 'https://raw.githubusercontent.com/AstraxOf/web-mcp-bridge/main/notices.json';
+export const NOTICES_URL = 'https://raw.githubusercontent.com/ranggaas6/web-mcp-bridge/main/notices.json';
 export const NOTICES_EVERY_MS = 10 * 60 * 1000;
 export const NOTICES_RETRY_MS = 5 * 60 * 1000;
 export const NOTICES_MAX_BYTES = 64 * 1024;
