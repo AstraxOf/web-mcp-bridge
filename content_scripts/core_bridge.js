@@ -32,7 +32,7 @@
   const slugKey = (value) => String(value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
   const guarded = (promise, ms, message) => Promise.race([promise, WMB.sleep(ms).then(() => { throw new Error(message); })]);
 
-  const state = { servers: [], tools: [], settings: { autoSend: true, maxResultChars: 12000 }, forceFull: false };
+  const state = { servers: [], tools: [], toolsSig: null, settings: { autoSend: true, maxResultChars: 12000 }, forceFull: false };
   let queue = Promise.resolve();
   let lastRefreshError = '';
 
@@ -89,7 +89,7 @@
   }
 
   async function refresh(announce = false) {
-    const [snapshot, active] = await Promise.all([send({ type: 'GET_STATE' }), send({ type: 'GET_ACTIVE_TOOLS' })]);
+    const [snapshot, active] = await Promise.all([send({ type: 'GET_STATE' }), send({ type: 'GET_ACTIVE_TOOLS', since: state.toolsSig })]);
     if (!snapshot?.ok || !active?.ok) {
       const error = snapshot?.error || active?.error || 'No se pudo contactar con la extensión.';
       if (error !== lastRefreshError) widget.log('err', error); // el latido no repite el mismo error
@@ -99,8 +99,13 @@
     lastRefreshError = '';
     state.settings = snapshot.settings;
     state.servers = snapshot.servers.filter((s) => s.enabled && s.url);
-    state.tools = active.tools;
-    WMB.tools = state.tools; // el parser tolerante usa los schemas
+    WMB.catalog?.configure(state.settings);
+    if (!active.unchanged) { // v1.7.2: si nada cambió, el service worker no reenvía cientos de herramientas (ahorra copiar MB cada 10 s)
+      state.tools = active.tools ?? [];
+      state.toolsSig = active.sig ?? null;
+    }
+    // El parser tolerante usa los schemas (incluida la herramienta local wmb.list_tools).
+    WMB.tools = WMB.catalog ? state.tools.concat(WMB.catalog.metaTools) : state.tools;
     adapter.configure({ focusFallback: state.settings.focusFallback !== false });
     widget.update({
       adapterName: adapter.name,
@@ -214,6 +219,7 @@
     if (!state.settings.bridgeEnabled) return; // bridge apagado: se ignoran las llamadas
     const obsolete = () => detected.seq !== undefined && detected.seq !== callSeq;
     if (obsolete()) { widget.log('err', `Llamada obsoleta descartada (${call.name}): ya hay algo mas nuevo en el chat.`); return; }
+    if (WMB.catalog?.isMeta(call, state.tools, state.servers)) return handleMeta(detected); // v1.7.2: catálogo paginado (local)
     const { srv, tool } = await resolveCall(call);
 
     // Llamada que no corresponde a ningún MCP activo (p. ej. la IA explicando el formato): se ignora.
@@ -239,7 +245,9 @@
       result = { status: 'rejected', text: 'El usuario no permite usar este MCP.' };
       widget.log('err', `Bloqueada: ${srv.slug} › ${call.name}`);
     } else if (!tool) {
-      const available = state.tools.filter((t) => t.server === srv.slug).map((t) => t.name).join(', ');
+      const available = WMB.catalog
+        ? WMB.catalog.unknownToolHint(state.tools, srv.slug, call.name) // con cientos de herramientas no se vuelcan todos los nombres
+        : state.tools.filter((t) => t.server === srv.slug).map((t) => t.name).join(', ');
       result = { status: 'error', text: `La herramienta «${call.name}» no existe en «${srv.slug}». Disponibles: ${available || 'ninguna'}.` };
     } else {
       let approved = true;
@@ -276,6 +284,24 @@
     if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
     if (obsolete()) { widget.log('err', `Resultado de ${call.name} descartado: ya hay algo mas nuevo en el chat (no lo envio para no repetir).`); return; }
     const delivered = await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+    await superviseDelivery({ detected, message: delivered.message, sentOk: delivered.ok });
+  }
+
+  /**
+   * v1.7.2 · `wmb.list_tools`: la IA consulta el catálogo de herramientas por páginas (50 por página), por búsqueda o por detalle.
+   * Se resuelve aquí, sin pasar por ningún MCP y sin pedir permiso (solo lectura). Se entrega y se vigila igual que cualquier resultado.
+   */
+  async function handleMeta(detected) {
+    const { call } = detected;
+    const obsolete = () => detected.seq !== undefined && detected.seq !== callSeq;
+    const a = call.arguments ?? {};
+    const out = WMB.catalog.run(a, state.tools);
+    widget.log('ok', `Catálogo de herramientas${a.server ? ` › ${a.server}` : ''}${a.page ? ` · página ${a.page}` : ''}${a.query ? ` · «${a.query}»` : ''}${a.tool ? ` · ${a.tool}` : ''}`);
+    const result = { status: out.ok ? 'ok' : 'error', text: out.text };
+    if (detected.rerun) result.note = '[WMB] Reenvío automático: tu mensaje anterior con el resultado no llegó a procesarse. Este es el resultado ACTUAL de tu llamada; continúa desde aquí.';
+    if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
+    if (obsolete()) { widget.log('err', 'Resultado del catálogo descartado: ya hay algo mas nuevo en el chat.'); return; }
+    const delivered = await guarded(deliver({ slug: WMB.catalog.SERVER }, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
     await superviseDelivery({ detected, message: delivered.message, sentOk: delivered.ok });
   }
 

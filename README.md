@@ -262,6 +262,24 @@ Nothing was executed: your mcp_call block could not be read. Reason: invalid esc
 > [!NOTE]
 > A path such as `C:\new\test` is ambiguous for any JSON parser (`\n`, `\t`), which is why the prompt always asks for `/` in paths.
 
+### Paginated catalog (many tools)
+
+With several large MCPs at once (e.g. 329 tools) the full prompt was over 100,000 characters and froze the browser ("page unresponsive", mostly on Gemini). Now, when there are **more than 40 active tools**, the prompt (~2,000 characters) only lists the **connected servers** with their tool and page counts, and the AI queries them with a **local** bridge tool (it never reaches any MCP, needs no permission and is read-only):
+
+```json
+{"mcp_call":{"server":"wmb","name":"list_tools","arguments":{"server":"rea","page":2}}}
+```
+
+| `arguments` | Result |
+|---|---|
+| *(empty)* | Server summary: tool count, pages and most common name prefixes |
+| `server`, `page` | A page of **50** tools (`name(params): description`) and how to ask for the next one |
+| `query` (+ optional `server`) | Word search over name and description, also paginated |
+| `server`, `tool` | Full signature and description of one tool |
+| `limit` | Tools per page (1 – 50) |
+
+The AI pages or searches until it finds the tool, then calls it with its real server; if it already knows the exact name it can call it directly. Small servers are still listed in full in the prompt, and with few tools **everything works exactly as before**. The threshold and page size are the `catalogThreshold` (40; `0` = always catalog) and `catalogPageSize` (50) settings. The tool list is also no longer re-sent to the tab every 10 s when unchanged, and long texts are typed into the chat yielding to the browser every 25 lines.
+
 ## 🔐 Security model
 
 | Risk | Mitigation |

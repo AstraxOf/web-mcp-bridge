@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.7.0
+mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.7.2
 
 Los servidores MCP locales (como `astrax-mcp`) hablan JSON-RPC por stdin/stdout.
 El navegador solo puede hablar WebSocket. Este script lanza cada servidor MCP como
@@ -61,7 +61,7 @@ try:  # websockets >= 13
 except ImportError:  # websockets 12
     from websockets import serve as ws_serve  # type: ignore[assignment]
 
-VERSION = "1.7.0"
+VERSION = "1.7.2"
 DEFAULT_CONTROL_PORT = 8099
 log = logging.getLogger("mcp_ws_bridge")
 

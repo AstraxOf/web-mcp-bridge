@@ -250,7 +250,7 @@ async function getSnapshot() {
 }
 
 /** Herramientas de los servidores ACTIVOS (esto es lo que se inyecta al chat). */
-async function getActiveTools() {
+async function getActiveTools(msg = {}) {
   await discoverServers().catch(() => {});
   await reconcile();
   const { servers, settings } = await loadState();
@@ -271,7 +271,20 @@ async function getActiveTools() {
       });
     }
   }
-  return { ok: true, tools };
+  // v1.7.2: huella de la lista. Si la pestaña ya tiene esta misma lista (`since`), no se reenvía: con cientos de herramientas
+  // copiar los schemas a la página cada 10 s (latido) y en cada cambio de foco sobrecargaba el navegador.
+  const sig = toolsFingerprint(tools);
+  if (msg?.since && msg.since === sig) return { ok: true, unchanged: true, sig };
+  return { ok: true, tools, sig };
+}
+
+function toolsFingerprint(tools) {
+  let h = 5381;
+  const feed = (s) => { for (let i = 0; i < s.length; i += 1) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0; };
+  for (const t of tools) {
+    feed(t.server); feed('\u0001'); feed(t.name); feed('\u0001'); feed(String(t.description?.length ?? 0)); feed('\u0001'); feed(JSON.stringify(t.inputSchema) ?? ''); feed('\u0002');
+  }
+  return `${tools.length}:${h.toString(36)}`;
 }
 
 async function addHistory(entry) {
@@ -734,7 +747,7 @@ async function handleMessage(msg, sender) {
     case 'FOCUS_TAB': return focusTab(sender);
     case 'RESTORE_FOCUS': return restoreFocus(msg);
     case 'GET_STATE': return getSnapshot();
-    case 'GET_ACTIVE_TOOLS': return getActiveTools();
+    case 'GET_ACTIVE_TOOLS': return getActiveTools(msg);
     case 'CALL_TOOL': return callTool(msg);
     case 'DISCOVER':
       if (msg.reset) await chrome.storage.local.remove(KEYS.dismissed);

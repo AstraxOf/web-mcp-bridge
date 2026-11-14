@@ -290,6 +290,24 @@ No se ejecuto nada: tu bloque mcp_call no se pudo leer. Motivo: secuencia de esc
 > [!NOTE]
 > Una ruta como `C:\new\test` es ambigua para cualquier JSON (`\n`, `\t`): por eso el prompt pide siempre rutas con `/`.
 
+### Catálogo paginado (muchas herramientas)
+
+Con varios MCP grandes a la vez (p. ej. 329 herramientas) el prompt completo pesaba más de 100 000 caracteres y bloqueaba el navegador («la página no responde», sobre todo en Gemini). Ahora, si hay **más de 40 herramientas activas**, el prompt (~2 000 caracteres) solo lista los **servidores conectados** con su número de herramientas y páginas, y la IA las consulta con una herramienta **local** del puente (no pasa por ningún MCP, no pide permiso y es solo lectura):
+
+```json
+{"mcp_call":{"server":"wmb","name":"list_tools","arguments":{"server":"rea","page":2}}}
+```
+
+| `arguments` | Resultado |
+|---|---|
+| *(vacío)* | Resumen de servidores, nº de herramientas, páginas y prefijos más comunes |
+| `server`, `page` | Página de **50** herramientas (`nombre(parámetros): descripción`) y cómo pedir la siguiente |
+| `query` (+ `server` opcional) | Búsqueda por palabras en nombre y descripción, también paginada |
+| `server`, `tool` | Firma completa y descripción de una herramienta |
+| `limit` | Herramientas por página (1 – 50) |
+
+La IA pagina o busca hasta encontrar la herramienta y la llama con su servidor real; si ya conoce el nombre exacto, la llama directamente. Los servidores pequeños se siguen listando completos en el prompt, y con pocas herramientas **todo funciona igual que antes**. El umbral y el tamaño de página son los ajustes `catalogThreshold` (40; `0` = siempre catálogo) y `catalogPageSize` (50). Además, la lista de herramientas ya no se reenvía a la pestaña cada 10 s si no cambió, y los textos largos se escriben en el chat cediendo el control al navegador cada 25 líneas.
+
 ## 📁 Estructura
 
 ```
@@ -297,7 +315,7 @@ manifest.json
 background/      background.js (service worker) · ws_client.js (conexión MCP + reconexión)
 popup/           popup.html · popup.js · popup.css
 welcome/         asistente de primer arranque (se abre al instalar)
-content_scripts/ core_bridge.js · prompt_builder.js · ui_widget.js · utils.js · mcp_parser.js
+content_scripts/ core_bridge.js · prompt_builder.js · tool_catalog.js · ui_widget.js · utils.js · mcp_parser.js
   adapters/      base_adapter.js · chatgpt.js · gemini.js · claude.js · deepseek.js
 server/          mcp_ws_bridge.py (puente) · start_bridge_loop.pyw (lanzador) · install.cmd · install_service.py
                  restart_bridge.cmd · servers.example.json · examples/demo_mcp_server.py

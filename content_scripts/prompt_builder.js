@@ -32,8 +32,14 @@
       .join(', ');
   }
 
-  /** Firma estable de un conjunto de herramientas (para detectar cambios). */
-  WMB.toolsSignature = (tools) => WMB.hash(tools.map((t) => `${t.server}.${t.name}`).sort().join('|'));
+  /** Parámetros compactos de una herramienta (`a: string, b?: number`); también los usa el catálogo paginado (tool_catalog.js). */
+  WMB.toolParams = (tool) => {
+    const schema = tool?.inputSchema ?? {};
+    return schema.type === 'object' || schema.properties ? signature(schema) : typeOf(schema);
+  };
+
+  /** Firma estable de un conjunto de herramientas (para detectar cambios). En modo catálogo cambia, para renovar las instrucciones. */
+  WMB.toolsSignature = (tools) => WMB.hash(tools.map((t) => `${t.server}.${t.name}`).sort().join('|') + (WMB.catalog?.isActive(tools) ? '|catalogo' : ''));
 
   /**
    * Recordatorio de UNA línea (~45 tokens) que se añade a cada mensaje para que la IA no olvide que tiene herramientas locales.
@@ -41,6 +47,7 @@
    * @param {'user'|'result'} mode `result`: tras una herramienta; anima a continuar la tarea.
    */
   WMB.reminderLine = (tools, mode = 'user') => {
+    if (WMB.catalog?.isActive(tools)) return WMB.catalog.reminder(tools, mode);
     const servers = [...new Set(tools.map((t) => t.server))].join(', ');
     const use = 'responde SOLO con el bloque {"mcp_call":{"server":"…","name":"…","arguments":{…}}}';
     return mode === 'result'
@@ -53,6 +60,8 @@
    * @returns {string}
    */
   WMB.buildSystemPrompt = (tools) => {
+    // v1.7.2: con muchas herramientas (> umbral) no se listan todas: la IA las consulta por páginas con wmb.list_tools.
+    const catalog = WMB.catalog?.isActive(tools) ? WMB.catalog.split(tools) : null;
     const byServer = new Map();
     for (const tool of tools) {
       if (!byServer.has(tool.server)) byServer.set(tool.server, { label: tool.serverLabel, tools: [] });
@@ -79,9 +88,11 @@
       '',
       '## Herramientas',
     ];
+    if (catalog) lines.push(...WMB.catalog.intro(tools, catalog));
 
     if (byServer.size === 0) lines.push('(Ningún servidor MCP activo en este momento.)');
     for (const [slug, { label, tools: serverTools }] of byServer) {
+      if (catalog && !catalog.inline.has(slug)) continue; // los servidores grandes solo van por catálogo
       lines.push(`### \`${slug}\`${label && label !== slug ? ` (${label})` : ''}`);
       for (const tool of serverTools) {
         const schema = tool.inputSchema ?? {};

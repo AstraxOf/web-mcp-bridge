@@ -1,6 +1,16 @@
 {
   "notices": [
     {
+      "id": "2026-11-v1.7.2",
+      "title": "Web MCP Bridge 1.7.2",
+      "message": "Corregido: la tarjeta de aprobación ahora sube siempre arriba y sus botones ya no quedan cortados; con 3 o más MCP la lista de servidores se desplaza dentro del panel y el historial ocupa menos; ya no se entregan resultados viejos que seguían en cola (eco); y la página ya no se queda «sin responder» al escribir textos muy largos en el chat. Mejorado: el navegador va más fluido con muchas herramientas activas, porque la lista ya no se reenvía a la pestaña cuando no cambió.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.7.2",
+      "level": "update",
+      "date": "2026-11-13",
+      "expires": "2027-02-13",
+      "maxVersion": "1.7.2"
+    },
+    {
       "id": "2026-11-v1.7.0-r2",
       "title": "Web MCP Bridge 1.7.0",
       "message": "Corregido: respuestas viejas que se reenviaban (eco), envíos que no salían (ahora 3 reintentos automáticos), falsos avisos de JSON ilegible y puentes antiguos que seguían vivos. Nuevo: Editor JSON para añadir MCP, tiempo de respuesta configurable, botón global de encender/apagar/reiniciar el puente y botón Reescanear. Corregido: botones Permitir siempre / Ejecutar cortados.",

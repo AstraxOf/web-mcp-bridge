@@ -72,11 +72,24 @@
       background: rgba(127,127,127,.12); border-radius: 6px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
     }
     /* v1.7.1: el panel no tiene barra de scroll; solo el historial (logs) se desplaza por dentro */
-    .panel > ul.log { flex: 0 1 auto; min-height: 56px; max-height: 210px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .panel > ul.log { flex: 0 1 auto; min-height: 56px; max-height: 104px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
     ul.log::-webkit-scrollbar { width: 5px; }
     ul.log::-webkit-scrollbar-track { background: transparent; }
     ul.log::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
     ul.log::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    /* WMB_SCROLL_SRVS: a partir de 3 MCP la lista de servidores se desplaza por dentro (misma barra que los logs); el footer y los logs ya no se aplastan */
+    .panel > ul.srvs { flex: 0 0.25 auto; min-height: 0; } /* WMB_SIZE_V2 */
+    .panel > ul.srvs.scroll { max-height: 112px; min-height: 64px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    ul.srvs::-webkit-scrollbar { width: 5px; }
+    ul.srvs::-webkit-scrollbar-track { background: transparent; }
+    ul.srvs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+    ul.srvs::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+    .panel > .foot, .panel > .head { flex: none; }
+    .panel > p.muted { margin: 6px 0; }
+    .panel .row { margin-top: 6px; }
+    .panel .bridge { margin-top: 6px; padding-top: 6px; }
+    .panel .bridge .perm { margin-top: 6px; }
+    .panel .foot { margin-top: 6px; padding-top: 6px; }
     /* v1.7.2: con una aprobación pendiente la tarjeta sube arriba y su bloque de código se compacta; los botones siempre se ven */
     .approvals { flex: none; }
     .approvals .card { margin: 0 0 8px; }
@@ -275,10 +288,13 @@
       h('i', { class: `dot ${pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
       h('span', {}, pending ? `${pending} llamada${pending > 1 ? 's' : ''} por aprobar` : activeLabel));
 
+      const srvScroll = this.root.querySelector('ul.srvs')?.scrollTop ?? 0;
       const logScroll = this.root.querySelector('ul.log')?.scrollTop ?? 0; // conservar la posicion del historial entre refrescos
       this.root.replaceChildren(...(this.open ? [this.#panel()] : []), pill);
       const logList = this.root.querySelector('ul.log');
       if (logList && logScroll) logList.scrollTop = logScroll;
+      const srvList = this.root.querySelector('ul.srvs');
+      if (srvList && srvScroll) srvList.scrollTop = srvScroll;
       // Al abrir (o si quedó fuera), ajustar para que nada quede fuera de pantalla.
       if (this.open) requestAnimationFrame(() => this.#fitToViewport());
     }
@@ -338,8 +354,6 @@
         ok: 'Instrucciones inyectadas y al día.',
         stale: 'Los MCP activos cambiaron: vuelve a inyectar las instrucciones.',
       }[injection];
-      const perms = new Set(servers.map((s) => s.permission));
-      const common = perms.size === 1 ? [...perms][0] : 'mixed';
 
       return h('div', { class: `panel${this.approvals.length ? ' has-approval' : ''}`, role: 'dialog', 'aria-label': 'Web MCP Bridge' },
         h('div', { class: 'head', 'data-drag': '1', style: 'cursor: move;' },
@@ -349,16 +363,12 @@
         this.#approvalSection(),
 
         servers.length
-          ? h('ul', {}, servers.map((s) => h('li', { class: 'srv' },
+          ? h('ul', { class: `srvs${servers.length >= 3 ? ' scroll' : ''}` }, servers.map((s) => h('li', { class: 'srv' },
             h('i', { class: `dot ${s.status === 'connected' ? 'ok' : s.status === 'connecting' ? 'warn' : ''}` }),
             h('span', { class: 'grow' }, s.name, h('span', { class: 'muted' }, s.permission === 'deny' ? ' · bloqueado' : s.status === 'connected' ? ` · ${s.toolCount} herr.` : ' · sin conexión')),
             this.#permSelect(s.permission, (value) => this.handlers.onSetPermission(s.id, value), `Permiso de ${s.name}`))))
           : h('p', { class: 'muted' }, 'Abre el icono de la extensión y activa un servidor MCP.'),
 
-        servers.length > 1
-          ? h('div', { class: 'perm' }, h('strong', {}, 'Todos los MCP'),
-            this.#permSelect(common, (value) => this.handlers.onSetPermission(null, value), 'Permiso de todos los MCP'))
-          : null,
 
         this.#bridgeSection(),
 

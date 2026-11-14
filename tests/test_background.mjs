@@ -66,6 +66,12 @@ assert.equal(state.servers[0].slug, 'astrax_mcp');
 // 3) Permiso «ask»: hay herramientas; la imagen llega íntegra desde el MCP
 let tools = await call({ type: 'GET_ACTIVE_TOOLS' });
 assert.equal(tools.tools.length, 1);
+// 3b) v1.7.2: con la misma huella (`since`) no se reenvía la lista de herramientas
+assert.ok(tools.sig);
+const same = await call({ type: 'GET_ACTIVE_TOOLS', since: tools.sig });
+assert.equal(same.unchanged, true);
+assert.equal(same.tools, undefined);
+assert.equal((await call({ type: 'GET_ACTIVE_TOOLS', since: 'otra' })).tools.length, 1);
 let res = await call({ type: 'CALL_TOOL', server: 'astrax_mcp', name: 'astrax_ver_pantalla', arguments: {} });
 assert.equal(res.result.content[0].type, 'image');
 assert.equal(res.result.content[0].data, 'QUJD');

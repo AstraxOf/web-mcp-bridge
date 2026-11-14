@@ -87,6 +87,6 @@ assert.equal(WMB.dom.hasStale(stale), true);
 assert.equal(WMB.dom.stripStale(stale), 'hola\n\nmi pregunta');
 assert.equal(WMB.dom.hasStale('texto normal sin bloques'), false);
 assert.equal(WMB.dom.stripStale('[MCP_RESULT server="a" tool="b" status="ok"]\nx\n[/MCP_RESULT]'), '');
-assert.equal(WMB.VERSION, '1.7.0');
+assert.equal(WMB.VERSION, '1.7.2');
 
 console.log('✔ test_utils: todo correcto');

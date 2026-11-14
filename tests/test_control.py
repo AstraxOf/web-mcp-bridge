@@ -89,7 +89,7 @@ def main():
             assert set(found) == {"uno", "dos"} and all(s["status"] == "listening" for s in found.values()), found
             assert found["uno"]["url"] == "ws://127.0.0.1:18771", found
             info = call("GET", "/servers")[1]
-            assert info["config_error"] is None and info["version"] == "1.7.0", info
+            assert info["config_error"] is None and info["version"] == "1.7.2", info
 
             # Una web NO puede leer ni apagar el puente
             assert call("GET", "/servers", origin="https://chatgpt.com")[0] == 403

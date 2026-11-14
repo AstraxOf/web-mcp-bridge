@@ -52,6 +52,10 @@ export const DEFAULT_SETTINGS = {
   showNotices: true,
   /** v1.7.0: pausa (ms) antes de entregar cada resultado al chat. Evita saturar a la IA («Too many requests») con preguntas cortas. 0 = al instante. Se cambia desde el panel flotante. */
   responseDelayMs: 1500,
+  /** v1.7.2: si hay MÁS herramientas activas que esto, el prompt no las lista todas: la IA las pide por páginas con wmb.list_tools (0 = siempre catálogo). */
+  catalogThreshold: 40,
+  /** v1.7.2: herramientas por página del catálogo (1 – 50). */
+  catalogPageSize: 50,
 };
 
 /** Límites del tiempo de respuesta configurable (ms). */

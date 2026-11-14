@@ -16,6 +16,8 @@ server/_*.err
 server/.paused
 *.bak
 *.bak_*
+*.bak*
+*.mis-cambios-descartados
 *.log
 Thumbs.db
 
