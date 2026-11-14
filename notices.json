@@ -3,7 +3,7 @@
     {
       "id": "2026-11-v1.7.2",
       "title": "Web MCP Bridge 1.7.2",
-      "message": "Corregido: la tarjeta de aprobación ahora sube siempre arriba y sus botones ya no quedan cortados; con 3 o más MCP la lista de servidores se desplaza dentro del panel y el historial ocupa menos; ya no se entregan resultados viejos que seguían en cola (eco); y la página ya no se queda «sin responder» al escribir textos muy largos en el chat. Mejorado: el navegador va más fluido con muchas herramientas activas, porque la lista ya no se reenvía a la pestaña cuando no cambió.",
+      "message": "Nuevo: paginación de herramientas. Con muchas herramientas MCP la IA ya no recibe la lista completa: las consulta por páginas, por búsqueda o por detalle con wmb.list_tools. Mejorado: el navegador va más fluido, la lista de MCP tiene scroll con 3 o más, los botones de aprobación siempre se ven y los textos largos ya no congelan la página.",
       "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.7.2",
       "level": "update",
       "date": "2026-11-13",
