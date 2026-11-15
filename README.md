@@ -11,7 +11,7 @@
 
 [![CI](https://github.com/AstraxOf/web-mcp-bridge/actions/workflows/ci.yml/badge.svg)](https://github.com/AstraxOf/web-mcp-bridge/actions)
 ![Manifest V3](https://img.shields.io/badge/Manifest-V3-0f766e?style=flat-square&logo=googlechrome&logoColor=white)
-![License Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue?style=flat-square)
+![License MIT / Apache 2.0](https://img.shields.io/badge/license-MIT%20%7C%20Apache%202.0-blue?style=flat-square)
 ![Python](https://img.shields.io/badge/Python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/extension%20deps-0-success?style=flat-square)
 ![Chrome | Edge | Brave](https://img.shields.io/badge/Chrome%20%7C%20Edge%20%7C%20Brave-116%2B-informational?style=flat-square)
@@ -315,6 +315,6 @@ If you find the project useful, leave a ⭐ on the repository and subscribe to t
 
 Made with 💙 by Rufus · [@AstraxOf](https://github.com/AstraxOf) · [astrabots.pro](https://astrabots.pro)
 
-**[Apache License 2.0](LICENSE)**
+**[MIT License](LICENSE-MIT)** · **[Apache License 2.0](LICENSE)**
 
 </div>

@@ -10,5 +10,5 @@
     "icons": "python scripts/generate_icons.py",
     "pack": "node scripts/pack.mjs"
   },
-  "license": "Apache-2.0"
+  "license": "(MIT OR Apache-2.0)"
 }
