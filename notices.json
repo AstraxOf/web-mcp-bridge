@@ -1,6 +1,26 @@
 {
   "notices": [
     {
+      "id": "2026-11-v1.8.0-en",
+      "title": "Web MCP Bridge 1.8.0",
+      "message": "New design and English/Spanish language selector now active.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.8.0",
+      "level": "update",
+      "date": "2026-11-14",
+      "expires": "2027-02-14",
+      "maxVersion": "1.8.0"
+    },
+    {
+      "id": "2026-11-v1.8.0-es",
+      "title": "Web MCP Bridge 1.8.0",
+      "message": "Nuevo diseño y selector de idioma inglés/español activo.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge/releases/tag/v1.8.0",
+      "level": "update",
+      "date": "2026-11-14",
+      "expires": "2027-02-14",
+      "maxVersion": "1.8.0"
+    },
+    {
       "id": "2026-11-v1.7.2",
       "title": "Web MCP Bridge 1.7.2",
       "message": "Nuevo: paginación de herramientas. Con muchas herramientas MCP la IA ya no recibe la lista completa: las consulta por páginas, por búsqueda o por detalle con wmb.list_tools. Mejorado: el navegador va más fluido, la lista de MCP tiene scroll con 3 o más, los botones de aprobación siempre se ven y los textos largos ya no congelan la página.",
