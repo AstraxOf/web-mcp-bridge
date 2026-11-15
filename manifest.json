@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Web MCP Bridge",
-  "version": "1.7.2",
-  "description": "Conecta ChatGPT, Gemini, Claude y LLMs Web con servidores MCP locales mediante WebSocket.",
+  "version": "1.8.0",
+  "description": "Connect ChatGPT, Gemini, Claude and DeepSeek to your local MCP servers over WebSocket.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
@@ -37,6 +37,7 @@
     {
       "matches": ["https://chatgpt.com/*"],
       "js": [
+        "shared/i18n.js",
         "content_scripts/utils.js",
         "content_scripts/mcp_parser.js",
         "content_scripts/prompt_builder.js",
@@ -51,6 +52,7 @@
     {
       "matches": ["https://gemini.google.com/*"],
       "js": [
+        "shared/i18n.js",
         "content_scripts/utils.js",
         "content_scripts/mcp_parser.js",
         "content_scripts/prompt_builder.js",
@@ -65,6 +67,7 @@
     {
       "matches": ["https://claude.ai/*"],
       "js": [
+        "shared/i18n.js",
         "content_scripts/utils.js",
         "content_scripts/mcp_parser.js",
         "content_scripts/prompt_builder.js",
@@ -79,6 +82,7 @@
     {
       "matches": ["https://chat.deepseek.com/*"],
       "js": [
+        "shared/i18n.js",
         "content_scripts/utils.js",
         "content_scripts/mcp_parser.js",
         "content_scripts/prompt_builder.js",

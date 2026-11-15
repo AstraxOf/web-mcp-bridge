@@ -46,9 +46,9 @@ def default_config() -> dict:
 
 def ensure_config(dry: bool) -> None:
     if CONFIG.exists():
-        print(f"• Usando configuración existente: {CONFIG}")
+        print(f"• Using existing configuration: {CONFIG}")
         return
-    print(f"• Creando {CONFIG} (edítalo para añadir más servidores)")
+    print(f"• Creating {CONFIG} (edit it to add more servers)")
     if not dry:
         CONFIG.write_text(json.dumps(default_config(), indent=2, ensure_ascii=False), encoding="utf-8")
 
@@ -85,7 +85,7 @@ def start_launcher() -> None:
     """Deja el lanzador corriendo ahora mismo: si ya hay uno le pide reiniciar; si no, lo arranca desacoplado."""
     control, launcher = _ports()
     if _post(launcher, "/restart"):
-        print("-> Lanzador ya activo: puente reiniciado.")
+        print("-> Launcher already running: bridge restarted.")
         return
     _post(control, "/shutdown")  # un puente suelto (sin lanzador) ocuparia los puertos
     time.sleep(1.5)
@@ -94,7 +94,7 @@ def start_launcher() -> None:
         flags = 0x00000008 | 0x00000200 | 0x08000000  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW
     subprocess.Popen(launcher_command(windowless=True), cwd=str(HERE), creationflags=flags, close_fds=True,
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    print("-> Lanzador iniciado en segundo plano.")
+    print("-> Launcher started in the background.")
 
 
 def stop_launcher() -> None:
@@ -169,7 +169,7 @@ def purge_foreign_autostarts(dry: bool) -> int:
             except Exception:
                 continue
             if _has_marker(text) and not _is_here(text):
-                print(f"• Auto-inicio ajeno en Inicio: {item.name} (apunta a otra carpeta) -> respaldo y eliminacion")
+                print(f"• Foreign startup entry: {item.name} (points to another folder) -> backed up and removed")
                 touched += 1
                 if not dry:
                     backup.mkdir(exist_ok=True)
@@ -184,12 +184,12 @@ def purge_foreign_autostarts(dry: bool) -> int:
     for task in ([tasks] if isinstance(tasks, dict) else tasks):
         if task.get("Name") == TASK_NAME or _is_here(task.get("Action", "")):
             continue
-        print(f"• Tarea programada ajena: {task.get('Name')} ({task.get('Action', '')[:90]}) -> deshabilitada")
+        print(f"• Foreign scheduled task: {task.get('Name')} ({task.get('Action', '')[:90]}) -> disabled")
         touched += 1
         if not dry and task.get("State") != "Disabled":
             _ps("Disable-ScheduledTask -TaskName %s -TaskPath %s | Out-Null" % (_ps_quote(task["Name"]), _ps_quote(task.get("Path") or "\\")))
     if not touched:
-        print("• No hay auto-inicios de otras copias.")
+        print("• No startup entries from other copies.")
     return touched
 
 
@@ -198,7 +198,7 @@ def register_task(dry: bool) -> None:
     if sys.platform != "win32":
         return
     cmd = launcher_command(windowless=True)
-    print(f"• Registrando tarea programada {TASK_NAME} (reintento cada minuto)")
+    print(f"• Registering scheduled task {TASK_NAME} (retries every minute)")
     if dry:
         return
     script = (
@@ -210,7 +210,7 @@ def register_task(dry: bool) -> None:
     ) % (_ps_quote(cmd[0]), _ps_quote('"%s"' % cmd[1]), _ps_quote(str(HERE)), _ps_quote(TASK_NAME))
     code, out = _ps(script)
     if code != 0:
-        print(f"  (no se pudo registrar la tarea: {out[:160]}; el auto-inicio de la carpeta Inicio sigue activo)")
+        print(f"  (could not register the task: {out[:160]}; the Startup folder entry is still active)")
 
 
 def unregister_task(dry: bool) -> None:
@@ -227,7 +227,7 @@ def install_windows(dry: bool) -> None:
     script = f'CreateObject("Wscript.Shell").Run "{cmd}", 0, False\n'
     target = windows_startup_file()
     purge_foreign_autostarts(dry)  # primero se quitan los auto-inicios de otras copias: solo debe quedar UNO
-    print(f"• Registrando arranque automático: {target}")
+    print(f"• Registering auto-start: {target}")
     if dry:
         register_task(dry)
         return
@@ -238,7 +238,7 @@ def install_windows(dry: bool) -> None:
 
 def uninstall_windows(dry: bool) -> None:
     target = windows_startup_file()
-    print(f"• Eliminando {target}")
+    print(f"• Removing {target}")
     if not dry:
         target.unlink(missing_ok=True)
         unregister_task(dry)
@@ -261,7 +261,7 @@ def install_macos(dry: bool) -> None:
         f"<key>ProgramArguments</key><array>{args}</array>"
         "<key>RunAtLoad</key><true/><key>KeepAlive</key><true/></dict></plist>"
     )
-    print(f"• Registrando LaunchAgent: {mac_plist()}")
+    print(f"• Registering LaunchAgent: {mac_plist()}")
     if dry:
         return
     mac_plist().parent.mkdir(parents=True, exist_ok=True)
@@ -271,7 +271,7 @@ def install_macos(dry: bool) -> None:
 
 
 def uninstall_macos(dry: bool) -> None:
-    print(f"• Eliminando {mac_plist()}")
+    print(f"• Removing {mac_plist()}")
     if not dry:
         subprocess.run(["launchctl", "unload", str(mac_plist())], capture_output=True)
         mac_plist().unlink(missing_ok=True)
@@ -290,7 +290,7 @@ def install_linux(dry: bool) -> None:
         f"[Service]\nExecStart={exec_start}\nRestart=always\nRestartSec=3\n\n"
         "[Install]\nWantedBy=default.target\n"
     )
-    print(f"• Registrando servicio systemd de usuario: {linux_unit()}")
+    print(f"• Registering systemd user service: {linux_unit()}")
     if dry:
         return
     linux_unit().parent.mkdir(parents=True, exist_ok=True)
@@ -300,7 +300,7 @@ def install_linux(dry: bool) -> None:
 
 
 def uninstall_linux(dry: bool) -> None:
-    print(f"• Eliminando {linux_unit()}")
+    print(f"• Removing {linux_unit()}")
     if not dry:
         subprocess.run(["systemctl", "--user", "disable", "--now", "web-mcp-bridge.service"], capture_output=True)
         linux_unit().unlink(missing_ok=True)
@@ -314,18 +314,18 @@ def main() -> int:
             stream.reconfigure(encoding="utf-8", errors="replace")
         except Exception:
             pass
-    parser = argparse.ArgumentParser(description="Instala el puente MCP como servicio de inicio automático.")
-    parser.add_argument("--uninstall", action="store_true", help="Quita el arranque automático")
+    parser = argparse.ArgumentParser(description="Installs the MCP bridge as an auto-start service.")
+    parser.add_argument("--uninstall", action="store_true", help="Removes the auto-start")
     parser.add_argument("--dry-run", action="store_true", help="Muestra los pasos sin ejecutarlos")
     parser.add_argument("--purge", action="store_true", help="Quita los auto-inicios de OTRAS copias del proyecto (Inicio + tareas programadas) y sale")
-    parser.add_argument("--restart", action="store_true", help="Reinicia el puente ahora (cierra el anterior aunque este ocupando los puertos)")
+    parser.add_argument("--restart", action="store_true", help="Restarts the bridge now (closes the previous one even if it is holding the ports)")
     args = parser.parse_args()
 
     if args.restart:
         return restart_bridge()
     if args.purge:
         n = purge_foreign_autostarts(args.dry_run)
-        print(f"✔ Listo: {n} auto-inicio(s) ajeno(s) tratado(s).")
+        print(f"✔ Done: {n} foreign startup entrie(s) handled.")
         return 0
 
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "linux")
@@ -337,17 +337,17 @@ def main() -> int:
 
     if args.uninstall:
         actions[1](args.dry_run)
-        print("✔ Arranque automático eliminado.")
+        print("✔ Auto-start removed.")
         return 0
 
-    print("• Instalando dependencias (websockets)…")
+    print("• Installing dependencies (websockets)…")
     if not args.dry_run:
         subprocess.run([sys.executable, "-m", "pip", "install", "-q", "-r", str(HERE / "requirements.txt")], check=True)
     ensure_config(args.dry_run)
     actions[0](args.dry_run)
-    print("\n✔ Listo. El puente corre en segundo plano y arrancará solo con tu sesión.")
+    print("\n✔ Done. The bridge runs in the background and will start with your session.")
     print(f"  Logs: {LOG}")
-    print("  Ahora abre el popup de la extensión: debería mostrar los servidores en verde.")
+    print("  Now open the extension popup: your servers should show up in green.")
     return 0
 
 

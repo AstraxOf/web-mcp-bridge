@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-demo_mcp_server.py - Servidor MCP minimo (stdio, sin dependencias) para probar la extension.
+demo_mcp_server.py - Minimal MCP server (stdio, no dependencies) to try out the extension.
 
     python server/mcp_ws_bridge.py --port 8080 --name demo -- python server/examples/demo_mcp_server.py
 
-La herramienta `info_sistema` es la prueba mas rapida: devuelve datos reales de tu equipo.
+The `system_info` tool is the quickest test: it returns real data from your computer.
 """
 import json
 import os
@@ -17,7 +17,7 @@ from datetime import datetime
 
 
 def _memory() -> str:
-    """RAM total/libre sin dependencias (Windows via ctypes, Linux via /proc)."""
+    """Total/free RAM without dependencies (Windows via ctypes, Linux via /proc)."""
     try:
         if sys.platform == "win32":
             import ctypes
@@ -41,9 +41,9 @@ def _memory() -> str:
                     info[key] = int(rest.split()[0]) * 1024
             total, free = info["MemTotal"], info.get("MemAvailable", info["MemFree"])
         gb = 1024 ** 3
-        return f"{(total - free) / gb:.1f} GB usados de {total / gb:.1f} GB ({free / gb:.1f} GB libres)"
+        return f"{(total - free) / gb:.1f} GB used of {total / gb:.1f} GB ({free / gb:.1f} GB free)"
     except Exception:  # noqa: BLE001
-        return "no disponible"
+        return "not available"
 
 
 def _uptime() -> str:
@@ -58,7 +58,7 @@ def _uptime() -> str:
         hours, rest = divmod(rest, 3600)
         return f"{days} d {hours} h {rest // 60} min"
     except Exception:  # noqa: BLE001
-        return "no disponible"
+        return "not available"
 
 
 def system_info() -> str:
@@ -66,32 +66,32 @@ def system_info() -> str:
     disk = shutil.disk_usage(anchor)
     gb = 1024 ** 3
     rows = [
-        ("Equipo", socket.gethostname()),
-        ("Sistema", f"{platform.system()} {platform.release()} ({platform.version()})"),
-        ("Procesador", f"{platform.processor() or platform.machine()} - {os.cpu_count()} hilos"),
-        ("Memoria", _memory()),
-        (f"Disco {anchor}", f"{disk.used / gb:.0f} GB usados de {disk.total / gb:.0f} GB ({disk.free / gb:.0f} GB libres)"),
-        ("Encendido hace", _uptime()),
+        ("Computer", socket.gethostname()),
+        ("System", f"{platform.system()} {platform.release()} ({platform.version()})"),
+        ("Processor", f"{platform.processor() or platform.machine()} - {os.cpu_count()} threads"),
+        ("Memory", _memory()),
+        (f"Disk {anchor}", f"{disk.used / gb:.0f} GB used of {disk.total / gb:.0f} GB ({disk.free / gb:.0f} GB free)"),
+        ("Uptime", _uptime()),
         ("Python", platform.python_version()),
-        ("Fecha y hora", datetime.now().astimezone().isoformat(timespec="seconds")),
+        ("Date and time", datetime.now().astimezone().isoformat(timespec="seconds")),
     ]
     return "\n".join(f"{k}: {v}" for k, v in rows)
 
 
 TOOLS = [
     {
-        "name": "info_sistema",
-        "description": "Muestra informacion real del equipo: sistema operativo, procesador, memoria, disco, tiempo encendido y version de Python. Es la prueba mas rapida de que todo funciona.",
+        "name": "system_info",
+        "description": "Shows real information about the computer: operating system, processor, memory, disk, uptime and Python version. It is the quickest way to check that everything works.",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
-        "name": "hora_actual",
-        "description": "Devuelve la fecha y hora actuales del equipo del usuario.",
+        "name": "current_time",
+        "description": "Returns the current date and time of the user's computer.",
         "inputSchema": {"type": "object", "properties": {}},
     },
     {
-        "name": "sumar",
-        "description": "Suma dos numeros.",
+        "name": "add",
+        "description": "Adds two numbers.",
         "inputSchema": {
             "type": "object",
             "properties": {"a": {"type": "number"}, "b": {"type": "number"}},
@@ -99,26 +99,26 @@ TOOLS = [
         },
     },
     {
-        "name": "eco",
-        "description": "Devuelve el mismo texto que recibe.",
+        "name": "echo",
+        "description": "Returns the same text it receives.",
         "inputSchema": {
             "type": "object",
-            "properties": {"texto": {"type": "string", "description": "Texto a repetir"}},
-            "required": ["texto"],
+            "properties": {"text": {"type": "string", "description": "Text to repeat"}},
+            "required": ["text"],
         },
     },
 ]
 
 
 def call_tool(name: str, args: dict) -> str:
-    if name == "info_sistema":
+    if name == "system_info":
         return system_info()
-    if name == "hora_actual":
+    if name == "current_time":
         return datetime.now().astimezone().isoformat(timespec="seconds")
-    if name == "sumar":
+    if name == "add":
         return str(args["a"] + args["b"])
-    if name == "eco":
-        return str(args["texto"])
+    if name == "echo":
+        return str(args["text"])
     raise KeyError(name)
 
 
@@ -130,7 +130,7 @@ def reply(msg_id, result=None, error=None) -> None:
 
 
 def main() -> None:
-    for stream in (sys.stdin, sys.stdout):  # el puente habla UTF-8 en ambos sentidos
+    for stream in (sys.stdin, sys.stdout):  # the bridge speaks UTF-8 both ways
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     for line in sys.stdin:
@@ -139,7 +139,7 @@ def main() -> None:
             continue
         msg = json.loads(line)
         method, msg_id = msg.get("method"), msg.get("id")
-        if msg_id is None:  # notificacion: no se responde
+        if msg_id is None:  # notification: no reply
             continue
         if method == "initialize":
             reply(msg_id, {
@@ -159,7 +159,7 @@ def main() -> None:
         elif method == "ping":
             reply(msg_id, {})
         else:
-            reply(msg_id, error={"code": -32601, "message": f"Metodo no soportado: {method}"})
+            reply(msg_id, error={"code": -32601, "message": f"Method not supported: {method}"})
 
 
 if __name__ == "__main__":

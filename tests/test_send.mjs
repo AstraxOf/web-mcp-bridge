@@ -39,6 +39,7 @@ const WMB = {
   },
 };
 globalThis.WMB = WMB;
+await import('../shared/i18n.js'); // añade WMB.t / WMB.i18n al objeto simulado (inglés por defecto)
 await import('../content_scripts/adapters/base_adapter.js');
 
 function reset(opts) {
@@ -87,7 +88,7 @@ assert.equal(r.ok, true); assert.ok(log.includes('form'), `log=${log}`);
 // 5) nada funciona -> falla tras 3 intentos y el texto sigue en el cuadro (no se pierde)
 reset({});
 r = await adapter.sendToolResult(TEXT);
-assert.equal(r.ok, false); assert.match(r.error, /3 intentos/);
+assert.equal(r.ok, false); assert.match(r.error, /3 automatic attempts/);
 assert.ok(composer.value.includes('hola mundo'));
 
 // 6) confirmación lenta: el texto sale del cuadro tarde -> NO se reenvía por segunda vez

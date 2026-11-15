@@ -316,24 +316,24 @@
   function diagnose(raw) {
     const at = raw.indexOf('mcp_call');
     const start = raw.lastIndexOf('{', at);
-    if (start === -1) return 'falta la llave { de apertura';
+    if (start === -1) return WMB.t('ps.noBrace');
     const fixed = repairObject(raw, start);
-    if (!fixed) return 'el bloque esta incompleto o cortado (faltan llaves } de cierre o hay una comilla sin cerrar)';
+    if (!fixed) return WMB.t('ps.incomplete');
     const seg = raw.slice(start, fixed.end + 1);
     let msg;
-    try { JSON.parse(seg); return 'el JSON es valido pero falta "name" o el servidor/herramienta no coincide con los MCP activos'; } catch (e) { msg = String(e.message); }
+    try { JSON.parse(seg); return WMB.t('ps.valid'); } catch (e) { msg = String(e.message); }
     const pos = Number((/position (\d+)/.exec(msg) || [])[1]);
     const near = Number.isFinite(pos) ? seg.slice(Math.max(0, pos - 25), pos + 25).replace(/\s+/g, ' ') : '';
-    let why = 'JSON invalido';
-    if (/escape/i.test(msg)) why = 'secuencia de escape invalida (casi siempre una ruta de Windows con "\\": usa "/" o duplica la barra)';
-    else if (/control character|Unterminated/i.test(msg)) why = 'salto de linea real dentro de un texto: usa \\n';
-    else if (/[\u201c\u201d]/.test(seg)) why = 'comillas tipograficas en lugar de comillas rectas';
-    else if (/,\s*[}\]]/.test(seg)) why = 'coma sobrante antes de } o ]';
-    else if (/Unexpected|Expected/i.test(msg)) why = 'comilla sin escapar dentro de un texto, o JSON mal formado';
-    return near ? `${why} (cerca de: ${near})` : why;
+    let why = WMB.t('ps.invalid');
+    if (/escape/i.test(msg)) why = WMB.t('ps.escape');
+    else if (/control character|Unterminated/i.test(msg)) why = WMB.t('ps.newline');
+    else if (/[\u201c\u201d]/.test(seg)) why = WMB.t('ps.curly');
+    else if (/,\s*[}\]]/.test(seg)) why = WMB.t('ps.comma');
+    else if (/Unexpected|Expected/i.test(msg)) why = WMB.t('ps.unexpected');
+    return near ? WMB.t('ps.near', { why, near }) : why;
   }
   WMB.diagnoseMcp = diagnose;
 
   /** Mensaje que se devuelve a la IA cuando su bloque no se pudo leer. */
-  WMB.formatCallError = (raw) => `[MCP_RESULT server="bridge" tool="mcp_call" status="format_error"]\nNo se ejecuto nada: tu bloque mcp_call no se pudo leer. Motivo: ${diagnose(String(raw))}.\nReenvia SOLO el bloque corregido, dentro de \`\`\`json y en UNA sola linea. Reglas: rutas con "/" (C:/Users/...), comillas internas como \\", saltos de linea como \\n, sin comas finales ni texto dentro del JSON. Para scripts largos escribe antes un archivo con una herramienta y luego ejecutalo.\nFormato: {"mcp_call":{"server":"<servidor>","name":"<herramienta>","arguments":{}}}\n[/MCP_RESULT]`;
+  WMB.formatCallError = (raw) => WMB.t('ps.formatError', { why: diagnose(String(raw)) });
 })();

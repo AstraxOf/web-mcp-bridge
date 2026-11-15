@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const context = vm.createContext({ console, setTimeout, clearTimeout });
+vm.runInContext(readFileSync(new URL('../shared/i18n.js', import.meta.url), 'utf8') + "\nWMB.i18n.setLang('es');", context); // las aserciones de este test están en español
 for (const file of ['utils.js', 'mcp_parser.js', 'prompt_builder.js', 'tool_catalog.js']) {
   vm.runInContext(readFileSync(new URL(`../content_scripts/${file}`, import.meta.url), 'utf8'), context);
 }

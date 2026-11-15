@@ -287,7 +287,7 @@
             }
             done.set(fireId, { absentSince: 0 });
             // Protocolo: una llamada por mensaje → solo se ejecuta la primera. En línea base solo se memoriza.
-            if (!baseline && n === 0) { say('llamada detectada, ejecutando…'); callback({ id: fireId, call, element: wrap(el) }); }
+            if (!baseline && n === 0) { say(WMB.t?.('ad.cg.detected') ?? 'call detected, running…'); callback({ id: fireId, call, element: wrap(el) }); }
           });
         }
 

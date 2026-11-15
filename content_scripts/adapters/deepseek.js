@@ -180,7 +180,7 @@
       return super.observeResponses((detected) => {
         if (detected.malformed || !detected.call) { callback(detected); return; } // aviso de bloque ilegible: no tiene llamada que bloquear
         const hash = hashOf(detected.call);
-        if (this.#locked(hash) && detected.id === this.#lock?.id) { this.debug?.('ok', 'DeepSeek · llamada idéntica ya en curso: ignorada'); return; }
+        if (this.#locked(hash) && detected.id === this.#lock?.id) { this.debug?.('ok', WMB.t?.('ad.ds.dup') ?? 'DeepSeek · identical call already in progress: ignored'); return; }
         this.#lock = { hash, id: detected.id, firedAt: Date.now(), sentAt: 0, newGen: false };
         callback(detected);
       }, options);

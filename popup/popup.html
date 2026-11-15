@@ -1,189 +1,216 @@
 <!doctype html>
-<html lang="es">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark light">
   <title>Web MCP Bridge</title>
   <link rel="stylesheet" href="popup.css">
+  <script src="../shared/i18n.js"></script>
 </head>
 <body>
   <header class="top">
-    <img src="../icons/icon48.png" alt="" width="36" height="36">
+    <img src="../icons/icon48.png" alt="" width="34" height="34">
     <div class="grow">
       <h1>Web MCP Bridge <span id="version" class="version"></span></h1>
-      <p id="master-label" class="sub">Conectado</p>
+      <p id="master-label" class="sub">On</p>
     </div>
-    <label class="switch big" title="Activar o desactivar todo el bridge">
-      <input type="checkbox" id="master" aria-label="Activar bridge">
+    <div class="seg" id="lang-seg" role="group" data-i18n-aria="lang.switch">
+      <button type="button" data-lang="en" title="English">EN</button>
+      <button type="button" data-lang="es" title="Español">ES</button>
+    </div>
+    <button id="theme-btn" type="button" class="icon-btn" aria-label="Theme"></button>
+    <label class="switch big" data-i18n-title="p.master.title" title="Turn the whole bridge on or off">
+      <input type="checkbox" id="master" data-i18n-aria="p.master.aria" aria-label="Enable bridge">
       <span></span>
     </label>
   </header>
 
-  <nav class="tabs" role="tablist" aria-label="Secciones">
+  <nav class="tabs" role="tablist" data-i18n-aria="p.tabs.aria" aria-label="Sections">
     <i class="tab-ink" aria-hidden="true"></i>
-    <button role="tab" data-tab="servers" aria-selected="true">Servidores</button>
-    <button role="tab" data-tab="notices" aria-selected="false">Avisos<b id="notices-badge" class="count" hidden></b></button>
-    <button role="tab" data-tab="history" aria-selected="false">Historial</button>
-    <button role="tab" data-tab="settings" aria-selected="false">Ajustes</button>
+    <button role="tab" data-tab="servers" aria-selected="true"><span data-i18n="p.tab.servers">Servers</span></button>
+    <button role="tab" data-tab="notices" aria-selected="false"><span data-i18n="p.tab.notices">News</span><b id="notices-badge" class="count" hidden></b></button>
+    <button role="tab" data-tab="history" aria-selected="false"><span data-i18n="p.tab.history">History</span></button>
+    <button role="tab" data-tab="settings" aria-selected="false"><span data-i18n="p.tab.settings">Settings</span></button>
   </nav>
 
   <main id="main">
-    <!-- Servidores -->
+    <!-- Servers -->
     <section id="tab-servers">
       <div class="card bridge-card">
         <div class="bridge-head">
           <i id="bridge-dot" class="dot"></i>
           <div class="grow">
-            <strong id="bridge-title">Comprobando el puente…</strong>
+            <strong id="bridge-title">Checking the bridge…</strong>
             <small id="bridge-sub" class="muted"></small>
           </div>
         </div>
         <p id="config-error" class="callout bad" hidden></p>
         <p id="offline-hint" class="callout warn" hidden></p>
         <div class="btn-row">
-          <button id="toggle-bridge" type="button" class="soft" disabled><i class="ico" data-ico="power"></i><span>Iniciar puente</span></button>
-          <button id="restart-bridge" type="button" class="soft"><i class="ico" data-ico="refresh"></i><span>Reiniciar puente</span></button>
+          <button id="toggle-bridge" type="button" class="soft" disabled><i class="ico" data-ico="power"></i><span>Start bridge</span></button>
+          <button id="restart-bridge" type="button" class="soft"><i class="ico" data-ico="refresh"></i><span>Restart bridge</span></button>
         </div>
         <div class="btn-row one">
-          <button id="open-editor" type="button" class="primary"><i class="ico" data-ico="edit"></i><span>Editor JSON / Agregar MCP</span></button>
+          <button id="open-editor" type="button" class="primary"><i class="ico" data-ico="edit"></i><span data-i18n="p.bridge.editor">JSON editor / Add MCP</span></button>
         </div>
-        <button id="open-config" type="button" class="link cfg"><i class="ico" data-ico="file"></i><span>Abrir servers.json en el Bloc de notas</span></button>
+        <button id="open-config" type="button" class="link cfg"><i class="ico" data-ico="file"></i><span data-i18n="p.bridge.openConfig">Open servers.json in Notepad</span></button>
       </div>
 
       <div class="summary">
-        <strong id="counter">0/5 activos</strong>
+        <strong id="counter">0/5 active</strong>
         <span id="tokens" class="muted"></span>
       </div>
       <p id="warning" class="callout warn" hidden></p>
 
       <div class="perm-all">
         <div>
-          <strong>Permiso de todos los MCP</strong>
-          <small id="perm-hint" class="muted">Con «Permitir siempre» no se pregunta nada.</small>
+          <strong data-i18n="p.srv.permAll">Permission for all MCP</strong>
+          <small id="perm-hint" class="muted"></small>
         </div>
-        <select id="perm-all" aria-label="Permiso de todos los MCP">
-          <option value="allow">Permitir siempre</option>
-          <option value="ask">Preguntar siempre</option>
-          <option value="deny">No permitir</option>
-          <option value="mixed" disabled hidden>Mixto</option>
+        <select id="perm-all" data-i18n-aria="p.srv.permAllAria" aria-label="Permission for all MCP">
+          <option value="allow" data-i18n="perm.allow">Always allow</option>
+          <option value="ask" data-i18n="perm.ask">Always ask</option>
+          <option value="deny" data-i18n="perm.deny">Don't allow</option>
+          <option value="mixed" data-i18n="perm.mixed" disabled hidden>Mixed</option>
         </select>
       </div>
 
       <ul id="server-list" class="server-list"></ul>
       <div id="empty" class="empty" hidden>
-        <p>Todavía no hay servidores. Abre el <b>Editor JSON</b>, añade tus MCP y guarda: aparecerán aquí solos.</p>
+        <p data-i18n-html="p.srv.empty">No servers yet. Open the <b>JSON editor</b>, add your MCP and save: they'll show up here by themselves.</p>
       </div>
     </section>
 
-    <!-- Avisos -->
+    <!-- News -->
     <section id="tab-notices" hidden>
       <div class="summary">
-        <strong>Avisos del autor</strong>
-        <button id="read-all" class="link" type="button">Marcar todo como leído</button>
+        <strong data-i18n="p.nt.title">Notes from the author</strong>
+        <button id="read-all" class="link" type="button" data-i18n="p.nt.readAll">Mark all as read</button>
       </div>
       <ul id="notice-list" class="notice-list"></ul>
       <div id="notices-empty" class="empty" hidden>
-        <p>No hay avisos por ahora. Si sale una versión nueva o hay algo importante, lo verás aquí y en una notificación.</p>
+        <p data-i18n="p.nt.empty">Nothing new for now.</p>
       </div>
       <div class="foot-row">
         <small id="notices-line" class="muted"></small>
-        <button type="button" id="check-notices" class="soft small"><i class="ico" data-ico="refresh"></i><span>Buscar avisos</span></button>
+        <button type="button" id="check-notices" class="soft small"><i class="ico" data-ico="refresh"></i><span data-i18n="p.nt.check">Check for notices</span></button>
       </div>
     </section>
 
-    <!-- Historial -->
+    <!-- History -->
     <section id="tab-history" hidden>
       <div class="summary">
-        <strong>Últimas llamadas</strong>
-        <button id="clear-history" class="link" type="button">Borrar</button>
+        <strong data-i18n="p.hs.title">Latest calls</strong>
+        <button id="clear-history" class="link" type="button" data-i18n="p.hs.clear">Clear</button>
       </div>
       <ul id="history-list" class="history-list"></ul>
-      <p id="history-empty" class="empty" hidden>Todavía no se ha ejecutado ninguna herramienta.</p>
+      <p id="history-empty" class="empty" hidden data-i18n="p.hs.empty">No tool has run yet.</p>
     </section>
 
-    <!-- Ajustes -->
+    <!-- Settings -->
     <section id="tab-settings" hidden>
+      <h2 class="grp" data-i18n="p.set.g.look">appearance</h2>
+      <div class="card group">
+        <label class="setting column">
+          <strong data-i18n="p.set.language">Language</strong>
+          <small data-i18n="p.set.languageD">Changes the extension, the floating panel and the instructions the AI receives.</small>
+          <select id="set-language">
+            <option value="en" data-i18n="lang.name.en">English</option>
+            <option value="es" data-i18n="lang.name.es">Español</option>
+          </select>
+        </label>
+        <label class="setting column">
+          <strong data-i18n="p.set.theme">Theme</strong>
+          <small data-i18n="p.set.themeD">Black by default. Switch to white if you prefer.</small>
+          <select id="set-theme">
+            <option value="dark" data-i18n="p.set.themeDark">Dark</option>
+            <option value="light" data-i18n="p.set.themeLight">Light</option>
+          </select>
+        </label>
+      </div>
+
+      <h2 class="grp" data-i18n="p.set.g.servers">servers</h2>
       <div class="card group">
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-showNotices"><span></span></span>
           <span class="txt">
-            <strong>Mostrar avisos del autor</strong>
-            <small>Novedades, versiones nuevas o incidencias. Solo informa: no descarga ni instala nada.</small>
+            <strong data-i18n="p.set.notices">Show author notices</strong>
+            <small data-i18n="p.set.noticesD"></small>
           </span>
         </label>
-      </div>
-
-      <div class="card group">
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-autoDiscover"><span></span></span>
           <span class="txt">
-            <strong>Detectar servidores automáticamente</strong>
-            <small>Lee servers.json a través del puente: los MCP nuevos aparecen solos aquí.</small>
+            <strong data-i18n="p.set.discover">Detect servers automatically</strong>
+            <small data-i18n="p.set.discoverD"></small>
           </span>
         </label>
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-autoEnableDiscovered"><span></span></span>
           <span class="txt">
-            <strong>Activar los servidores detectados</strong>
-            <small>Si lo desactivas, solo se activa el primero cuando no hay ninguno activo (menos tokens). Máximo 5 activos.</small>
+            <strong data-i18n="p.set.enableDisc">Enable detected servers</strong>
+            <small data-i18n="p.set.enableDiscD"></small>
           </span>
         </label>
         <div class="foot-row">
           <span></span>
-          <button type="button" id="discover-now" class="soft small"><i class="ico" data-ico="refresh"></i><span>Buscar servidores ahora</span></button>
+          <button type="button" id="discover-now" class="soft small"><i class="ico" data-ico="refresh"></i><span data-i18n="p.set.discoverNow">Find servers now</span></button>
         </div>
       </div>
 
+      <h2 class="grp" data-i18n="p.set.g.chat">chat</h2>
       <div class="card group">
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-autoInject"><span></span></span>
           <span class="txt">
-            <strong>Añadir instrucciones automáticamente</strong>
-            <small>Al enviar tu primer mensaje del chat, la extensión antepone las instrucciones de las herramientas. No tienes que pulsar nada.</small>
+            <strong data-i18n="p.set.autoInject">Add instructions automatically</strong>
+            <small data-i18n="p.set.autoInjectD"></small>
           </span>
         </label>
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-autoSend"><span></span></span>
           <span class="txt">
-            <strong>Enviar el resultado automáticamente</strong>
-            <small>Si lo desactivas, el resultado se escribe en el chat y lo envías tú.</small>
+            <strong data-i18n="p.set.autoSend">Send results automatically</strong>
+            <small data-i18n="p.set.autoSendD"></small>
           </span>
         </label>
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-reminder"><span></span></span>
           <span class="txt">
-            <strong>Recordar a la IA que tiene herramientas</strong>
-            <small>Añade una línea corta (~45 tokens) a cada mensaje, para que la IA no olvide que dispone de tus MCP locales.</small>
+            <strong data-i18n="p.set.reminder">Remind the AI it has tools</strong>
+            <small data-i18n="p.set.reminderD"></small>
           </span>
         </label>
         <label class="setting">
           <span class="switch"><input type="checkbox" id="set-focusFallback"><span></span></span>
           <span class="txt">
-            <strong>Despertar la pestaña si se queda pegada</strong>
-            <small>Si el chat no acepta el resultado con la pestaña oculta, la trae al frente un instante y vuelve a la anterior.</small>
+            <strong data-i18n="p.set.focus">Wake up a stuck tab</strong>
+            <small data-i18n="p.set.focusD"></small>
           </span>
         </label>
       </div>
 
+      <h2 class="grp" data-i18n="p.set.g.limits">limits</h2>
       <div class="card group">
         <label class="setting column">
-          <strong>Reenviar las instrucciones completas cada N mensajes</strong>
-          <small>Por si la conversación se hace larga y la IA pierde el contexto. 0 = nunca. También se reenvían solas si la IA dice que no tiene acceso.</small>
+          <strong data-i18n="p.set.reinject">Resend full instructions every N messages</strong>
+          <small data-i18n="p.set.reinjectD"></small>
           <input type="number" id="set-reinjectEvery" min="0" max="100" step="1">
         </label>
         <label class="setting column">
-          <strong>Máximo de caracteres por resultado</strong>
-          <small>Nada se recorta: lo que pase de este límite se adjunta completo al chat como archivo y en el mensaje queda un extracto.</small>
+          <strong data-i18n="p.set.maxChars">Max characters per result</strong>
+          <small data-i18n="p.set.maxCharsD"></small>
           <input type="number" id="set-maxResultChars" min="500" max="100000" step="500">
         </label>
         <label class="setting column">
-          <strong>Tiempo de respuesta (segundos)</strong>
-          <small>Espera antes de entregar el resultado de una herramienta a la IA. Súbelo si la IA se satura o dice «Too many requests». 0 = inmediato.</small>
+          <strong data-i18n="p.set.delay">Response delay (seconds)</strong>
+          <small data-i18n="p.set.delayD"></small>
           <input type="number" id="set-responseDelaySec" min="0" max="60" step="0.5">
         </label>
       </div>
 
+      <button id="open-guide" type="button" class="link guide"><span data-i18n="p.set.guide">Open setup guide</span></button>
     </section>
   </main>
 

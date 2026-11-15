@@ -81,7 +81,7 @@ assert.equal((await call({ type: 'SET_ALL_PERMISSIONS', permission: 'allow' })).
 state = await call({ type: 'GET_STATE' });
 assert.equal(state.servers[0].permission, 'allow');
 assert.equal(state.settings.defaultPermission, 'allow');
-assert.match((await call({ type: 'SET_PERMISSION', id, permission: 'siempre' })).error, /no válido/);
+assert.match((await call({ type: 'SET_PERMISSION', id, permission: 'siempre' })).error, /Invalid permission/);
 
 // 5) Un MCP añadido después hereda el permiso global
 assert.equal((await call({ type: 'ADD_SERVER', name: 'otro', url: 'ws://localhost:9001' })).ok, true);
@@ -94,7 +94,7 @@ tools = await call({ type: 'GET_ACTIVE_TOOLS' });
 assert.equal(tools.tools.length, 0);
 res = await call({ type: 'CALL_TOOL', server: 'astrax_mcp', name: 'astrax_ver_pantalla', arguments: {} });
 assert.equal(res.ok, false);
-assert.match(res.error, /no permite/);
+assert.match(res.error, /doesn't allow/);
 
 // 7) Migración desde 1.0: autoExecute=true → permiso «allow»; sin él → «ask»
 await chrome.storage.local.set({ wmb_settings: { autoExecute: true }, wmb_servers: [{ id: 'old', name: 'astrax-mcp', url: 'ws://localhost:8080', enabled: true }] });

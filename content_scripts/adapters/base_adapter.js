@@ -15,6 +15,7 @@
 (() => {
   'use strict';
   const WMB = globalThis.WMB;
+  const tr = (key, vars) => (typeof WMB.t === 'function' ? WMB.t(key, vars) : key);
 
   const BASELINE_MS = 2500;     // ventana tras cargar/navegar en la que solo se «memorizan» llamadas antiguas
   const DEBOUNCE_MS = 800;      // el mensaje debe quedar estable este tiempo antes de analizarlo
@@ -89,9 +90,9 @@
      */
     async injectSystemPrompt(activeToolsList) {
       const composer = await WMB.waitFor(() => this.getComposer(), { timeout: 4000 });
-      if (!composer) return { ok: false, error: 'No se encontró el cuadro de texto del chat.' };
+      if (!composer) return { ok: false, error: tr('ad.noComposer') };
       const ok = await WMB.dom.setText(composer, WMB.buildSystemPrompt(activeToolsList), { append: true });
-      return ok ? { ok: true } : { ok: false, error: 'No se pudo escribir en el cuadro de texto.' };
+      return ok ? { ok: true } : { ok: false, error: tr('ad.writeFail') };
     }
 
     /**
@@ -156,7 +157,7 @@
           const element = messages[i];
           const calls = WMB.extractMcpCalls(i === last ? text : element.textContent || '');
           calls.forEach((call, n) => {
-            if (!baseline && !this.#isFresh(messages, text)) { this.debug?.('err', 'Llamada ignorada: el mensaje es el mismo de antes (no hay respuesta nueva de la IA).'); return; }
+            if (!baseline && !this.#isFresh(messages, text)) { this.debug?.('err', tr('ad.sameMsg')); return; }
             let id = `${this.getMessageKey(element, i)}#${n}:${WMB.hash(JSON.stringify(call))}`;
             if (this.executed.has(id)) {
               // Misma llamada ya ejecutada. Solo es una REPETICION real (la IA espera respuesta otra vez) si contesto despues de
@@ -302,7 +303,7 @@
      */
     async sendToolResult(text, { autoSend = true, settleMs = 0 } = {}) {
       const composer = await WMB.waitFor(() => this.getComposer(), { timeout: 5000 });
-      if (!composer) return { ok: false, error: 'No se encontró el cuadro de texto del chat.' };
+      if (!composer) return { ok: false, error: tr('ad.noComposer') };
       this.lastActivity = Date.now();
       this.deliveries += 1;
       this.lastDeliveryAt = Date.now();
@@ -311,10 +312,10 @@
       this.#expectReply();
       // v1.7.0: NUNCA acumular. Si quedó un resultado/aviso viejo en el cuadro (un envío anterior que no salió), se quita ahora.
       try {
-        if (await WMB.dom.purgeStale(composer)) this.debug?.('err', 'Había un resultado viejo sin enviar en el cuadro de texto: lo quité para no repetirlo.');
+        if (await WMB.dom.purgeStale(composer)) this.debug?.('err', tr('ad.purged'));
       } catch { /* si no se puede limpiar, se sigue como antes */ }
       if (!(await WMB.dom.setText(composer, text, { append: true }))) {
-        return { ok: false, error: 'No se pudo escribir en el cuadro de texto.' };
+        return { ok: false, error: tr('ad.writeFail') };
       }
       if (!autoSend) return { ok: true };
       if (settleMs) await WMB.sleep(settleMs);
@@ -328,7 +329,7 @@
           await WMB.sleep(1200); // v1.7.1: margen para chats lentos; reenviar sin esperar duplicaba el mensaje (otro eco)
           const now = this.getComposer();
           if (!now || (marker && !this.#norm(WMB.dom.getText(now)).includes(marker))) { sent = true; break; }
-          this.debug?.('err', `Envío ${n}/3: el chat no aceptó el mensaje; pruebo otro método…`);
+          this.debug?.('err', tr('ad.sendTry', { n }));
         }
         const token = n === 3 && this.options.focusFallback && WMB.isBackground() ? await WMB.bg({ type: 'FOCUS_TAB' }) : null;
         if (token) await WMB.sleep(800);
@@ -336,7 +337,7 @@
         if (token?.prev) WMB.bg({ type: 'RESTORE_FOCUS', prev: token.prev });
       }
       if (sent) this.awaitingSince = Date.now();
-      return sent ? { ok: true } : { ok: false, error: 'No se pudo enviar al chat tras 3 intentos automáticos.' };
+      return sent ? { ok: true } : { ok: false, error: tr('ad.sendFail') };
     }
 
     /**

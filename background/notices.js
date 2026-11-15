@@ -71,7 +71,7 @@ const toTime = (value) => {
  */
 export function normalizeFeed(raw, { version = '0.0.0', now = Date.now() } = {}) {
   const list = Array.isArray(raw) ? raw : (raw && typeof raw === 'object' ? raw.notices : null);
-  if (!Array.isArray(list)) return { ok: false, items: [], skipped: 0, error: 'El archivo de avisos no tiene la lista "notices".' };
+  if (!Array.isArray(list)) return { ok: false, items: [], skipped: 0, error: globalThis.WMB?.t ? globalThis.WMB.t('bg.feedNoList') : 'The notices file has no "notices" list.' };
 
   const items = [];
   const seen = new Set();

@@ -1,4 +1,4 @@
-"""Lanzador (launcher) del puente MCP.  v1.7.0
+"""MCP bridge launcher.  v1.8.0
 
 Mantiene vivo el puente (si cae, lo relanza) y escucha en 127.0.0.1:8098 para que la EXTENSION pueda
 ENCENDERLO, REINICIARLO y APAGARLO desde su panel (una extension no puede lanzar procesos por si sola).
@@ -28,7 +28,7 @@ import time
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-VERSION = "1.7.0"
+VERSION = "1.8.0"
 DIR = os.path.dirname(os.path.abspath(__file__))
 PY = os.path.join(os.path.dirname(sys.executable), "python.exe") if sys.executable.lower().endswith("pythonw.exe") else sys.executable
 LOG = os.path.join(DIR, "bridge.log")
@@ -71,9 +71,9 @@ def ensure_config(path=CONFIG):
     try:
         if not os.path.exists(path) and os.path.exists(EXAMPLE) and _canon(path) == _canon(CONFIG):
             shutil.copyfile(EXAMPLE, path)
-            _log("servers.json creado desde servers.example.json")
+            _log("servers.json created from servers.example.json")
     except Exception as err:
-        _log("no se pudo crear servers.json: %r" % (err,))
+        _log("could not create servers.json: %r" % (err,))
 
 
 def alive(port):
@@ -125,7 +125,7 @@ def list_bridge_procs():
                 if pid.isdigit():
                     rows.append((int(pid), cmd.strip()))
     except Exception as err:
-        _log("no se pudo listar procesos: %r" % (err,))
+        _log("could not list processes: %r" % (err,))
     found = []
     me = os.getpid()
     for pid, cmd in rows:
@@ -151,7 +151,7 @@ def kill_tree(pid):
         else:
             os.kill(pid, 15)
     except Exception as err:
-        _log("no se pudo cerrar %s: %r" % (pid, err))
+        _log("could not close %s: %r" % (pid, err))
 
 
 def kill_bridges(ours=True, foreign=True, launchers=False):
@@ -167,7 +167,7 @@ def kill_bridges(ours=True, foreign=True, launchers=False):
                 continue
         elif (mine and not ours) or (not mine and not foreign):
             continue
-        _log("cierro %s ajeno/viejo pid %s: %s" % (kind, pid, cmd[:160]) if not mine else "cierro %s pid %s" % (kind, pid))
+        _log("closing %s (foreign/old) pid %s: %s" % (kind, pid, cmd[:160]) if not mine else "closing %s pid %s" % (kind, pid))
         kill_tree(pid)
         killed.append(pid)
     return killed
@@ -214,11 +214,11 @@ class Launcher:
         try:
             if flag:
                 with open(self.paused_file, "w", encoding="utf-8") as f:
-                    f.write("apagado desde la extension\n")
+                    f.write("stopped from the extension\n")
             elif os.path.exists(self.paused_file):
                 os.remove(self.paused_file)
         except OSError as err:
-            _log("no se pudo cambiar .paused: %r" % (err,))
+            _log("could not change .paused: %r" % (err,))
 
     def status(self):
         # port_open (no alive): con el puente apagado, alive() esperaba 2 s y la extension (1,5 s) daba el lanzador por muerto.
@@ -274,7 +274,7 @@ class Launcher:
                     # Apagado a proposito: si otra copia (auto-inicio viejo) levanta un puente, se vuelve a cerrar.
                     if now - self._last_sweep > SWEEP_EVERY and alive(self.control_port):
                         self._last_sweep = now
-                        _log("hay un puente vivo estando apagado: lo cierro")
+                        _log("a bridge is alive while stopped: closing it")
                         self.killer(ours=True, foreign=True, launchers=True)
                     self.wake.wait(1.0)
                     self.wake.clear()
@@ -283,7 +283,7 @@ class Launcher:
                     if now - self._last_owner > OWNER_EVERY:
                         self._last_owner = now
                         if self.foreign_bridge():
-                            _log("el puente que responde NO es de esta carpeta: lo cierro y arranco el mio")
+                            _log("the bridge that answers is NOT from this folder: closing it and starting my own")
                             self.killer(ours=False, foreign=True, launchers=True)
                             self.wake.wait(1.0)
                             self.wake.clear()
@@ -291,14 +291,14 @@ class Launcher:
                     self.wake.wait(3.0)
                     self.wake.clear()
                     continue
-                _log("puente caido -> arrancando")
+                _log("bridge down -> starting")
                 delay = 5
                 try:
                     if self.spawn(self) == 0:
                         delay = 1  # cierre limpio (reinicio o apagado pedido): volver a mirar enseguida
                 except Exception as err:
                     _log("bridge error: %r" % (err,))
-                _log("puente termino, reintento en %ds" % delay)
+                _log("bridge exited, retrying in %ds" % delay)
                 self.wake.wait(delay)
                 self.wake.clear()
             except Exception as err:
@@ -342,14 +342,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         if not self._allowed():
-            return self._reply(403, {"ok": False, "error": "origin no permitido"})
+            return self._reply(403, {"ok": False, "error": "origin not allowed"})
         if self.path == "/status":
             return self._reply(200, self.server.launcher.status())
-        self._reply(404, {"ok": False, "error": "ruta desconocida"})
+        self._reply(404, {"ok": False, "error": "unknown route"})
 
     def do_POST(self):
         if not self._allowed():
-            return self._reply(403, {"ok": False, "error": "origin no permitido"})
+            return self._reply(403, {"ok": False, "error": "origin not allowed"})
         launcher = self.server.launcher
         actions = {"/start": launcher.do_start, "/stop": launcher.do_stop, "/restart": launcher.do_restart}
         if self.path in actions:
@@ -364,7 +364,7 @@ class Handler(BaseHTTPRequestHandler):
             launcher.wake.set()
             threading.Thread(target=self.server.shutdown, daemon=True).start()
             return None
-        self._reply(404, {"ok": False, "error": "ruta desconocida"})
+        self._reply(404, {"ok": False, "error": "unknown route"})
 
 
 def make_server(launcher):
@@ -385,10 +385,10 @@ def run_forever(launcher):
             port = launcher.launcher_port
             st = http_json("GET", port, "/status", timeout=2)
             if st and _canon(st.get("dir")) == _canon(DIR):
-                _log("el puerto %d ya lo tiene el lanzador de esta carpeta: salgo" % port)
+                _log("port %d is already held by this folder's launcher: exiting" % port)
                 return 0
             # Lanzador de OTRA carpeta (o version vieja sin 'dir'): se reemplaza. Este lanzador manda.
-            _log("el puerto %d lo tiene un lanzador de otra carpeta (%s): lo reemplazo" % (port, (st or {}).get("dir", "version antigua")))
+            _log("port %d is held by a launcher from another folder (%s): replacing it" % (port, (st or {}).get("dir", "old version")))
             if st:
                 http_json("POST", port, "/quit", timeout=3)
                 pid = st.get("pid")
@@ -396,7 +396,7 @@ def run_forever(launcher):
                     kill_tree(pid)
             time.sleep(1.2)
     if server is None:
-        _log("no pude abrir el puerto del lanzador: lo usa otro programa")
+        _log("could not open the launcher port: another program is using it")
         return 1
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
@@ -414,14 +414,14 @@ def ctl(action):
     method = "GET" if action == "status" else "POST"
     data = http_json(method, port, "/" + action, timeout=25)
     if data is None:
-        print("El lanzador no esta activo (puerto %d)." % port)
+        print("The launcher is not running (port %d)." % port)
         return 3
     if action == "status":
-        print("Lanzador activo (pid %s, carpeta %s) - puente: %s%s" % (
-            data.get("pid"), data.get("dir"), "encendido" if data.get("bridge") else "apagado",
-            " (apagado a proposito)" if data.get("paused") else ""))
+        print("Launcher running (pid %s, folder %s) - bridge: %s%s" % (
+            data.get("pid"), data.get("dir"), "on" if data.get("bridge") else "off",
+            " (stopped on purpose)" if data.get("paused") else ""))
     else:
-        print("Hecho: %s." % action)
+        print("Done: %s." % action)
     return 0
 
 

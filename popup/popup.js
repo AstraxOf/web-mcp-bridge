@@ -5,13 +5,15 @@
  * se les da permiso y se prueban. Desde el panel se puede abrir ese archivo y reiniciar el puente.
  * Las tarjetas se reutilizan entre refrescos (no se recrean), así las transiciones se animan en lugar de saltar.
  */
-import { MAX_ACTIVE_SERVERS, RECOMMENDED_ACTIVE_SERVERS, PERMISSIONS, PERMISSION_LABELS, DEMO_SERVER } from '../shared/constants.js';
+import { MAX_ACTIVE_SERVERS, RECOMMENDED_ACTIVE_SERVERS, PERMISSIONS, DEMO_SERVER } from '../shared/constants.js';
 
+const WMB = globalThis.WMB; // shared/i18n.js (script clásico que se carga antes que este módulo)
+const t = (key, vars) => WMB.t(key, vars);
+const tp = (key, n, vars) => WMB.tp(key, n, vars);
+const loc = () => (WMB.i18n.getLang() === 'es' ? 'es' : 'en');
 const $ = (selector, root = document) => root.querySelector(selector);
-const STATUS_TEXT = {
-  connected: 'Conectado', connecting: 'Conectando…', disconnected: 'Sin conexión (reintentando)', error: 'Error de conexión',
-};
-const DEMO_TOOL = 'info_sistema';
+const statusText = (status) => (['connected', 'connecting', 'disconnected', 'error'].includes(status) ? t(`st.${status}`) : status);
+const DEMO_TOOL = 'system_info';
 
 const ICONS = {
   trash: '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>',
@@ -27,7 +29,7 @@ for (const el of document.querySelectorAll('.ico[data-ico]')) el.innerHTML = ICO
 async function api(type, payload = {}) {
   let res;
   try { res = await chrome.runtime.sendMessage({ type, ...payload }); } catch (err) { throw new Error(err.message); }
-  if (!res?.ok) throw new Error(res?.error ?? 'Error desconocido.');
+  if (!res?.ok) throw new Error(res?.error ?? t('common.unknownError'));
   return res;
 }
 
@@ -75,50 +77,42 @@ function renderBridge(state) {
 
   if (!b.checked) {
     dot.className = 'dot connecting';
-    title.textContent = 'Comprobando el puente…';
+    title.textContent = t('p.bridge.checking');
     sub.textContent = '';
   } else if (b.online) {
     dot.className = 'dot online';
-    title.textContent = 'Puente conectado';
+    title.textContent = t('p.bridge.online');
     const listening = state.servers.filter((s) => s.bridgeStatus === 'listening').length;
-    sub.textContent = `v${b.version ?? '?'} · ${listening} servidor${listening === 1 ? '' : 'es'} publicado${listening === 1 ? '' : 's'}`;
+    sub.textContent = tp('p.bridge.sub', listening, { v: b.version ?? '?' });
   } else {
     dot.className = 'dot offline';
-    title.textContent = 'Puente apagado';
-    sub.textContent = 'La extensión no lo encuentra en este equipo.';
+    title.textContent = t('p.bridge.offline');
+    sub.textContent = t('p.bridge.offlineSub');
   }
 
   cfgErr.hidden = !(b.online && b.configError);
-  if (!cfgErr.hidden) cfgErr.textContent = `servers.json tiene un error: ${b.configError}. Corrígelo y guarda: el puente lo recarga solo (mientras tanto sigue con la configuración anterior).`;
+  if (!cfgErr.hidden) cfgErr.textContent = t('p.bridge.configError', { error: b.configError });
 
   hint.hidden = !(b.checked && !b.online);
   if (!hint.hidden) {
-    if (b.launcherOnline) {
-      hint.textContent = b.paused
-        ? 'El puente est\u00e1 apagado a prop\u00f3sito. Pulsa \u00abIniciar puente\u00bb para encenderlo.'
-        : 'El puente se ha ca\u00eddo; el lanzador lo est\u00e1 levantando. Si no vuelve, pulsa \u00abIniciar puente\u00bb.';
-    } else {
-      hint.replaceChildren('Para encenderlo desde aqu\u00ed, instala el lanzador una vez: doble clic en ', Object.assign(document.createElement('code'), { textContent: 'server/install.cmd' }),
-        '. Mientras tanto puedes abrirlo a mano con ', Object.assign(document.createElement('code'), { textContent: 'server/start_bridge_loop.pyw' }), '.');
-    }
+    if (b.launcherOnline) hint.textContent = t(b.paused ? 'p.bridge.hintPaused' : 'p.bridge.hintCrashed');
+    else hint.innerHTML = t('p.bridge.hintNoLauncher'); // texto propio del diccionario (no viene de fuera)
   }
 
   const toggle = $('#toggle-bridge');
   if (!togglingBridge) {
-    setLabel(toggle, b.online ? 'Apagar puente' : 'Iniciar puente');
+    setLabel(toggle, t(b.online ? 'p.bridge.stop' : 'p.bridge.start'));
     toggle.disabled = !b.checked || !b.launcherOnline;
-    toggle.title = b.launcherOnline
-      ? (b.online ? 'Apaga el puente (queda apagado hasta que lo inicies de nuevo)' : 'Enciende el puente')
-      : 'Necesita el lanzador: se instala una vez con server/install.cmd';
+    toggle.title = b.launcherOnline ? t(b.online ? 'p.bridge.tipStop' : 'p.bridge.tipStart') : t('p.bridge.tipNeedLauncher');
   }
 
   const restart = $('#restart-bridge');
   if (!restarting) {
     restart.disabled = !b.checked || (!b.online && !b.launcherOnline);
-    setLabel(restart, b.online ? 'Reiniciar puente' : 'Encender (reiniciar)');
-    restart.title = (!b.online && !b.launcherOnline) ? 'Necesita el lanzador: se instala una vez con server/install.cmd' : 'Cierra TODOS los puentes (de cualquier carpeta) y abre uno nuevo; si estaba apagado, lo enciende';
+    setLabel(restart, t(b.online ? 'p.bridge.restart' : 'p.bridge.startRestart'));
+    restart.title = (!b.online && !b.launcherOnline) ? t('p.bridge.tipNeedLauncher') : t('p.bridge.tipRestart');
   }
-  $('#open-config').title = b.config ? `Abrir ${b.config}` : 'Abrir servers.json en tu editor';
+  $('#open-config').title = b.config ? t('p.bridge.openConfigTip', { path: b.config }) : t('p.bridge.openConfigGeneric');
 }
 
 $('#open-config').addEventListener('click', async (event) => {
@@ -127,10 +121,10 @@ $('#open-config').addEventListener('click', async (event) => {
   setBusy(event.currentTarget, true);
   try {
     await api('OPEN_CONFIG');
-    toast('Abriendo servers.json… guarda el archivo y el puente lo recarga solo.');
+    toast(t('p.toast.opening'));
   } catch (err) {
     const path = latest?.bridge?.config;
-    toast(path && !err.message.includes(path) ? `${err.message} Archivo: ${path}` : err.message, 6500);
+    toast(path && !err.message.includes(path) ? t('p.toast.file', { error: err.message, path }) : err.message, 6500);
   } finally {
     opening = false;
     setBusy(event.currentTarget, false);
@@ -153,10 +147,10 @@ $('#toggle-bridge').addEventListener('click', async (event) => {
   const turnOff = Boolean(latest?.bridge?.online);
   togglingBridge = true;
   setBusy(btn, true);
-  setLabel(btn, turnOff ? 'Apagando\u2026' : 'Iniciando\u2026');
+  setLabel(btn, t(turnOff ? 'p.bridge.stopping' : 'p.bridge.starting'));
   try {
     const res = await api(turnOff ? 'STOP_BRIDGE' : 'START_BRIDGE');
-    toast(turnOff ? 'Puente apagado.' : (res.configError ? 'Puente iniciado, pero servers.json tiene un error.' : 'Puente iniciado \u2713'), 4200);
+    toast(turnOff ? t('p.toast.stopped') : t(res.configError ? 'p.toast.startedErr' : 'p.toast.started'), 4200);
   } catch (err) {
     toast(err.message, 7000);
   } finally {
@@ -170,16 +164,16 @@ $('#restart-bridge').addEventListener('click', async (event) => {
   const btn = event.currentTarget;
   restarting = true;
   setBusy(btn, true);
-  setLabel(btn, 'Reiniciando…');
+  setLabel(btn, t('p.bridge.restarting'));
   try {
     const res = await api('BRIDGE_GLOBAL', { action: 'restart' });
-    toast(res.configError ? 'Puente reiniciado, pero servers.json tiene un error.' : 'Puente reiniciado ✓', 4200);
+    toast(t(res.configError ? 'p.toast.restartedErr' : 'p.toast.restarted'), 4200);
   } catch (err) {
     toast(err.message, 7000);
   } finally {
     restarting = false;
     setBusy(btn, false);
-    setLabel(btn, latest?.bridge?.online ? 'Reiniciar puente' : 'Encender (reiniciar)');
+    setLabel(btn, t(latest?.bridge?.online ? 'p.bridge.restart' : 'p.bridge.startRestart'));
     await refresh(true);
   }
 });
@@ -190,11 +184,10 @@ const cards = new Map();        // id → { li, els, server }
 const demoOutputs = new Map();  // id → { ok, text }
 
 /** Selector de 3 estados: Permitir siempre · Preguntar siempre · No permitir. */
-function permSelect(onChange, label) {
+function permSelect(onChange) {
   const select = document.createElement('select');
   select.className = 'perm';
-  select.setAttribute('aria-label', label);
-  for (const perm of PERMISSIONS) select.append(new Option(PERMISSION_LABELS[perm], perm));
+  for (const perm of PERMISSIONS) select.append(new Option(t(`perm.${perm}`), perm));
   select.addEventListener('change', guard(() => onChange(select.value)));
   return select;
 }
@@ -220,24 +213,19 @@ function buildCard(server) {
   title.className = 'title';
   const manual = document.createElement('span');
   manual.className = 'badge';
-  manual.textContent = 'manual';
-  manual.title = 'Añadido a mano en versiones anteriores (no viene de servers.json)';
   const demo = document.createElement('span');
   demo.className = 'badge demo';
-  demo.textContent = 'demo';
-  demo.title = 'Servidor de prueba incluido con la extensión';
   name.append(dot, title, manual, demo);
   const meta = document.createElement('div');
   meta.className = 'meta';
 
   const tools = document.createElement('div');
   tools.className = 'tools';
-  const select = permSelect((value) => api('SET_PERMISSION', { id: card.server.id, permission: value }), `Permiso de ${server.name}`);
+  const select = permSelect((value) => api('SET_PERMISSION', { id: card.server.id, permission: value }));
   const test = document.createElement('button');
   test.type = 'button';
   test.className = 'test-btn';
-  test.innerHTML = `${ICONS.play}<span>Probar</span>`;
-  test.title = 'Ejecuta info_sistema: te muestra datos reales de tu equipo (lo activa si hace falta)';
+  test.innerHTML = `${ICONS.play}<span></span>`;
   test.addEventListener('click', () => runDemo(card));
   tools.append(select, test);
   info.append(name, meta, tools);
@@ -248,9 +236,6 @@ function buildCard(server) {
   remove.type = 'button';
   remove.className = 'icon-btn danger';
   remove.innerHTML = ICONS.trash;
-  remove.title = 'Quitar de la extensión';
-  remove.setAttribute('aria-label', 'Quitar de la extensión');
-  remove.dataset.armed = '¿Seguro?';
   remove.addEventListener('click', () => {
     if (!remove.classList.contains('armed')) { // primer clic: pide confirmación en el propio botón
       remove.classList.add('armed');
@@ -273,39 +258,50 @@ function updateCard(card, server, activeCount) {
   const { li, els } = card;
   li.classList.toggle('on', server.enabled);
 
-  els.toggle.title = server.enabled ? 'Desactivar' : 'Activar';
+  els.toggle.title = t(server.enabled ? 'p.srv.deactivate' : 'p.srv.activate');
   els.checkbox.checked = server.enabled;
   els.checkbox.disabled = !server.enabled && activeCount >= MAX_ACTIVE_SERVERS;
-  els.checkbox.setAttribute('aria-label', `Activar ${server.name}`);
+  els.checkbox.setAttribute('aria-label', t('p.srv.activateAria', { name: server.name }));
 
   const bridgeBroken = server.bridgeStatus === 'error';
   els.dot.className = `dot ${bridgeBroken ? 'error' : (server.enabled ? server.status : '')}`;
   els.title.textContent = server.name;
   els.title.title = server.name;
+  els.manual.textContent = t('p.srv.manual');
+  els.manual.title = t('p.srv.manualTip');
   els.manual.hidden = Boolean(server.auto);
+  els.demo.textContent = t('p.srv.demo');
+  els.demo.title = t('p.srv.demoTip');
   els.demo.hidden = !isDemo(server);
   els.remove.parentElement.hidden = Boolean(server.auto); // los de servers.json se quitan editando el archivo
+  els.remove.title = t('p.srv.remove');
+  els.remove.setAttribute('aria-label', t('p.srv.remove'));
+  els.remove.dataset.armed = t('p.srv.sure');
 
   let meta;
-  if (bridgeBroken) meta = `${server.url} · El puente no pudo abrirlo: ${server.bridgeError ?? 'error'}`;
-  else if (server.permission === 'deny') meta = `${server.url} · Bloqueado (no se describe a la IA)`;
+  if (bridgeBroken) meta = `${server.url} · ${t('p.srv.bridgeBroken', { error: server.bridgeError ?? t('p.srv.errorWord') })}`;
+  else if (server.permission === 'deny') meta = `${server.url} · ${t('p.srv.blocked')}`;
   else if (server.enabled) {
-    meta = `${server.url} · ${STATUS_TEXT[server.status] ?? server.status}${server.status === 'connected' ? ` · ${server.toolCount} herramientas` : ''}`;
+    meta = `${server.url} · ${statusText(server.status)}${server.status === 'connected' ? ` · ${t('p.srv.toolsCount', { n: server.toolCount })}` : ''}`;
   } else meta = server.url;
   els.meta.textContent = meta;
   els.meta.classList.toggle('err', bridgeBroken);
   els.meta.title = server.enabled && server.error && server.status !== 'connected' ? server.error : '';
 
+  [...els.select.options].forEach((option) => { option.textContent = t(`perm.${option.value}`); });
+  els.select.setAttribute('aria-label', t('p.srv.permAria', { name: server.name }));
   if (document.activeElement !== els.select) els.select.value = server.permission;
   els.select.dataset.perm = server.permission;
   els.test.hidden = !isDemo(server);
+  els.test.querySelector('span').textContent = t('p.srv.test');
+  els.test.title = t('p.srv.testTip');
 
   const out = demoOutputs.get(server.id);
   if (out) {
     if (!els.out) {
       els.out = document.createElement('div');
       els.out.className = 'demo-out';
-      els.out.title = 'Clic para ocultar';
+      els.out.title = t('common.close');
       els.out.append(document.createElement('pre'));
       els.out.addEventListener('click', () => { demoOutputs.delete(card.server.id); updateCard(card, card.server, activeCount); });
       li.append(els.out);
@@ -318,7 +314,7 @@ function updateCard(card, server, activeCount) {
   }
 }
 
-/** Prueba rápida: activa el demo si hace falta y ejecuta info_sistema. */
+/** Prueba rápida: activa el demo si hace falta y ejecuta system_info. */
 async function runDemo(card) {
   const btn = card.els.test;
   btn.disabled = true;
@@ -326,9 +322,9 @@ async function runDemo(card) {
     if (!card.server.enabled) await api('TOGGLE_SERVER', { id: card.server.id, enabled: true });
     const res = await api('CALL_TOOL', { server: card.server.slug ?? card.server.name, name: DEMO_TOOL, arguments: {} });
     const text = (res.result?.content ?? []).filter((c) => c.type === 'text').map((c) => c.text).join('\n').trim();
-    demoOutputs.set(card.server.id, { ok: !res.result?.isError, text: text || 'El servidor respondió sin texto.' });
+    demoOutputs.set(card.server.id, { ok: !res.result?.isError, text: text || t('p.srv.demoNoText') });
   } catch (err) {
-    const hint = /no existe|no está conectado/.test(err.message) ? '\nReinicia el puente para cargar la demo actualizada.' : '';
+    const hint = /no existe|no está conectado|doesn't exist|not connected/i.test(err.message) ? `\n${t('p.srv.demoRestart')}` : '';
     demoOutputs.set(card.server.id, { ok: false, text: err.message + hint });
   } finally {
     btn.disabled = false;
@@ -340,13 +336,13 @@ function renderServers(state) {
   const list = $('#server-list');
   const active = state.servers.filter((s) => s.enabled);
 
-  $('#counter').textContent = `${active.length}/${MAX_ACTIVE_SERVERS} activos`;
+  $('#counter').textContent = t('p.srv.active', { n: active.length, max: MAX_ACTIVE_SERVERS });
   const tokens = active.reduce((sum, s) => sum + s.approxTokens, 0);
-  $('#tokens').textContent = active.length ? `≈ ${tokens.toLocaleString('es')} tokens de herramientas` : '';
+  $('#tokens').textContent = active.length ? t('p.srv.tokens', { n: tokens.toLocaleString(loc()) }) : '';
 
   const warning = $('#warning');
   warning.hidden = active.length <= RECOMMENDED_ACTIVE_SERVERS;
-  warning.textContent = `Tienes ${active.length} MCP activos. Cada herramienta ocupa contexto de la IA y puede saturarlo. Lo recomendable es 1 a la vez.`;
+  warning.textContent = t('p.srv.warn', { n: active.length });
   $('#empty').hidden = state.servers.length > 0;
 
   const seen = new Set();
@@ -379,18 +375,12 @@ function renderGlobalPermission(servers) {
   select.value = value;
   select.dataset.perm = value;
   $('#perm-all').closest('.perm-all').hidden = servers.length === 0;
-  $('#perm-hint').textContent = {
-    allow: 'Los tienes todos permitidos: no se pregunta nada.',
-    ask: 'Se pregunta en cada llamada de la IA.',
-    deny: 'Todos bloqueados: la IA no recibe ninguna herramienta.',
-    mixed: 'Cada MCP tiene un permiso distinto.',
-  }[value];
+  $('#perm-hint').textContent = t({ allow: 'p.srv.hintAllow', ask: 'p.srv.hintAsk', deny: 'p.srv.hintDeny', mixed: 'p.srv.hintMixed' }[value]);
 }
 $('#perm-all').addEventListener('change', guard((e) => api('SET_ALL_PERMISSIONS', { permission: e.target.value })));
 
 // ───────────────────────── Avisos ─────────────────────────
 
-const LEVEL_TEXT = { info: 'Novedad', update: 'Versión nueva', warning: 'Importante' };
 let noticesSig = '';
 
 function renderNotices(state) {
@@ -399,7 +389,7 @@ function renderNotices(state) {
   badge.hidden = !data.unread;
   badge.textContent = data.unread > 9 ? '9+' : String(data.unread);
 
-  const sig = JSON.stringify([data.items, data.checkedAt, data.error]);
+  const sig = JSON.stringify([data.items, data.checkedAt, data.error, loc()]);
   if (sig === noticesSig) return;
   noticesSig = sig;
 
@@ -416,7 +406,7 @@ function renderNotices(state) {
     title.textContent = n.title;
     const date = document.createElement('div');
     date.className = 'n-date';
-    date.textContent = [LEVEL_TEXT[n.level], n.date ? new Date(n.date).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' }) : null].filter(Boolean).join(' · ');
+    date.textContent = [t(`p.nt.lvl.${n.level}`), n.date ? new Date(n.date).toLocaleDateString(loc(), { day: 'numeric', month: 'short', year: 'numeric' }) : null].filter(Boolean).join(' · ');
     li.append(title, date);
     if (n.message) {
       const msg = document.createElement('div');
@@ -430,21 +420,21 @@ function renderNotices(state) {
       const open = document.createElement('button');
       open.type = 'button';
       open.className = 'primary small';
-      open.textContent = 'Ver en GitHub';
+      open.textContent = t('p.nt.viewGithub');
       open.addEventListener('click', guard(async () => { openLink(n.url); await api('READ_NOTICES', { ids: [n.id] }); }));
       actions.append(open);
     }
     const dismiss = document.createElement('button');
     dismiss.type = 'button';
     dismiss.className = 'soft small';
-    dismiss.textContent = 'Descartar';
+    dismiss.textContent = t('p.nt.dismiss');
     dismiss.addEventListener('click', guard(() => api('DISMISS_NOTICE', { id: n.id })));
     actions.append(dismiss);
     li.append(actions);
     list.append(li);
   }
 
-  const when = data.checkedAt ? `Revisado ${new Date(data.checkedAt).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}` : 'Aún sin revisar';
+  const when = data.checkedAt ? t('p.nt.checked', { when: new Date(data.checkedAt).toLocaleString(loc(), { dateStyle: 'short', timeStyle: 'short' }) }) : t('p.nt.never');
   $('#notices-line').textContent = data.error ? `${data.error}` : when;
 }
 $('#read-all').addEventListener('click', guard(() => api('READ_NOTICES', { ids: 'all' })));
@@ -453,7 +443,7 @@ $('#check-notices').addEventListener('click', async (event) => {
   setBusy(btn, true);
   try {
     const res = await api('CHECK_NOTICES');
-    toast(res.count ? `Hay ${res.count} aviso${res.count === 1 ? '' : 's'} vigente${res.count === 1 ? '' : 's'}.` : 'No hay avisos nuevos.');
+    toast(res.count ? tp('p.nt.found', res.count) : t('p.nt.none'));
   } catch (err) { toast(err.message, 5000); }
   setBusy(btn, false);
   noticesSig = '';
@@ -465,7 +455,7 @@ $('#check-notices').addEventListener('click', async (event) => {
 let historySig = '';
 async function renderHistory() {
   const { history } = await api('GET_HISTORY');
-  const sig = JSON.stringify(history);
+  const sig = JSON.stringify([history, loc()]);
   if (sig === historySig) return;
   historySig = sig;
   const list = $('#history-list');
@@ -480,10 +470,10 @@ async function renderHistory() {
     title.textContent = `${h.server} · ${h.tool}`;
     const status = document.createElement('span');
     status.className = h.status;
-    status.textContent = h.status === 'ok' ? `OK${h.ms ? ` · ${h.ms} ms` : ''}` : 'Error';
+    status.textContent = h.status === 'ok' ? `OK${h.ms ? ` · ${h.ms} ms` : ''}` : t('p.hs.error');
     row.append(title, status);
     const detail = document.createElement('small');
-    detail.textContent = `${new Date(h.ts).toLocaleTimeString('es')} · ${h.error ?? h.args}`;
+    detail.textContent = `${new Date(h.ts).toLocaleTimeString(loc())} · ${h.error ?? h.args}`;
     li.append(row, detail);
     list.append(li);
   });
@@ -492,10 +482,13 @@ $('#clear-history').addEventListener('click', guard(async () => { await api('CLE
 
 // ───────────────────────── Ajustes ─────────────────────────
 
+const SUN = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+const MOON = '<svg viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>';
+
 function renderSettings(state) {
   const { settings } = state;
   $('#master').checked = settings.bridgeEnabled;
-  $('#master-label').textContent = settings.bridgeEnabled ? 'Activado' : 'Desactivado';
+  $('#master-label').textContent = t(settings.bridgeEnabled ? 'common.on' : 'common.off');
   $('#main').classList.toggle('off', !settings.bridgeEnabled);
   if (document.activeElement?.id !== 'set-maxResultChars') $('#set-maxResultChars').value = settings.maxResultChars;
   $('#set-autoInject').checked = settings.autoInject;
@@ -507,14 +500,44 @@ function renderSettings(state) {
   $('#set-showNotices').checked = settings.showNotices !== false;
   if (document.activeElement?.id !== 'set-reinjectEvery') $('#set-reinjectEvery').value = settings.reinjectEvery;
   if (document.activeElement?.id !== 'set-responseDelaySec') $('#set-responseDelaySec').value = (settings.responseDelayMs ?? 1500) / 1000;
+  if (document.activeElement?.id !== 'set-language') $('#set-language').value = settings.language ?? 'en';
+  if (document.activeElement?.id !== 'set-theme') $('#set-theme').value = settings.theme ?? 'dark';
+
+  // Cabecera: idioma y tema
+  for (const btn of document.querySelectorAll('#lang-seg button')) {
+    const on = btn.dataset.lang === (settings.language ?? 'en');
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', String(on));
+  }
+  const light = settings.theme === 'light';
+  const themeBtn = $('#theme-btn');
+  themeBtn.innerHTML = light ? MOON : SUN;
+  themeBtn.title = t(light ? 'theme.toDark' : 'theme.toLight');
+  themeBtn.setAttribute('aria-label', themeBtn.title);
 
   $('#version').textContent = state.version ? `v${state.version}` : '';
   $('#version-line').textContent = state.version ? `Web MCP Bridge v${state.version}` : '';
 }
 
 $('#gh-link').addEventListener('click', (e) => { e.preventDefault(); openLink('https://github.com/AstraxOf'); });
+$('#open-guide').addEventListener('click', () => { chrome.tabs.create({ url: chrome.runtime.getURL('welcome/welcome.html?guide=1') }); window.close(); });
 
 $('#master').addEventListener('change', guard((e) => api('UPDATE_SETTINGS', { settings: { bridgeEnabled: e.target.checked } })));
+
+/** Idioma y tema se aplican al instante (sin esperar al service worker) y luego se guardan. */
+async function chooseLanguage(code) {
+  WMB.i18n.setLang(code);
+  applyStatic();
+  await api('UPDATE_SETTINGS', { settings: { language: code, languageChosen: true } });
+}
+async function chooseTheme(value) {
+  WMB.i18n.setTheme(value);
+  await api('UPDATE_SETTINGS', { settings: { theme: value } });
+}
+for (const btn of document.querySelectorAll('#lang-seg button')) btn.addEventListener('click', guard(() => chooseLanguage(btn.dataset.lang)));
+$('#theme-btn').addEventListener('click', guard(() => chooseTheme(latest?.settings?.theme === 'light' ? 'dark' : 'light')));
+$('#set-language').addEventListener('change', guard((e) => chooseLanguage(e.target.value)));
+$('#set-theme').addEventListener('change', guard((e) => chooseTheme(e.target.value)));
 
 for (const key of ['autoInject', 'autoSend', 'reminder', 'focusFallback', 'autoDiscover', 'autoEnableDiscovered', 'showNotices']) {
   $(`#set-${key}`).addEventListener('change', guard((e) => api('UPDATE_SETTINGS', { settings: { [key]: e.target.checked } })));
@@ -529,7 +552,7 @@ $('#set-responseDelaySec').addEventListener('change', guard((e) => {
 }));
 $('#discover-now').addEventListener('click', guard(async () => {
   const res = await api('DISCOVER', { reset: true });
-  toast(res.added ? `Detectados ${res.added} servidor(es) nuevo(s).` : 'Servidores al día.');
+  toast(res.added ? t('p.set.foundNew', { n: res.added }) : t('p.set.upToDate'));
 }));
 $('#set-maxResultChars').addEventListener('change', guard((e) => {
   const value = Math.min(100000, Math.max(500, Number(e.target.value) || 12000));
@@ -565,6 +588,18 @@ for (const btn of document.querySelectorAll('.tabs button')) {
 }
 
 let lastSig = '';
+let lastLang = '';
+
+/** Pinta los textos estáticos del HTML en el idioma activo y recoloca la tinta de las pestañas. */
+function applyStatic() {
+  WMB.i18n.apply();
+  const label = (btn, text) => { if (!btn.disabled || !btn.classList.contains('busy')) setLabel(btn, text); };
+  if (!togglingBridge) label($('#toggle-bridge'), t(latest?.bridge?.online ? 'p.bridge.stop' : 'p.bridge.start'));
+  if (!restarting) label($('#restart-bridge'), t(latest?.bridge?.online ? 'p.bridge.restart' : 'p.bridge.startRestart'));
+  $('#bridge-title').textContent = $('#bridge-title').textContent || t('p.bridge.checking');
+  requestAnimationFrame(moveInk);
+}
+
 async function refresh(force = false) {
   // No re-renderizar mientras el usuario escribe en un campo.
   if (!force && document.activeElement?.matches('input[type="text"], input[type="number"]')) return;
@@ -572,10 +607,13 @@ async function refresh(force = false) {
   try {
     const state = await api('GET_STATE');
     latest = state;
+    WMB.i18n.setLang(state.settings.language);
+    WMB.i18n.setTheme(state.settings.theme);
     const sig = JSON.stringify([state.version, state.notices, state.settings, state.bridge,
       state.servers.map((s) => [s.id, s.name, s.url, s.enabled, s.permission, s.status, s.toolCount, s.auto, s.error, s.bridgeStatus, s.bridgeError])]);
     if (force || sig !== lastSig) {
       lastSig = sig;
+      if (lastLang !== state.settings.language) { lastLang = state.settings.language; applyStatic(); }
       renderBridge(state);
       renderServers(state);
       renderGlobalPermission(state.servers);
@@ -586,5 +624,6 @@ async function refresh(force = false) {
   } catch (err) { toast(err.message); }
 }
 
+applyStatic();
 refresh(true);
 setInterval(refresh, 1500);

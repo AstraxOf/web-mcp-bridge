@@ -52,6 +52,7 @@
   }
 
   const pagesOf = (count) => Math.max(1, Math.ceil(count / cfg.pageSize));
+  const placeholderServer = () => (WMB.i18n?.getLang() === 'es' ? '<servidor>' : '<server>');
   const isActive = (tools) => Array.isArray(tools) && tools.length > cfg.threshold;
 
   /** Qué servidores se listan completos en el prompt (los pequeños) y cuáles solo por catálogo (los grandes). */
@@ -79,38 +80,35 @@
   function intro(tools, { all, inline }) {
     const big = all.filter((g) => !inline.has(g.slug));
     const lines = [
-      `Hay ${tools.length} herramientas en ${all.length} servidor(es): demasiadas para listarlas aquí. Consúltalas por páginas con la herramienta LOCAL del puente (solo lectura, sin permisos):`,
-      `{"mcp_call":{"server":"${SERVER}","name":"${TOOL}","arguments":{"server":"<servidor>","page":1}}}`,
-      `· Sin arguments: resumen de servidores. \`page\`: páginas de ${cfg.pageSize} (la respuesta indica la siguiente). \`query\`: busca palabras en nombre/descripción (p. ej. "process kill"). \`tool\`: firma completa de una herramienta.`,
-      '· Pasa de página o busca hasta hallar la que necesitas y llámala con su servidor REAL. Si ya conoces el nombre exacto, llámala directamente sin listar.',
+      WMB.t('ct.intro1', { total: tools.length, servers: all.length }),
+      `{"mcp_call":{"server":"${SERVER}","name":"${TOOL}","arguments":{"server":"${placeholderServer()}","page":1}}}`,
+      WMB.t('ct.intro2', { size: cfg.pageSize }),
+      WMB.t('ct.intro3'),
       '',
     ];
     for (const g of big) {
       const pre = prefixes(g.tools);
-      lines.push(`- \`${g.slug}\`${g.label && g.label !== g.slug ? ` (${g.label})` : ''}: ${g.tools.length} herramientas · ${pagesOf(g.tools.length)} página(s)${pre ? ` · prefijos: ${pre}` : ''}`);
+      lines.push(`- \`${g.slug}\`${g.label && g.label !== g.slug ? ` (${g.label})` : ''}${WMB.t('ct.bigLine', { n: g.tools.length, pages: pagesOf(g.tools.length) })}${pre ? WMB.t('ct.prefixes', { list: pre }) : ''}`);
     }
-    if (inline.size) lines.push('', 'Servidores pequeños (listados completos):');
+    if (inline.size) lines.push('', WMB.t('ct.small'));
     return lines;
   }
 
   /** Recordatorio de una línea para el modo catálogo. */
   function reminder(tools, mode = 'user') {
     const servers = [...new Set(tools.map((t) => t.server))].join(', ');
-    const find = `para verlas usa server "${SERVER}", name "${TOOL}" (arguments: server + page, o query)`;
-    const use = 'responde SOLO con el bloque {"mcp_call":{"server":"…","name":"…","arguments":{…}}}';
-    return mode === 'result'
-      ? `[WMB] Sigues teniendo tus herramientas MCP locales (${servers}: ${tools.length}); ${find}. Continúa la tarea: si necesitas otra, ${use}; si ya terminaste, responde en texto.`
-      : `[WMB] Tienes herramientas MCP locales reales (${servers}: ${tools.length}); ${find}; para usarlas ${use}.`;
+    const find = WMB.t('ct.find', { server: SERVER, tool: TOOL });
+    return WMB.t(mode === 'result' ? 'ct.remind.result' : 'ct.remind.user', { servers, n: tools.length, find, use: WMB.t('pr.use') });
   }
 
   // ───────────── La herramienta local `wmb.list_tools` ─────────────
 
   /** Definición para el parser tolerante (WMB.tools): así una llamada mal formada a list_tools también se rescata. */
-  const metaTools = [{
+  const buildMetaTools = () => [{
     server: SERVER,
-    serverLabel: 'Puente',
+    serverLabel: WMB.t('ct.metaLabel'),
     name: TOOL,
-    description: 'Lista por páginas, busca o detalla las herramientas de los MCP activos.',
+    description: WMB.t('ct.metaDesc'),
     inputSchema: {
       type: 'object',
       properties: { server: { type: 'string' }, page: { type: 'number' }, query: { type: 'string' }, tool: { type: 'string' }, limit: { type: 'number' } },
@@ -145,24 +143,24 @@
   };
 
   function overview(all) {
-    const lines = [`[WMB · list_tools] ${all.reduce((n, g) => n + g.tools.length, 0)} herramientas en ${all.length} servidor(es) (páginas de ${cfg.pageSize}):`];
+    const lines = [WMB.t('ct.ovHead', { total: all.reduce((n, g) => n + g.tools.length, 0), servers: all.length, size: cfg.pageSize })];
     for (const g of all) {
       const pre = prefixes(g.tools);
-      lines.push(`- ${g.slug}${g.label && g.label !== g.slug ? ` (${g.label})` : ''}: ${g.tools.length} herramientas · páginas 1-${pagesOf(g.tools.length)}${pre ? ` · prefijos: ${pre}` : ''}`);
+      lines.push(`- ${g.slug}${g.label && g.label !== g.slug ? ` (${g.label})` : ''}${WMB.t('ct.ovLine', { n: g.tools.length, pages: pagesOf(g.tools.length) })}${pre ? WMB.t('ct.prefixes', { list: pre }) : ''}`);
     }
-    lines.push('Siguiente paso: pide una página (arguments {"server":"<slug>","page":1}) o busca (arguments {"query":"palabras"}).');
+    lines.push(WMB.t('ct.ovNext'));
     return { ok: true, text: lines.join('\n') };
   }
 
   function pageOf(g, page, limit) {
     const total = g.tools.length;
     const pages = Math.max(1, Math.ceil(total / limit));
-    if (page > pages) return { ok: false, text: `La página ${page} no existe: «${g.slug}» tiene ${pages} página(s) de ${limit} (${total} herramientas).` };
+    if (page > pages) return { ok: false, text: WMB.t('ct.noPage', { page, slug: g.slug, pages, limit, total }) };
     const from = (page - 1) * limit;
     const slice = g.tools.slice(from, from + limit);
-    const lines = [`### \`${g.slug}\` · página ${page}/${pages} · herramientas ${from + 1}-${from + slice.length} de ${total}`, ...render(slice, false)];
-    lines.push(page < pages ? `Siguiente: ${next(g.slug, page + 1, limit)}` : 'Fin de la lista de este servidor.');
-    lines.push(`Detalle de una: arguments {"server":"${g.slug}","tool":"<nombre>"} · Para usarla, llámala con server "${g.slug}".`);
+    const lines = [WMB.t('ct.pageHead', { slug: g.slug, page, pages, from: from + 1, to: from + slice.length, total }), ...render(slice, false)];
+    lines.push(page < pages ? WMB.t('ct.next', { next: next(g.slug, page + 1, limit) }) : WMB.t('ct.endServer'));
+    lines.push(WMB.t('ct.detailHint', { slug: g.slug }));
     return { ok: true, text: lines.join('\n') };
   }
 
@@ -170,7 +168,7 @@
 
   function search(scope, query, page, limit) {
     const tokens = words(query);
-    if (!tokens.length) return { ok: false, text: 'La búsqueda está vacía: escribe una o más palabras (p. ej. "process kill").' };
+    if (!tokens.length) return { ok: false, text: WMB.t('ct.emptySearch') };
     const scored = [];
     for (const g of scope) {
       for (const t of g.tools) {
@@ -182,16 +180,16 @@
     }
     scored.sort((a, b) => a.rank - b.rank); // estable: dentro de cada grupo conserva el orden del servidor
     const withServer = scope.length > 1;
-    const where = scope.length === 1 ? ` en \`${scope[0].slug}\`` : '';
+    const where = scope.length === 1 ? WMB.t('ct.where', { slug: scope[0].slug }) : '';
     if (!scored.length) {
-      return { ok: true, text: `Búsqueda «${query}»${where}: 0 resultados. Prueba con menos palabras o sinónimos (inglés/español), o pagina el servidor con arguments {"server":"<slug>","page":1}.` };
+      return { ok: true, text: WMB.t('ct.zero', { query, where }) };
     }
     const pages = Math.max(1, Math.ceil(scored.length / limit));
-    if (page > pages) return { ok: false, text: `La página ${page} no existe: la búsqueda «${query}» tiene ${pages} página(s) de ${limit} (${scored.length} resultados).` };
+    if (page > pages) return { ok: false, text: WMB.t('ct.noPageSearch', { page, query, pages, limit, total: scored.length }) };
     const from = (page - 1) * limit;
     const slice = scored.slice(from, from + limit).map((s) => s.t);
-    const lines = [`### Búsqueda «${query}»${where} · ${scored.length} resultado(s) · página ${page}/${pages}`, ...render(slice, withServer)];
-    lines.push(page < pages ? `Siguiente: ${next(scope.length === 1 ? scope[0].slug : null, page + 1, limit, { query })}` : 'Fin de los resultados.');
+    const lines = [WMB.t('ct.searchHead', { query, where, total: scored.length, page, pages }), ...render(slice, withServer)];
+    lines.push(page < pages ? WMB.t('ct.next', { next: next(scope.length === 1 ? scope[0].slug : null, page + 1, limit, { query }) }) : WMB.t('ct.endResults'));
     return { ok: true, text: lines.join('\n') };
   }
 
@@ -202,14 +200,14 @@
     if (!found.length) {
       const near = [];
       for (const g of scope) for (const t of g.tools) if (String(t.name).toLowerCase().includes(wanted)) near.push(t.name);
-      return { ok: false, text: `No existe la herramienta «${name}»${scope.length === 1 ? ` en «${scope[0].slug}»` : ''}.${near.length ? ` Parecidas: ${near.slice(0, 12).join(', ')}.` : ' Usa `query` para buscarla.'}` };
+      return { ok: false, text: WMB.t('ct.noTool', { name, where: scope.length === 1 ? WMB.t('ct.noToolWhere', { slug: scope[0].slug }) : '', hint: near.length ? WMB.t('ct.similar', { list: near.slice(0, 12).join(', ') }) : WMB.t('ct.useQuery') }) };
     }
     const out = [];
     for (const t of found) {
       const schema = t.inputSchema ?? {};
-      out.push(`### \`${t.server}\` › ${t.name}`, `firma: ${t.name}(${paramsOf(t)})`);
+      out.push(`### \`${t.server}\` › ${t.name}`, `${WMB.t('ct.signature')}: ${t.name}(${paramsOf(t)})`);
       const description = clip(t.description, 1500);
-      if (description) out.push(`descripción: ${description}`);
+      if (description) out.push(`${WMB.t('ct.description')}: ${description}`);
       for (const [key, prop] of Object.entries(schema.properties ?? {})) {
         const d = clip(prop?.description, 300);
         if (d) out.push(`  · ${key}: ${d}`);
@@ -225,7 +223,7 @@
   function run(rawArgs, tools) {
     const args = rawArgs && typeof rawArgs === 'object' && !Array.isArray(rawArgs) ? rawArgs : {};
     const all = groups(tools);
-    if (!all.length) return { ok: false, text: 'No hay herramientas activas en este momento.' };
+    if (!all.length) return { ok: false, text: WMB.t('ct.noActive') };
 
     const serverArg = arg(args, 'server', 'servidor', 'mcp');
     const query = String(arg(args, 'query', 'q', 'search', 'buscar') ?? '').trim();
@@ -237,7 +235,7 @@
     if (serverArg !== undefined) {
       const want = slugKey(serverArg);
       const g = all.find((x) => x.slug === serverArg || slugKey(x.slug) === want || slugKey(x.label) === want);
-      if (!g) return { ok: false, text: `No existe el servidor «${serverArg}». Servidores activos: ${all.map((x) => x.slug).join(', ')}.` };
+      if (!g) return { ok: false, text: WMB.t('ct.noServer', { server: serverArg, list: all.map((x) => x.slug).join(', ') }) };
       scope = [g];
     } else if (all.length === 1) {
       scope = all;
@@ -247,17 +245,17 @@
     if (query) return search(scope, query, page, limit);
     if (scope.length === 1 && (serverArg !== undefined || all.length === 1)) return pageOf(scope[0], page, limit);
     const res = overview(all);
-    if (arg(args, 'page', 'pagina', 'p') !== undefined) res.text += '\nIndica también `server` para paginar un servidor concreto.';
+    if (arg(args, 'page', 'pagina', 'p') !== undefined) res.text += WMB.t('ct.pageNeedsServer');
     return res;
   }
 
   /** Texto para «Disponibles: …» cuando la IA llama a una herramienta que no existe: no vuelca cientos de nombres. */
   function unknownToolHint(tools, serverSlug, name) {
     const mine = (tools ?? []).filter((t) => t.server === serverSlug);
-    if (mine.length <= 30) return mine.map((t) => t.name).join(', ') || 'ninguna';
+    if (mine.length <= 30) return mine.map((t) => t.name).join(', ') || WMB.t('ct.none');
     const tokens = words(name);
     const near = mine.filter((t) => tokens.some((w) => String(t.name).toLowerCase().includes(w))).slice(0, 10).map((t) => t.name);
-    return `${mine.length} herramientas (demasiadas para listarlas)${near.length ? `; parecidas: ${near.join(', ')}` : ''}. Consúltalas con server "${SERVER}", name "${TOOL}", arguments {"server":"${serverSlug}","query":"<palabras>"}`;
+    return WMB.t('ct.manyTools', { n: mine.length, near: near.length ? WMB.t('ct.nearList', { list: near.join(', ') }) : '', wmb: SERVER, tool: TOOL, slug: serverSlug });
   }
 
   function configure(settings) {
@@ -268,5 +266,5 @@
     if (settings.catalogPageSize !== undefined && Number.isFinite(ps) && ps >= 1) cfg.pageSize = clamp(Math.floor(ps), 1, MAX_PAGE);
   }
 
-  WMB.catalog = { SERVER, TOOL, cfg, metaTools, isActive, split, intro, reminder, isMeta, run, unknownToolHint, configure, groups };
+  WMB.catalog = { SERVER, TOOL, cfg, get metaTools() { return buildMetaTools(); }, isActive, split, intro, reminder, isMeta, run, unknownToolHint, configure, groups };
 })();

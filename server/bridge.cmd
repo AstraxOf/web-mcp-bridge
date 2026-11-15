@@ -1,12 +1,12 @@
 @echo off
 rem ============================================================================
-rem  Web MCP Bridge - control del puente (iniciar / reiniciar / estado / detener / recargar)
+rem  Web MCP Bridge - bridge control (start / restart / status / stop / reload)
 rem
-rem  Doble clic         -> menu.
-rem  Desde la terminal  -> bridge.cmd start | restart | status | stop | reload
-rem                        (tambien: iniciar, reiniciar, estado, detener, recargar)
+rem  Double-click       -> menu.
+rem  From the terminal  -> bridge.cmd start | restart | status | stop | reload
+rem                        (Spanish words also work: iniciar, reiniciar, estado, detener, recargar)
 rem
-rem  Si Python esta instalado pero faltan los requisitos (websockets), los instala solo.
+rem  If Python is installed but the requirements (websockets) are missing, they are installed automatically.
 rem ============================================================================
 setlocal EnableExtensions
 cd /d "%~dp0"
@@ -25,9 +25,9 @@ py -3 -c "import sys" >nul 2>&1
 if not errorlevel 1 set "PY=py -3"
 if defined PY goto have_python
 echo.
-echo  [X] No se encontro Python 3 en este equipo.
-echo      Instalalo desde https://www.python.org/downloads/
-echo      y marca la casilla "Add python.exe to PATH". Luego vuelve a abrir este archivo.
+echo  [X] Python 3 was not found on this computer.
+echo      Install it from https://www.python.org/downloads/
+echo      and tick "Add python.exe to PATH". Then open this file again.
 echo.
 pause
 exit /b 1
@@ -36,18 +36,18 @@ exit /b 1
 %PY% -c "import sys; sys.exit(0 if sys.version_info[:2] >= (3, 9) else 1)" >nul 2>&1
 if not errorlevel 1 goto py_ok
 echo.
-echo  [X] Se necesita Python 3.9 o superior. Actualizalo desde https://www.python.org/downloads/
+echo  [X] Python 3.9 or newer is required. Update it from https://www.python.org/downloads/
 echo.
 pause
 exit /b 1
 
 :py_ok
 
-rem ---------- 2. Requisitos (se instalan solos si faltan) ----------
+rem ---------- 2. Requirements (installed automatically if missing) ----------
 %PY% -c "from websockets.asyncio.server import serve" >nul 2>&1
 if not errorlevel 1 goto deps_ok
 echo.
-echo  Faltan los requisitos del puente. Instalando (una sola vez)...
+echo  The bridge requirements are missing. Installing them (one time only)...
 %PY% -m pip --version >nul 2>&1
 if errorlevel 1 %PY% -m ensurepip --upgrade >nul 2>&1
 %PY% -m pip install --disable-pip-version-check -r "%~dp0requirements.txt"
@@ -55,26 +55,26 @@ if errorlevel 1 %PY% -m pip install --user --disable-pip-version-check -r "%~dp0
 %PY% -c "from websockets.asyncio.server import serve" >nul 2>&1
 if not errorlevel 1 goto deps_installed
 echo.
-echo  [X] No se pudieron instalar los requisitos. Prueba manualmente:
+echo  [X] Could not install the requirements. Try it manually:
 echo      %PY% -m pip install -r "%~dp0requirements.txt"
 echo.
 pause
 exit /b 1
 
 :deps_installed
-echo  Requisitos instalados correctamente.
+echo  Requirements installed successfully.
 echo.
 
 :deps_ok
-rem ---------- 3. servers.json (si no existe, se crea desde el ejemplo) ----------
+rem ---------- 3. servers.json (created from the example if it does not exist) ----------
 if exist "%CONFIG%" goto have_config
 if not exist "%~dp0servers.example.json" goto have_config
 copy /y "%~dp0servers.example.json" "%CONFIG%" >nul
-echo  Se creo servers.json a partir de servers.example.json.
+echo  servers.json was created from servers.example.json.
 
 :have_config
 
-rem ---------- 4. Accion ----------
+rem ---------- 4. Action ----------
 set "ACTION=%~1"
 if not defined ACTION goto menu
 if /i "%ACTION%"=="start"     goto do_start
@@ -87,7 +87,7 @@ if /i "%ACTION%"=="stop"      goto do_stop
 if /i "%ACTION%"=="detener"   goto do_stop
 if /i "%ACTION%"=="reload"    goto do_reload
 if /i "%ACTION%"=="recargar"  goto do_reload
-echo Uso: bridge.cmd [start ^| restart ^| status ^| stop ^| reload]
+echo Usage: bridge.cmd [start ^| restart ^| status ^| stop ^| reload]
 exit /b 2
 
 :menu
@@ -95,17 +95,17 @@ set "FROMMENU=1"
 cls
 echo.
 echo   ==============================
-echo     Web MCP Bridge - Puente
+echo     Web MCP Bridge
 echo   ==============================
 echo.
-echo     1. Iniciar
-echo     2. Reiniciar
-echo     3. Estado
-echo     4. Detener
-echo     5. Recargar servers.json
-echo     0. Salir
+echo     1. Start
+echo     2. Restart
+echo     3. Status
+echo     4. Stop
+echo     5. Reload servers.json
+echo     0. Exit
 echo.
-choice /c 123450 /n /m "  Elige una opcion: "
+choice /c 123450 /n /m "  Choose an option: "
 if errorlevel 6 exit /b 0
 if errorlevel 5 goto do_reload
 if errorlevel 4 goto do_stop
@@ -115,7 +115,7 @@ goto do_start
 
 :do_start
 echo.
-echo  Iniciando el puente (si ya esta corriendo, solo recarga servers.json)...
+echo  Starting the bridge (if it is already running, it only reloads servers.json)...
 %PY% "%BRIDGE%" --config "%CONFIG%" --log-file "%LOGF%" --detach
 goto after
 
@@ -132,7 +132,7 @@ goto after
 :do_stop
 echo.
 %PY% "%BRIDGE%" --config "%CONFIG%" --stop
-echo  (Si instalaste el arranque automatico, el supervisor lo volvera a levantar en unos segundos.)
+echo  (If you installed auto-start, the supervisor will bring it back up in a few seconds.)
 goto after
 
 :do_reload

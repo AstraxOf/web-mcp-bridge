@@ -44,7 +44,7 @@
     try {
       return await chrome.runtime.sendMessage(message);
     } catch (err) {
-      return { ok: false, error: /context invalidated/i.test(err.message) ? 'La extensión se actualizó: recarga la pestaña.' : err.message };
+      return { ok: false, error: /context invalidated/i.test(err.message) ? WMB.t('cb.ctxInvalid') : err.message };
     }
   }
 
@@ -57,13 +57,13 @@
     },
     /** v1.7.0 · Botón GLOBAL: 'start' | 'stop' | 'restart' actúan sobre el PROCESO del puente (no solo sobre el interruptor). */
     onBridgeAction: async (action) => {
-      const labels = { start: 'Encendiendo', stop: 'Apagando', restart: 'Reiniciando' };
+      const known = ['start', 'stop', 'restart'].includes(action) ? action : 'other';
       widget.update({ bridgeBusy: action });
-      widget.log('ok', `${labels[action] ?? 'Procesando'} el puente…`);
+      widget.log('ok', WMB.t(`cb.doing.${known}`));
       const res = await send({ type: 'BRIDGE_GLOBAL', action });
       widget.update({ bridgeBusy: null });
-      if (res?.ok) widget.log('ok', { start: 'Puente encendido.', stop: 'Puente apagado.', restart: 'Puente reiniciado.' }[action] ?? 'Hecho.');
-      else widget.log('err', res?.error ?? 'No se pudo completar la acción.');
+      if (res?.ok) widget.log('ok', WMB.t(`cb.done.${known}`));
+      else widget.log('err', res?.error ?? WMB.t('cb.actFail'));
       await refresh();
     },
     /** v1.7.0 · Tiempo de respuesta configurable (ms) antes de entregar cada resultado a la IA. */
@@ -72,7 +72,19 @@
       await refresh();
     },
     /** v1.7.0 · Vuelve a analizar el último mensaje de la IA (pestaña lenta que no tomó la respuesta). */
-    onRescan: () => { adapter.forceRescan(); widget.log('ok', 'Reescaneando la última respuesta de la IA…'); },
+    onRescan: () => { adapter.forceRescan(); widget.log('ok', WMB.t('cb.rescanning')); },
+    /** v1.8 · Idioma y tema desde el panel flotante (se guardan en los ajustes y se reflejan también en el popup). */
+    onSetLang: async (value) => {
+      WMB.i18n.setLang(value);
+      widget.update({ language: value });
+      await send({ type: 'UPDATE_SETTINGS', settings: { language: value, languageChosen: true } });
+      await refresh();
+    },
+    onSetTheme: async (value) => {
+      widget.update({ theme: value });
+      await send({ type: 'UPDATE_SETTINGS', settings: { theme: value } });
+      await refresh();
+    },
     /** `id` = un MCP; `null` = todos los MCP a la vez. */
     onSetPermission: async (id, permission) => {
       await send(id ? { type: 'SET_PERMISSION', id, permission } : { type: 'SET_ALL_PERMISSIONS', permission });
@@ -91,13 +103,14 @@
   async function refresh(announce = false) {
     const [snapshot, active] = await Promise.all([send({ type: 'GET_STATE' }), send({ type: 'GET_ACTIVE_TOOLS', since: state.toolsSig })]);
     if (!snapshot?.ok || !active?.ok) {
-      const error = snapshot?.error || active?.error || 'No se pudo contactar con la extensión.';
+      const error = snapshot?.error || active?.error || WMB.t('cb.noContact');
       if (error !== lastRefreshError) widget.log('err', error); // el latido no repite el mismo error
       lastRefreshError = error;
       return;
     }
     lastRefreshError = '';
     state.settings = snapshot.settings;
+    WMB.i18n?.setLang(state.settings.language); // idioma elegido: también cambia lo que recibe la IA
     state.servers = snapshot.servers.filter((s) => s.enabled && s.url);
     WMB.catalog?.configure(state.settings);
     if (!active.unchanged) { // v1.7.2: si nada cambió, el service worker no reenvía cientos de herramientas (ahorra copiar MB cada 10 s)
@@ -114,9 +127,11 @@
       bridgeEnabled: state.settings.bridgeEnabled,
       bridge: snapshot.bridge ?? null,
       responseDelayMs: state.settings.responseDelayMs ?? 1500,
+      language: state.settings.language ?? 'en',
+      theme: state.settings.theme ?? 'dark',
       injection: injectionStatus(),
     });
-    if (announce) widget.log('ok', `Actualizado: ${state.tools.length} herramientas activas.`);
+    if (announce) widget.log('ok', WMB.t('cb.updated', { n: state.tools.length }));
   }
 
   const resetTurns = () => sessionStorage.setItem(TURNS_KEY, '0');
@@ -124,11 +139,11 @@
   async function injectInstructions() {
     await refresh();
     if (!state.settings.bridgeEnabled) {
-      widget.log('err', 'El bridge está desactivado. Actívalo primero.');
+      widget.log('err', WMB.t('cb.bridgeDisabled'));
       return;
     }
     if (!state.tools.length) {
-      widget.log('err', 'No hay herramientas: añade un MCP en el popup, comprueba que esté conectado y que no esté bloqueado.');
+      widget.log('err', WMB.t('cb.noTools'));
       return;
     }
     const result = await adapter.injectSystemPrompt(state.tools);
@@ -137,7 +152,7 @@
       resetTurns();
       state.forceFull = false;
       widget.update({ injection: 'ok' });
-      widget.log('ok', 'Instrucciones escritas en el chat. Añade tu petición y envía.');
+      widget.log('ok', WMB.t('cb.injected'));
     } else {
       widget.log('err', result.error);
     }
@@ -157,7 +172,7 @@
     const gap = Math.max(0, MIN_GAP_MS - (Date.now() - lastDeliveredAt));
     const wait = Math.max(wanted, gap);
     if (wait < 400) return;
-    if (wanted >= 800) widget.log('ok', `Espero ${(wait / 1000).toFixed(1)} s antes de responder (se ajusta en el panel).`);
+    if (wanted >= 800) widget.log('ok', WMB.t('cb.waiting', { s: (wait / 1000).toFixed(1) }));
     await WMB.sleep(wait);
   }
 
@@ -168,20 +183,20 @@
 
     let attached = true;
     if (plan.files.length) {
-      widget.log('ok', `Adjuntando ${plan.files.length} archivo(s) al chat…`);
+      widget.log('ok', WMB.t('cb.attaching', { n: plan.files.length }));
       attached = await adapter.attachFiles(plan.files);
       if (!attached) {
         for (const file of plan.files.filter((f) => !f.overflow)) {
           try { WMB.dom.download(WMB.dom.fileFrom(file)); } catch { /* noop */ }
         }
-        widget.log('err', 'No se pudo adjuntar al chat: se descargó el archivo (arrástralo al chat).');
+        widget.log('err', WMB.t('cb.attachFail'));
       }
     }
     const tail = reminder !== false && state.tools.length ? `\n${WMB.reminderLine(state.tools, 'result')}` : '';
     const message = `${plan.build(attached)}${note ? `\n${note}` : ''}${tail}`;
     const sent = await adapter.sendToolResult(message, { autoSend, settleMs: attached && plan.files.length ? 1500 : 0 });
     lastDeliveredAt = Date.now();
-    widget.log(sent.ok ? 'ok' : 'err', sent.ok ? `Resultado enviado a ${adapter.name}.` : sent.error);
+    widget.log(sent.ok ? 'ok' : 'err', sent.ok ? WMB.t('cb.sentTo', { name: adapter.name }) : sent.error);
     return { ok: sent.ok, message };
   }
 
@@ -218,13 +233,13 @@
     const { call } = detected;
     if (!state.settings.bridgeEnabled) return; // bridge apagado: se ignoran las llamadas
     const obsolete = () => detected.seq !== undefined && detected.seq !== callSeq;
-    if (obsolete()) { widget.log('err', `Llamada obsoleta descartada (${call.name}): ya hay algo mas nuevo en el chat.`); return; }
+    if (obsolete()) { widget.log('err', WMB.t('cb.log.obsolete', { name: call.name })); return; }
     if (WMB.catalog?.isMeta(call, state.tools, state.servers)) return handleMeta(detected); // v1.7.2: catálogo paginado (local)
     const { srv, tool } = await resolveCall(call);
 
     // Llamada que no corresponde a ningún MCP activo (p. ej. la IA explicando el formato): se ignora.
     if (!srv) {
-      widget.log('err', `Llamada ignorada: servidor «${call.server ?? '?'}» no activo.`);
+      widget.log('err', WMB.t('cb.log.ignoredSrv', { server: call.server ?? '?' }));
       return;
     }
 
@@ -232,23 +247,23 @@
     const prev = recentCalls.get(repeatKey);
     const repeats = prev && Date.now() - prev.at < REPEAT_WINDOW_MS ? prev.count : 0;
     if (repeats >= MAX_REPEATS && prev.result && tool && srv.permission !== 'deny') {
-      const cached = { ...prev.result, note: `[WMB] Llamada IDENTICA repetida ${repeats + 1} veces seguidas: no se ejecuto otra vez. Este es el resultado de la ultima ejecucion; usalo. Si no te sirve, cambia los argumentos o pidele otra cosa al usuario.` };
-      widget.log('err', `Llamada identica repetida ${repeats + 1} veces: reenvio el ultimo resultado sin ejecutar.`);
+      const cached = { ...prev.result, note: WMB.t('cb.note.repeatCached', { n: repeats + 1 }) };
+      widget.log('err', WMB.t('cb.log.repeatResend', { n: repeats + 1 }));
       prev.count += 1;
       prev.at = Date.now();
-      await guarded(deliver(srv, call, cached), DELIVER_TIMEOUT_MS, 'El chat no acepto el resultado a tiempo.');
+      await guarded(deliver(srv, call, cached), DELIVER_TIMEOUT_MS, WMB.t('cb.res.deliverTimeout'));
       return;
     }
 
     let result;
     if (srv.permission === 'deny') {
-      result = { status: 'rejected', text: 'El usuario no permite usar este MCP.' };
-      widget.log('err', `Bloqueada: ${srv.slug} › ${call.name}`);
+      result = { status: 'rejected', text: WMB.t('cb.res.deny') };
+      widget.log('err', WMB.t('cb.log.blocked', { srv: srv.slug, name: call.name }));
     } else if (!tool) {
       const available = WMB.catalog
         ? WMB.catalog.unknownToolHint(state.tools, srv.slug, call.name) // con cientos de herramientas no se vuelcan todos los nombres
         : state.tools.filter((t) => t.server === srv.slug).map((t) => t.name).join(', ');
-      result = { status: 'error', text: `La herramienta «${call.name}» no existe en «${srv.slug}». Disponibles: ${available || 'ninguna'}.` };
+      result = { status: 'error', text: WMB.t('cb.res.noTool', { name: call.name, srv: srv.slug, available: available || WMB.t('ct.none') }) };
     } else {
       let approved = true;
       if (srv.permission === 'ask') {
@@ -261,29 +276,29 @@
       } // 'allow': se ejecuta siempre, sin preguntar nunca
 
       if (!approved) {
-        result = { status: 'rejected', text: 'El usuario rechazó la ejecución de esta herramienta.' };
-        widget.log('err', `Rechazada: ${srv.slug} › ${call.name}`);
+        result = { status: 'rejected', text: WMB.t('cb.res.rejected') };
+        widget.log('err', WMB.t('cb.log.rejected', { srv: srv.slug, name: call.name }));
       } else {
-        widget.log('ok', `Ejecutando ${srv.slug} › ${call.name}…`);
+        widget.log('ok', WMB.t('cb.log.running', { srv: srv.slug, name: call.name }));
         let response;
         try {
-          response = await callWithRetry(srv, call, 'La herramienta tardó demasiado en responder.');
+          response = await callWithRetry(srv, call, WMB.t('cb.res.slow'));
         } catch (err) {
           response = { ok: false, error: err.message };
         }
-        if (!response?.ok) result = { status: 'error', text: response?.error ?? 'Error desconocido.' };
+        if (!response?.ok) result = { status: 'error', text: response?.error ?? WMB.t('common.unknownError') };
         else result = { status: response.result?.isError ? 'error' : 'ok', raw: response.result };
         widget.log(result.status === 'ok' ? 'ok' : 'err', `${call.name}: ${result.status}`);
       }
     }
     if (tool && srv.permission !== 'deny' && result.status !== 'rejected') {
       recentCalls.set(repeatKey, { count: repeats + 1, at: Date.now(), result });
-      if (repeats > 0) result.note = `[WMB] Esta llamada es identica a la anterior (ya van ${repeats + 1}). Se ejecuto de nuevo y este es el resultado ACTUAL; si ya tienes el dato, no la repitas.`;
+      if (repeats > 0) result.note = WMB.t('cb.note.repeat', { n: repeats + 1 });
     }
-    if (detected.rerun) result.note = '[WMB] Reenvío automático: tu mensaje anterior con el resultado no llegó a procesarse. Este es el resultado ACTUAL de tu llamada; continúa desde aquí.';
-    if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
-    if (obsolete()) { widget.log('err', `Resultado de ${call.name} descartado: ya hay algo mas nuevo en el chat (no lo envio para no repetir).`); return; }
-    const delivered = await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+    if (detected.rerun) result.note = WMB.t('cb.note.rerun');
+    if (detected.extra > 0) result.note = WMB.t('cb.note.extra', { n: detected.extra });
+    if (obsolete()) { widget.log('err', WMB.t('cb.log.dropResult', { name: call.name })); return; }
+    const delivered = await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, WMB.t('cb.res.deliverTimeout'));
     await superviseDelivery({ detected, message: delivered.message, sentOk: delivered.ok });
   }
 
@@ -296,12 +311,12 @@
     const obsolete = () => detected.seq !== undefined && detected.seq !== callSeq;
     const a = call.arguments ?? {};
     const out = WMB.catalog.run(a, state.tools);
-    widget.log('ok', `Catálogo de herramientas${a.server ? ` › ${a.server}` : ''}${a.page ? ` · página ${a.page}` : ''}${a.query ? ` · «${a.query}»` : ''}${a.tool ? ` · ${a.tool}` : ''}`);
+    widget.log('ok', `${WMB.t('cb.log.catalog')}${a.server ? ` › ${a.server}` : ''}${a.page ? WMB.t('cb.log.catalogPage', { page: a.page }) : ''}${a.query ? ` · «${a.query}»` : ''}${a.tool ? ` · ${a.tool}` : ''}`);
     const result = { status: out.ok ? 'ok' : 'error', text: out.text };
-    if (detected.rerun) result.note = '[WMB] Reenvío automático: tu mensaje anterior con el resultado no llegó a procesarse. Este es el resultado ACTUAL de tu llamada; continúa desde aquí.';
-    if (detected.extra > 0) result.note = `[WMB] Solo se ejecuto la primera llamada; ${detected.extra} mas se ignoraron. Envia UNA llamada por mensaje y espera el resultado.`;
-    if (obsolete()) { widget.log('err', 'Resultado del catálogo descartado: ya hay algo mas nuevo en el chat.'); return; }
-    const delivered = await guarded(deliver({ slug: WMB.catalog.SERVER }, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+    if (detected.rerun) result.note = WMB.t('cb.note.rerun');
+    if (detected.extra > 0) result.note = WMB.t('cb.note.extra', { n: detected.extra });
+    if (obsolete()) { widget.log('err', WMB.t('cb.log.dropCatalog')); return; }
+    const delivered = await guarded(deliver({ slug: WMB.catalog.SERVER }, call, result), DELIVER_TIMEOUT_MS, WMB.t('cb.res.deliverTimeout'));
     await superviseDelivery({ detected, message: delivered.message, sentOk: delivered.ok });
   }
 
@@ -332,9 +347,9 @@
     for (let round = 1; round <= VERIFY_ROUNDS; round += 1) {
       if (sent) {
         if ((await waitForReaction(REACT_WAIT_MS, mine)) !== 'timeout') return;
-        widget.log('err', `La IA no reaccionó al resultado (verificación ${round}/${VERIFY_ROUNDS}): lo vuelvo a enviar.`);
+        widget.log('err', WMB.t('cb.log.noReact', { r: round, max: VERIFY_ROUNDS }));
       } else {
-        widget.log('err', `El resultado no salió al chat (verificación ${round}/${VERIFY_ROUNDS}): lo vuelvo a enviar.`);
+        widget.log('err', WMB.t('cb.log.notOut', { r: round, max: VERIFY_ROUNDS }));
       }
       if (mine !== epoch) return;
       sent = (await adapter.sendToolResult(message, { autoSend: true, settleMs: 0 })).ok;
@@ -343,36 +358,36 @@
     if (mine !== epoch || !state.settings.bridgeEnabled) return;
     const reruns = detected.reruns ?? 0;
     if (reruns >= MAX_RERUNS) {
-      widget.log('err', 'Sigo sin respuesta de la IA tras reenviar y volver a ejecutar. Revisa el chat.');
+      widget.log('err', WMB.t('cb.log.stillSilent'));
       return;
     }
-    widget.log('err', `Sin reacción tras ${VERIFY_ROUNDS} verificaciones: ejecuto de nuevo el JSON que dejó la IA (${reruns + 1}/${MAX_RERUNS}).`);
+    widget.log('err', WMB.t('cb.log.rerun', { max: VERIFY_ROUNDS, n: reruns + 1, total: MAX_RERUNS }));
     queue = queue.then(() => processCall({ ...detected, rerun: true, reruns: reruns + 1, extra: 0 }));
   }
   // ------------- Formato invalido y reconexion (v1.3.0) -------------
 
   let badStreak = 0;
   const MAX_BAD_STREAK = 3;
-  const CONN_ERR = /no est.{1,2} conectado|desconectado/i;
+  const CONN_ERR = /no est.{1,2} conectado|desconectado|not connected|disconnected/i;
 
   /** La IA envio un mcp_call ilegible: se le devuelve el motivo exacto para que lo corrija (maximo 3 avisos seguidos). */
   async function handleMalformed({ text }) {
     if (!state.settings.bridgeEnabled || !state.tools.length) return;
     badStreak += 1;
     if (badStreak > MAX_BAD_STREAK) {
-      widget.log('err', 'La IA repite un formato invalido: dejo de avisarle. Revisa el chat.');
+      widget.log('err', WMB.t('cb.log.badFormat'));
       return;
     }
-    widget.log('err', `Bloque sin leer (${badStreak}/${MAX_BAD_STREAK}): compruebo que la IA ya termino antes de avisarle.`);
+    widget.log('err', WMB.t('cb.log.badBlock', { n: badStreak, max: MAX_BAD_STREAK }));
     await paceDelivery();
     // v1.7.1: tras la espera se vuelve a mirar el chat. Si la IA seguia escribiendo (o el bloque ya se lee), NO se le avisa.
     const again = adapter.getLastText();
     if (adapter.isStreaming() || again !== text || WMB.extractMcpCalls(again).length) {
       badStreak = Math.max(0, badStreak - 1);
-      widget.log('ok', 'La IA seguia escribiendo el bloque: no la interrumpo con un aviso.');
+      widget.log('ok', WMB.t('cb.log.stillWriting'));
       return;
     }
-    widget.log('err', 'El bloque sigue ilegible: aviso a la IA con el motivo.');
+    widget.log('err', WMB.t('cb.log.badStill'));
     const sent = await adapter.sendToolResult(WMB.formatCallError(text), { autoSend: state.settings.autoSend });
     if (!sent.ok) widget.log('err', sent.error);
   }
@@ -393,7 +408,7 @@
     for (let attempt = 0; attempt < 3; attempt += 1) {
       response = await guarded(send({ type: 'CALL_TOOL', server: srv.slug, name: call.name, arguments: call.arguments }), TOOL_TIMEOUT_MS, timeoutMessage);
       if (response?.ok || !CONN_ERR.test(response?.error ?? '') || attempt === 2) break;
-      widget.log('err', `${srv.slug} desconectado: espero la reconexion y reintento (${attempt + 1}/2).`);
+      widget.log('err', WMB.t('cb.log.reconnect', { slug: srv.slug, n: attempt + 1 }));
       await send({ type: 'RECONNECT', id: srv.id });
       await waitConnected(srv, 40_000);
     }
@@ -405,7 +420,7 @@
     try {
       await handleCall(detected);
     } catch (err) {
-      widget.log('err', `Error: ${err.message}`);
+      widget.log('err', WMB.t('cb.log.error', { msg: err.message }));
     }
   }
 
@@ -446,7 +461,7 @@
     injecting = true;
     (async () => {
       const message = full
-        ? `${WMB.buildSystemPrompt(state.tools)}\n\n---\n## Petición del usuario\n${userText}`
+        ? `${WMB.buildSystemPrompt(state.tools)}\n\n---\n${WMB.t('pr.userReq')}\n${userText}`
         : `${userText}\n\n${WMB.reminderLine(state.tools)}`;
       if (await WMB.dom.setText(composer, message, { append: false })) {
         if (full) {
@@ -454,13 +469,13 @@
           resetTurns();
           state.forceFull = false;
           widget.update({ injection: 'ok' });
-          widget.log('ok', present ? 'Instrucciones renovadas en tu mensaje.' : 'Instrucciones añadidas automáticamente a tu mensaje.');
+          widget.log('ok', WMB.t(present ? 'cb.log.renewed' : 'cb.log.autoAdded'));
         } else {
           sessionStorage.setItem(TURNS_KEY, String(turns));
         }
         await adapter.submit();
       } else {
-        widget.log('err', 'No se pudieron añadir las instrucciones; usa «Inyectar instrucciones».');
+        widget.log('err', WMB.t('cb.log.injectFail'));
       }
     })().finally(() => { injecting = false; });
   }
@@ -505,7 +520,7 @@
         onDone: ({ text }) => {
           if (state.settings.bridgeEnabled && state.tools.length && text.length < 1500 && DENIAL.test(text)) {
             state.forceFull = true;
-            widget.log('err', 'La IA dice que no tiene acceso: renovaré las instrucciones en tu próximo mensaje.');
+            widget.log('err', WMB.t('cb.log.denial'));
           }
         },
       },

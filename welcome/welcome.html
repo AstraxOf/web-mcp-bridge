@@ -1,30 +1,59 @@
 <!doctype html>
-<html lang="es">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Bienvenido a Web MCP Bridge</title>
+  <meta name="color-scheme" content="dark light">
+  <title>Web MCP Bridge</title>
   <link rel="stylesheet" href="welcome.css">
+  <script src="../shared/i18n.js"></script>
 </head>
 <body>
-  <main>
+  <!-- Pantalla 1: SOLO el idioma. Es lo primero que se ve al instalar. -->
+  <section id="lang-screen" class="lang-screen" hidden>
+    <div class="lang-box">
+      <img src="../icons/icon128.png" alt="" width="64" height="64">
+      <h1>Choose your language <span class="alt">· Elige tu idioma</span></h1>
+      <p id="lang-sub" class="lead" data-i18n="w.lang.sub">You can change it any time from the extension.</p>
+      <div class="lang-grid" role="radiogroup" aria-label="Language">
+        <button type="button" class="lang-card" data-lang="en" role="radio" aria-checked="true">
+          <strong>English</strong>
+          <small class="def" data-i18n="w.lang.default">default</small>
+        </button>
+        <button type="button" class="lang-card" data-lang="es" role="radio" aria-checked="false">
+          <strong>Español</strong>
+          <small class="def"></small>
+        </button>
+      </div>
+      <button id="lang-continue" type="button" class="cta" data-i18n="w.lang.continue">Continue</button>
+    </div>
+  </section>
+
+  <!-- Pantalla 2: la bienvenida de siempre -->
+  <main id="wizard" hidden>
     <header>
-      <h1>Bienvenido a Web MCP Bridge</h1>
-      <p class="lead">Conecta ChatGPT, Claude, Gemini y DeepSeek con tus herramientas locales (MCP). Solo tienes que seguir estos pasos; el asistente se actualiza solo a medida que avanzas.</p>
+      <div class="head-row">
+        <h1 data-i18n="w.title">Welcome to Web MCP Bridge</h1>
+        <div class="seg" id="lang-seg" role="group" data-i18n-aria="lang.switch" aria-label="Language">
+          <button type="button" data-lang="en">EN</button>
+          <button type="button" data-lang="es">ES</button>
+        </div>
+      </div>
+      <p class="lead" data-i18n="w.lead">Connect ChatGPT, Claude, Gemini and DeepSeek to your local tools (MCP).</p>
     </header>
 
     <ol class="steps">
       <li id="step-launcher" class="step" data-state="current">
         <span class="badge">1</span>
         <div class="body">
-          <h2>Instala el lanzador <small id="launcher-status" class="status"></small></h2>
-          <p>El navegador no puede encender programas por s&iacute; solo. El lanzador es un peque&ntilde;o proceso que se instala <strong>una sola vez</strong>, arranca con Windows y permite encender, apagar y reiniciar el puente desde esta extensi&oacute;n.</p>
+          <h2><span data-i18n="w.s1.t">Install the launcher</span> <small id="launcher-status" class="status"></small></h2>
+          <p data-i18n-html="w.s1.p"></p>
           <div id="launcher-help">
             <ol class="how">
-              <li>Abre la carpeta de la extensi&oacute;n y entra en <code>server</code>.</li>
-              <li>Haz doble clic en <code>install.cmd</code> y espera a que diga &laquo;Listo&raquo;.</li>
+              <li data-i18n-html="w.s1.how1"></li>
+              <li data-i18n-html="w.s1.how2"></li>
             </ol>
-            <p class="muted">&iquest;Prefieres la terminal? <code id="cmd-text">python server/install_service.py</code> <button id="copy-cmd" type="button" class="link">Copiar</button></p>
+            <p class="muted"><span data-i18n="w.s1.term">Prefer the terminal?</span> <code id="cmd-text">python server/install_service.py</code> <button id="copy-cmd" type="button" class="link" data-i18n="common.copy">Copy</button></p>
           </div>
         </div>
       </li>
@@ -32,12 +61,12 @@
       <li id="step-bridge" class="step" data-state="pending">
         <span class="badge">2</span>
         <div class="body">
-          <h2>Enciende el puente <small id="bridge-status" class="status"></small></h2>
-          <p>El puente es el programa que publica tus servidores MCP. Puedes controlarlo desde aqu&iacute; o desde el icono de la extensi&oacute;n.</p>
+          <h2><span data-i18n="w.s2.t">Start the bridge</span> <small id="bridge-status" class="status"></small></h2>
+          <p data-i18n="w.s2.p"></p>
           <div class="actions">
-            <button id="btn-start" type="button">Iniciar</button>
-            <button id="btn-restart" type="button" class="soft">Reiniciar</button>
-            <button id="btn-stop" type="button" class="soft">Apagar</button>
+            <button id="btn-start" type="button" data-i18n="w.start">Start</button>
+            <button id="btn-restart" type="button" class="soft" data-i18n="w.restart">Restart</button>
+            <button id="btn-stop" type="button" class="soft" data-i18n="w.stop">Stop</button>
           </div>
           <p id="bridge-msg" class="msg" hidden></p>
         </div>
@@ -46,18 +75,18 @@
       <li id="step-servers" class="step" data-state="pending">
         <span class="badge">3</span>
         <div class="body">
-          <h2>Tus servidores MCP <small id="servers-status" class="status"></small></h2>
-          <p>Se detectan solos a partir de <code>server/servers.json</code>. Act&iacute;valos (m&aacute;ximo 5) y elige sus permisos desde el icono de la extensi&oacute;n.</p>
+          <h2><span data-i18n="w.s3.t">Your MCP servers</span> <small id="servers-status" class="status"></small></h2>
+          <p data-i18n-html="w.s3.p"></p>
           <ul id="server-list" class="servers"></ul>
-          <div class="actions"><button id="btn-config" type="button" class="soft">Editar servers.json</button></div>
+          <div class="actions"><button id="btn-config" type="button" class="soft" data-i18n="w.editJson">Edit servers.json</button></div>
         </div>
       </li>
 
       <li id="step-ready" class="step" data-state="pending">
         <span class="badge">4</span>
         <div class="body">
-          <h2>Pru&eacute;balo en tu chat favorito</h2>
-          <p>Abre uno de estos sitios con la extensi&oacute;n activa y pide algo que use tus herramientas.</p>
+          <h2 data-i18n="w.s4.t">Try it in your favorite chat</h2>
+          <p data-i18n="w.s4.p"></p>
           <div class="actions">
             <a class="btn soft" href="https://chatgpt.com/" target="_blank" rel="noopener">ChatGPT</a>
             <a class="btn soft" href="https://claude.ai/" target="_blank" rel="noopener">Claude</a>

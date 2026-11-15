@@ -5,7 +5,8 @@
 (() => {
   'use strict';
   const WMB = (globalThis.WMB = globalThis.WMB || {});
-  WMB.VERSION = '1.7.2';
+  WMB.VERSION = '1.8.0';
+  if (typeof WMB.t !== 'function') WMB.t = (key) => key; // respaldo si i18n.js no se cargó
 
   const nativeSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -169,7 +170,7 @@
    * Texto, recursos y structuredContent van en línea; imágenes, audio y blobs se adjuntan como archivos.
    * @returns {{parts:(string|{file:object,label:string})[], files:{name:string,mime:string,b64:string,bytes:number}[]}}
    */
-  WMB.parseResult = (result, base = 'resultado') => {
+  WMB.parseResult = (result, base = WMB.t('ut.base')) => {
     const parts = [];
     const files = [];
     const attach = (data, mime, label) => {
@@ -184,14 +185,14 @@
     let textParts = 0;
     for (const item of result?.content ?? []) {
       if (item.type === 'text') { parts.push(item.text ?? ''); textParts += 1; }
-      else if ((item.type === 'image' || item.type === 'audio') && typeof item.data === 'string') attach(item.data, item.mimeType, item.type === 'image' ? 'imagen' : 'audio');
+      else if ((item.type === 'image' || item.type === 'audio') && typeof item.data === 'string') attach(item.data, item.mimeType, WMB.t(item.type === 'image' ? 'ut.image' : 'ut.audio'));
       else if (item.type === 'resource' && item.resource) {
         const { uri = '', text, blob, mimeType } = item.resource;
-        if (typeof text === 'string') parts.push(`[recurso ${uri}]\n${text}`);
-        else if (typeof blob === 'string') attach(blob, mimeType, `recurso ${uri}`.trim());
+        if (typeof text === 'string') parts.push(`${WMB.t('ut.resourcePart', { uri })}\n${text}`);
+        else if (typeof blob === 'string') attach(blob, mimeType, WMB.t('ut.resource', { uri }).trim());
         else parts.push(JSON.stringify(item));
       } else if (item.type === 'resource_link') {
-        parts.push(`[enlace: ${[item.uri, item.name, item.description].filter(Boolean).join(' · ')}]`);
+        parts.push(WMB.t('ut.link', { text: [item.uri, item.name, item.description].filter(Boolean).join(' · ') }));
       } else parts.push(JSON.stringify(item)); // tipo desconocido: se conserva tal cual
     }
     const structured = result?.structuredContent;
@@ -205,8 +206,7 @@
   /** Une las partes en texto; `attached` indica si los archivos llegaron adjuntos al chat. */
   WMB.renderParts = (parts, attached = true) => parts
     .map((p) => (typeof p === 'string' ? p
-      : attached ? `[${p.label} adjunta a este mensaje: ${p.file.name} (${p.file.mime}, ${kb(p.file.bytes)})]`
-        : `[${p.label} NO adjuntada (el navegador la descargó): ${p.file.name} (${p.file.mime}, ${kb(p.file.bytes)})]`))
+      : WMB.t(attached ? 'ut.attached' : 'ut.notAttached', { label: p.label, name: p.file.name, mime: p.file.mime, size: kb(p.file.bytes) })))
     .join('\n');
 
   /** Mensaje que se escribe en el chat con el resultado de la herramienta. */
@@ -227,13 +227,13 @@
     const full = WMB.renderParts(parts, true);
     let overflow = null;
     if (full.length > maxChars) {
-      overflow = { name: `${base}_completo.txt`, mime: 'text/plain', text: full, bytes: full.length, overflow: true };
+      overflow = { name: `${base}${WMB.t('ut.fullSuffix')}.txt`, mime: 'text/plain', text: full, bytes: full.length, overflow: true };
       files.push(overflow);
     }
     const build = (attached) => {
       let text = WMB.renderParts(parts, attached);
       if (overflow && attached) {
-        text = `${text.slice(0, PREVIEW_CHARS)}\n…\n[resultado de ${full.length} caracteres: contenido COMPLETO en el archivo adjunto ${overflow.name}]`;
+        text = `${text.slice(0, PREVIEW_CHARS)}\n…\n${WMB.t('ut.overflow', { n: full.length, name: overflow.name })}`;
       }
       return WMB.formatToolResult({ server, name, status, text });
     };

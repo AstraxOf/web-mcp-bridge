@@ -6,6 +6,7 @@
  *   2. Mantener una conexión WebSocket SOLO con los servidores MCP habilitados.
  *   3. Exponer a popup y content scripts una API de mensajes (ver `handleMessage`).
  */
+import '../shared/i18n.js';
 import { McpConnection } from './ws_client.js';
 import {
   STORAGE_KEYS as KEYS, LEGACY_STORAGE_KEYS, DEFAULT_SETTINGS, MAX_ACTIVE_SERVERS,
@@ -16,6 +17,8 @@ import { compareVersions, normalizeFeed, publicNotices, mergeFeed, safeLink } fr
 
 /** @type {Map<string, McpConnection>} serverId → conexión */
 const connections = new Map();
+
+const T = (key, vars) => globalThis.WMB.t(key, vars);
 
 // Serializa las mutaciones de storage para evitar condiciones de carrera.
 let lock = Promise.resolve();
@@ -32,6 +35,8 @@ async function loadState() {
   const stored = data[KEYS.settings] ?? {};
   const settings = { ...DEFAULT_SETTINGS, ...stored };
   delete settings.checkUpdates; // v1.4: las actualizaciones automaticas ya no existen
+  settings.language = globalThis.WMB.i18n.setLang(settings.language); // v1.8: el idioma elegido manda en todos los mensajes
+  if (!['dark', 'light'].includes(settings.theme)) settings.theme = 'dark';
   // Migración desde 1.0: «ejecutar sin preguntar» (autoExecute) pasa a ser el permiso «allow».
   if (!PERMISSIONS.includes(stored.defaultPermission)) settings.defaultPermission = stored.autoExecute ? 'allow' : 'ask';
   const servers = (data[KEYS.servers] ?? []).filter((s) => s.url).map((s) => ({ // sin dirección = marcador de la 1.1: se descarta
@@ -105,7 +110,7 @@ function probeBridge(force = false) {
     const launcherProbe = probeLauncher(); // en paralelo: con el puente apagado cada sondeo puede tardar ~2 s (Windows)
     try {
       const { status, body } = await bridgeFetch('/servers');
-      if (status !== 200 || !body?.ok) throw new Error('Respuesta inesperada del puente.');
+      if (status !== 200 || !body?.ok) throw new Error(T('bg.unexpected'));
       Object.assign(bridge, {
         checked: true, online: true, version: body.version ?? null, pid: body.pid ?? null, config: body.config ?? bridge.config,
         configError: body.config_error ?? null, supervised: Boolean(body.supervised), startedAt: body.started_at ?? null,
@@ -118,7 +123,7 @@ function probeBridge(force = false) {
     } catch (err) {
       Object.assign(bridge, {
         checked: true, online: false, pid: null, configError: null, servers: [],
-        error: err?.name === 'AbortError' ? 'sin respuesta' : (err?.message ?? 'sin conexion'),
+        error: err?.name === 'AbortError' ? T('bg.noReply') : (err?.message ?? T('bg.noReply')),
       });
     }
     await launcherProbe;
@@ -138,7 +143,7 @@ async function discoverServers(force = false) {
   lastDiscovery = Date.now();
 
   const info = await probeBridge(true);
-  if (!info.online) return { ok: false, error: 'No se encontro el puente. Abrelo con server/start_bridge_loop.pyw' };
+  if (!info.online) return { ok: false, error: T('bg.noBridge') };
 
   const list = (Array.isArray(info.servers) ? info.servers : [])
     .map((s) => ({ name: String(s?.name ?? '').trim(), url: safeUrl(s?.url) }))
@@ -297,7 +302,7 @@ async function addHistory(entry) {
 
 async function callTool({ server, name, arguments: args }) {
   const { servers, settings } = await loadState();
-  if (!settings.bridgeEnabled) return { ok: false, error: 'El bridge está desactivado.' };
+  if (!settings.bridgeEnabled) return { ok: false, error: T('bg.disabled') };
   const slugs = assignSlugs(servers);
   const active = servers.filter((s) => s.enabled && s.url);
   const target = server
@@ -311,12 +316,12 @@ async function callTool({ server, name, arguments: args }) {
     return { ok: false, error };
   };
 
-  if (!target) return fail(`El servidor «${label}» no está activo.`);
-  if (target.permission === 'deny') return fail(`El usuario no permite usar «${label}».`);
+  if (!target) return fail(T('bg.srvInactive', { label }));
+  if (target.permission === 'deny') return fail(T('bg.denied', { label }));
   const conn = connections.get(target.id);
   if (conn && conn.status !== 'connected') conn.connect(); // sin esperar al backoff: reconecta ya
-  if (!conn || !(await conn.whenReady(10_000))) return fail(`El servidor «${label}» no está conectado.`);
-  if (!conn.tools.some((t) => t.name === name)) return fail(`La herramienta «${name}» no existe en «${label}».`);
+  if (!conn || !(await conn.whenReady(10_000))) return fail(T('bg.notConnected', { label }));
+  if (!conn.tools.some((t) => t.name === name)) return fail(T('bg.noTool', { name, label }));
 
   const started = Date.now();
   try {
@@ -333,8 +338,8 @@ async function callTool({ server, name, arguments: args }) {
 
 function validateUrl(raw) {
   let url;
-  try { url = new URL(raw); } catch { throw new Error('La dirección no es válida.'); }
-  if (!['ws:', 'wss:'].includes(url.protocol)) throw new Error('La dirección debe empezar por ws:// o wss://');
+  try { url = new URL(raw); } catch { throw new Error(T('bg.badUrl')); }
+  if (!['ws:', 'wss:'].includes(url.protocol)) throw new Error(T('bg.wsOnly'));
   return url.toString().replace(/\/$/, '');
 }
 
@@ -350,7 +355,7 @@ const mutations = {
   ADD_SERVER: ({ name, url }) => mutate(async (servers, settings) => {
     const cleanUrl = validateUrl(String(url ?? '').trim());
     const cleanName = String(name ?? '').trim() || 'mcp';
-    if (servers.some((s) => s.url === cleanUrl)) throw new Error('Esa dirección ya está registrada.');
+    if (servers.some((s) => s.url === cleanUrl)) throw new Error(T('bg.dupUrl'));
     // Por defecto solo hay 1 MCP activo: el primero que se registra.
     servers.push({
       id: crypto.randomUUID(), name: cleanName, url: cleanUrl, enabled: servers.every((s) => !s.enabled), permission: settings.defaultPermission,
@@ -360,16 +365,16 @@ const mutations = {
 
   /** Permiso de UN MCP: allow (siempre) · ask (preguntar) · deny (no permitir). */
   SET_PERMISSION: ({ id, permission }) => mutate(async (servers) => {
-    if (!PERMISSIONS.includes(permission)) throw new Error('Permiso no válido.');
+    if (!PERMISSIONS.includes(permission)) throw new Error(T('bg.badPerm'));
     const server = servers.find((s) => s.id === id);
-    if (!server) throw new Error('Servidor no encontrado.');
+    if (!server) throw new Error(T('bg.srvNotFound'));
     server.permission = permission;
     await saveServers(servers);
   }),
 
   /** Mismo selector para TODOS los MCP (y para los que se añadan después). */
   SET_ALL_PERMISSIONS: ({ permission }) => mutate(async (servers, settings) => {
-    if (!PERMISSIONS.includes(permission)) throw new Error('Permiso no válido.');
+    if (!PERMISSIONS.includes(permission)) throw new Error(T('bg.badPerm'));
     servers.forEach((s) => { s.permission = permission; });
     await saveServers(servers);
     await chrome.storage.local.set({ [KEYS.settings]: { ...settings, defaultPermission: permission } });
@@ -386,7 +391,7 @@ const mutations = {
 
   RENAME_SERVER: ({ id, name }) => mutate(async (servers) => {
     const server = servers.find((s) => s.id === id);
-    if (!server) throw new Error('Servidor no encontrado.');
+    if (!server) throw new Error(T('bg.srvNotFound'));
     server.name = String(name ?? '').trim() || server.name;
     server.renamed = true;
     await saveServers(servers);
@@ -394,9 +399,9 @@ const mutations = {
 
   TOGGLE_SERVER: ({ id, enabled }) => mutate(async (servers) => {
     const server = servers.find((s) => s.id === id);
-    if (!server) throw new Error('Servidor no encontrado.');
+    if (!server) throw new Error(T('bg.srvNotFound'));
     if (enabled && servers.filter((s) => s.enabled && s.id !== id).length >= MAX_ACTIVE_SERVERS) {
-      throw new Error(`Solo puedes tener ${MAX_ACTIVE_SERVERS} servidores MCP activos a la vez.`);
+      throw new Error(T('bg.maxActive', { max: MAX_ACTIVE_SERVERS }));
     }
     server.enabled = Boolean(enabled);
     await saveServers(servers);
@@ -404,10 +409,13 @@ const mutations = {
 
   UPDATE_SETTINGS: ({ settings: patch }) => mutate(async (_servers, settings) => {
     const clean = { ...patch };
+    if ('language' in clean) clean.language = ['en', 'es'].includes(clean.language) ? clean.language : 'en'; // v1.8
+    if ('theme' in clean) clean.theme = clean.theme === 'light' ? 'light' : 'dark';
     if ('responseDelayMs' in clean) { // v1.7.0: tiempo de respuesta configurable (0 – 60 s)
       clean.responseDelayMs = Math.min(RESPONSE_DELAY_MAX_MS, Math.max(0, Math.round(Number(clean.responseDelayMs)) || 0));
     }
     await chrome.storage.local.set({ [KEYS.settings]: { ...settings, ...clean } });
+    if (clean.language) globalThis.WMB.i18n.setLang(clean.language);
   }),
 };
 
@@ -418,7 +426,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, Math.min(Math
 
 async function focusTab(sender) {
   const tab = sender?.tab;
-  if (!tab?.id) return { ok: false, error: 'Sin pestaña.' };
+  if (!tab?.id) return { ok: false, error: 'No tab.' };
   const [previous] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   await chrome.tabs.update(tab.id, { active: true });
   await chrome.windows.update(tab.windowId, { focused: true });
@@ -444,7 +452,7 @@ function publicBridge() {
   return { ...rest, canControl: bridgeCanControl() };
 }
 
-const OLD_BRIDGE = 'Tu puente es de una version anterior y todavia no sabe hacerlo. Ciérralo y ábrelo UNA vez con server/restart_bridge.cmd; después este botón funcionará.';
+const oldBridge = () => T('bg.oldBridge');
 
 // ------------- Lanzador (v1.6.0): encender / apagar / reiniciar el puente desde el panel -------------
 // Una extension no puede lanzar procesos; lo hace server/start_bridge_loop.pyw (puerto 8098), que se instala una vez.
@@ -472,18 +480,18 @@ async function probeLauncher() {
   }
 }
 
-const NO_LAUNCHER = 'Falta el lanzador: haz doble clic en server/install.cmd (una sola vez) y podr\u00e1s encender, apagar y reiniciar el puente desde aqu\u00ed.';
+const noLauncher = () => T('bg.noLauncher');
 
 /** action: 'start' | 'stop' | 'restart'. Pide la orden al lanzador y espera a ver el resultado real en el puente. */
 async function controlBridge(action) {
   const before = await probeBridge(true);
-  if (!before.launcherOnline) return { ok: false, noLauncher: true, error: NO_LAUNCHER };
+  if (!before.launcherOnline) return { ok: false, noLauncher: true, error: noLauncher() };
   const oldPid = before.online ? before.pid : null;
   try {
     const { status, body } = await launcherFetch(`/${action}`, { method: 'POST', timeout: 5000 });
-    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? 'El lanzador no acept\u00f3 la orden.' };
+    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? T('bg.launcherRefused') };
   } catch {
-    return { ok: false, error: 'No se pudo contactar con el lanzador.' };
+    return { ok: false, error: T('bg.launcherUnreachable') };
   }
   const wantOnline = action !== 'stop';
   const end = Date.now() + (wantOnline ? 30_000 : 15_000);
@@ -501,22 +509,22 @@ async function controlBridge(action) {
   }
   return {
     ok: false,
-    error: wantOnline ? 'El puente no volvi\u00f3 a encenderse en 30 segundos. Revisa server/bridge.log.' : 'El puente no se apag\u00f3 en 15 segundos.',
+    error: wantOnline ? T('bg.noStart30') : T('bg.noStop15'),
   };
 }
 async function restartBridge() {
   const before = await probeBridge(true);
   if (before.launcherOnline) return controlBridge('restart'); // v1.7.0: siempre por el lanzador (cierra tambien puentes de OTRAS copias)
   if (!before.online) {
-    return { ok: false, error: 'El puente no está encendido, así que no hay nada que reiniciar desde aquí. Ábrelo con server/start_bridge_loop.pyw.' };
+    return { ok: false, error: T('bg.nothingToRestart') };
   }
-  if (!bridgeCanControl()) return { ok: false, error: OLD_BRIDGE };
+  if (!bridgeCanControl()) return { ok: false, error: oldBridge() };
   const oldPid = before.pid;
   try {
     const { status, body } = await bridgeFetch('/restart', { method: 'POST', timeout: 4000 });
-    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? 'El puente no aceptó el reinicio.' };
+    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? T('bg.restartRefused') };
   } catch {
-    return { ok: false, error: 'No se pudo contactar con el puente.' };
+    return { ok: false, error: T('bg.bridgeUnreachable') };
   }
   // Espera a que vuelva con OTRO proceso (otro pid): así sabemos que arrancó de cero y no es el viejo cerrándose.
   const end = Date.now() + 30_000;
@@ -526,7 +534,7 @@ async function restartBridge() {
     const probe = await probeBridge(true);
     if (probe.online && probe.pid !== oldPid) { after = probe; break; }
   }
-  if (!after) return { ok: false, error: 'El puente no volvió a encenderse en 30 segundos. Revisa server/bridge.log o ábrelo con start_bridge_loop.pyw.' };
+  if (!after) return { ok: false, error: T('bg.noReturn30') };
   for (const conn of connections.values()) conn.connect(); // reconecta ya, sin esperar al backoff
   await discoverServers(true).catch(() => {});
   scheduleBroadcast();
@@ -545,7 +553,7 @@ async function stopViaControlPort() {
     await delay(600);
     if (!(await probeBridge(true)).online) { scheduleBroadcast(); return { ok: true, stopped: true }; }
   }
-  return { ok: false, error: 'El puente no se apagó en 15 segundos.' };
+  return { ok: false, error: T('bg.noStop15') };
 }
 
 /**
@@ -555,7 +563,7 @@ async function stopViaControlPort() {
  * Además el interruptor general de la extensión sigue al proceso (apagar = nada se conecta).
  */
 async function bridgeGlobal(action) {
-  if (!['start', 'stop', 'restart'].includes(action)) return { ok: false, error: 'Acción no válida.' };
+  if (!['start', 'stop', 'restart'].includes(action)) return { ok: false, error: T('bg.badAction') };
   await withLock(async () => {
     const { settings } = await loadState();
     await chrome.storage.local.set({ [KEYS.settings]: { ...settings, bridgeEnabled: action !== 'stop' } });
@@ -571,60 +579,60 @@ async function bridgeGlobal(action) {
   } else if (action === 'start') {
     if (before.launcherOnline) res = await controlBridge('start');
     else if (before.online) res = { ok: true, already: true, pid: before.pid };
-    else res = { ok: false, noLauncher: true, error: NO_LAUNCHER };
+    else res = { ok: false, noLauncher: true, error: noLauncher() };
   } else if (before.launcherOnline || before.online) {
     res = await restartBridge();
   } else {
-    res = { ok: false, noLauncher: true, error: NO_LAUNCHER };
+    res = { ok: false, noLauncher: true, error: noLauncher() };
   }
   await probeBridge(true);
   scheduleBroadcast();
   return res;
 }
 
-const OLD_BRIDGE_CONFIG = 'Tu puente es de una versión anterior a la 1.7.0 y no puede editar servers.json desde aquí. Reinícialo con «Reiniciar puente» (o con server/restart_bridge.cmd) y vuelve a intentarlo.';
+const oldBridgeConfig = () => T('bg.oldBridgeConfig');
 
 /** Lee servers.json a través del puente (texto tal cual, para el editor). */
 async function getBridgeConfig() {
   const info = await probeBridge(true);
-  if (!info.online) return { ok: false, offline: true, error: 'El puente está apagado: enciéndelo para leer servers.json.' };
+  if (!info.online) return { ok: false, offline: true, error: T('bg.offlineRead') };
   try {
     const { status, body } = await bridgeFetch('/config', { timeout: 5000 });
-    if (status === 404) return { ok: false, oldBridge: true, error: OLD_BRIDGE_CONFIG };
-    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? 'No se pudo leer servers.json.' };
+    if (status === 404) return { ok: false, oldBridge: true, error: oldBridgeConfig() };
+    if (status !== 200 || !body?.ok) return { ok: false, error: body?.error ?? T('bg.readFail') };
     return { ok: true, ...body };
-  } catch { return { ok: false, error: 'No se pudo contactar con el puente.' }; }
+  } catch { return { ok: false, error: T('bg.bridgeUnreachable') }; }
 }
 
 /** Guarda servers.json: el puente valida, hace copia .bak, escribe y recarga los servidores. */
 async function saveBridgeConfig({ text }) {
-  if (typeof text !== 'string' || !text.trim()) return { ok: false, error: 'El contenido está vacío.' };
-  if (text.length > 1_000_000) return { ok: false, error: 'El archivo es demasiado grande.' };
+  if (typeof text !== 'string' || !text.trim()) return { ok: false, error: T('bg.emptyContent') };
+  if (text.length > 1_000_000) return { ok: false, error: T('bg.tooBig') };
   const info = await probeBridge(true);
-  if (!info.online) return { ok: false, offline: true, error: 'El puente está apagado: enciéndelo para guardar. Mientras tanto puedes descargar el archivo.' };
+  if (!info.online) return { ok: false, offline: true, error: T('bg.offlineSave') };
   try {
     const { status, body } = await bridgeFetch('/config', { method: 'POST', timeout: 15_000, body: text });
-    if (status === 404) return { ok: false, oldBridge: true, error: OLD_BRIDGE_CONFIG };
-    if (!body?.ok) return { ok: false, invalid: status === 400, error: body?.error ?? 'El puente no pudo guardar el archivo.' };
+    if (status === 404) return { ok: false, oldBridge: true, error: oldBridgeConfig() };
+    if (!body?.ok) return { ok: false, invalid: status === 400, error: body?.error ?? T('bg.saveFail') };
     lastDiscovery = 0;
     await discoverServers(true).catch(() => {});
     scheduleBroadcast();
     return { ok: true, ...body };
-  } catch { return { ok: false, error: 'No se pudo contactar con el puente.' }; }
+  } catch { return { ok: false, error: T('bg.bridgeUnreachable') }; }
 }
 
 async function openConfig() {
   const info = await probeBridge(true);
   if (!info.online) {
-    return { ok: false, offline: true, path: info.config, error: 'El puente no está encendido, así que no puedo abrir el archivo por ti.' };
+    return { ok: false, offline: true, path: info.config, error: T('bg.offlineOpen') };
   }
   try {
     const { status, body } = await bridgeFetch('/open-config', { method: 'POST', timeout: 4000 });
-    if (status === 404) return { ok: false, path: info.config, error: OLD_BRIDGE };
-    if (status !== 200 || !body?.ok) return { ok: false, path: info.config, error: body?.error ?? 'No se pudo abrir el archivo.' };
+    if (status === 404) return { ok: false, path: info.config, error: oldBridge() };
+    if (status !== 200 || !body?.ok) return { ok: false, path: info.config, error: body?.error ?? T('bg.openFail') };
     return { ok: true, path: body.path ?? info.config };
   } catch {
-    return { ok: false, path: info.config, error: 'No se pudo contactar con el puente.' };
+    return { ok: false, path: info.config, error: T('bg.bridgeUnreachable') };
   }
 }
 
@@ -640,7 +648,7 @@ function notifyNotice(notice) {
       type: 'basic',
       iconUrl: chrome.runtime.getURL('icons/icon128.png'),
       title: notice.title,
-      message: notice.message || 'Abre Web MCP Bridge para ver los detalles.',
+      message: notice.message || T('bg.noticeMsg'),
       priority: notice.level === 'warning' ? 1 : 0,
     }, () => {
       if (chrome.runtime.lastError) console.warn('[WMB] notificacion de aviso no mostrada:', chrome.runtime.lastError.message);
@@ -655,9 +663,9 @@ async function fetchNoticesFeed() {
     // El parametro t evita la cache de GitHub (raw.githubusercontent guarda ~5 min) para ver los avisos nuevos enseguida.
     const res = await fetch(`${NOTICES_URL}?t=${Date.now()}`, { cache: 'no-store', credentials: 'omit', signal: ctl.signal });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    if (new URL(res.url || NOTICES_URL).hostname !== new URL(NOTICES_URL).hostname) throw new Error('Respuesta de un sitio inesperado.');
+    if (new URL(res.url || NOTICES_URL).hostname !== new URL(NOTICES_URL).hostname) throw new Error(T('bg.wrongSite'));
     const text = await res.text();
-    if (text.length > NOTICES_MAX_BYTES) throw new Error('El archivo de avisos es demasiado grande.');
+    if (text.length > NOTICES_MAX_BYTES) throw new Error(T('bg.noticesTooBig'));
     return JSON.parse(text);
   } finally { clearTimeout(timer); }
 }
@@ -689,8 +697,8 @@ async function runNoticesCheck(force) {
   try {
     feed = await fetchNoticesFeed();
   } catch (err) {
-    const reason = err?.name === 'AbortError' ? 'sin respuesta' : err instanceof SyntaxError ? 'el archivo no es un JSON válido' : (err?.message ?? 'error');
-    return failNotices(`No se pudieron consultar los avisos (${reason}).`);
+    const reason = err?.name === 'AbortError' ? T('bg.noReply') : err instanceof SyntaxError ? T('bg.badJson') : (err?.message ?? 'error');
+    return failNotices(T('bg.noticesFail', { reason }));
   }
   const parsed = normalizeFeed(feed, { version: localVersion() });
   if (!parsed.ok) return failNotices(parsed.error);
@@ -741,6 +749,7 @@ async function reinjectContentScripts() {
   }
 }
 async function handleMessage(msg, sender) {
+  await loadState(); // sincroniza el idioma elegido antes de generar cualquier mensaje
   if (mutations[msg.type]) return mutations[msg.type](msg);
   switch (msg.type) {
     case 'SLEEP': await sleep(msg.ms); return { ok: true };
@@ -777,7 +786,7 @@ async function handleMessage(msg, sender) {
       await reconcile();
       return { ok: true };
     default:
-      return { ok: false, error: `Mensaje desconocido: ${msg.type}` };
+      return { ok: false, error: T('bg.unknownMsg', { type: msg.type }) };
   }
 }
 
@@ -798,7 +807,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     await chrome.storage.local.remove(LEGACY_STORAGE_KEYS).catch(() => {});
     await reconcile();
     if (details?.reason === 'install' || details?.reason === 'update') reinjectContentScripts().catch(() => {});
-    if (details?.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('welcome/welcome.html') }).catch(() => {});
+    if (details?.reason === 'install') chrome.tabs.create({ url: chrome.runtime.getURL('welcome/welcome.html') }).catch(() => {}); // la bienvenida arranca SIEMPRE con la pantalla de idioma
     checkNotices().catch(() => {});
   } catch (err) {
     // Al recargar la extensión Chrome puede cerrar el service worker a mitad (error «No SW»): es inofensivo, el arranque normal lo repite.

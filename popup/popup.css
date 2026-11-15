@@ -1,18 +1,20 @@
-/* Web MCP Bridge · popup — limpio y aireado: neutros suaves, un solo acento, sin sombras pesadas */
+/* Web MCP Bridge · popup v1.8 — ciberpunk oscuro por defecto, claro opcional. Aireado, un solo acento y un filo de neón. */
 :root {
-  color-scheme: light dark;
   --pad: 20px;
-  --bg: #f6f7f8; --surface: #ffffff; --surface-2: #f0f2f4; --text: #1c2024; --muted: #6a7480; --line: #e4e7ea; --switch-off: #cdd3d8;
-  --accent: #2f7d6d; --accent-strong: #256659; --accent-soft: #e6f2ef; --accent-ink: #ffffff;
-  --warn: #a8641d; --warn-soft: #fbf1e2; --bad: #b3433b; --bad-soft: #fbe9e7; --ok: #3f9a62;
   --r: 14px; --r-sm: 10px; --ease: cubic-bezier(.3, .7, .2, 1);
+  /* ── OSCURO (por defecto) ── */
+  color-scheme: dark;
+  --bg: #07080d; --surface: #0d1018; --surface-2: #141926; --text: #e8f1ff; --muted: #8893aa; --line: #1c2333; --switch-off: #2a3246;
+  --accent: #00e5ff; --accent-2: #ff2e97; --accent-strong: #5cf0ff; --accent-soft: #062b34; --accent-ink: #031217;
+  --warn: #ffb020; --warn-soft: #2c230f; --bad: #ff5d7a; --bad-soft: #33141c; --ok: #27f5a0;
+  --glow: 0 0 18px rgba(0, 229, 255, .10);
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #16181a; --surface: #1e2124; --surface-2: #272b2f; --text: #e8eaec; --muted: #98a1ab; --line: #2e3338; --switch-off: #3b4147;
-    --accent: #6cc2ad; --accent-strong: #8fd3c1; --accent-soft: #23332f; --accent-ink: #0f1d19;
-    --warn: #e2a463; --warn-soft: #33291d; --bad: #e48d85; --bad-soft: #36241f; --ok: #7fcf9a;
-  }
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #f4f6fb; --surface: #ffffff; --surface-2: #eef1f7; --text: #0b1220; --muted: #5b6577; --line: #e1e6ef; --switch-off: #c9d0de;
+  --accent: #0891b2; --accent-2: #c026d3; --accent-strong: #0e7490; --accent-soft: #e0f4f9; --accent-ink: #ffffff;
+  --warn: #b45309; --warn-soft: #fdf3e1; --bad: #dc2626; --bad-soft: #fdecec; --ok: #059669;
+  --glow: 0 0 0 transparent;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -192,3 +194,24 @@ select[data-perm="deny"] { border-color: color-mix(in srgb, var(--bad) 55%, var(
 .app-foot { display: flex; flex-direction: column; align-items: center; gap: 2px; margin-top: 10px; padding: 14px var(--pad) 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11.5px; }
 .app-foot a { color: var(--accent-strong); text-decoration: none; }
 .app-foot a:hover { text-decoration: underline; }
+/* ───── v1.8 · ciberpunk, idioma y tema ───── */
+body::before { content: ""; position: sticky; top: 0; z-index: 5; display: block; height: 2px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.top { padding-top: 16px; gap: 10px; }
+.top img { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 45%, transparent)); }
+.card, .server, .perm-all { box-shadow: var(--glow); }
+.server.on { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 22%, transparent), var(--glow); }
+.tab-ink { box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent), var(--glow); }
+button.primary { font-weight: 700; letter-spacing: .01em; }
+button.primary:hover:not(:disabled) { box-shadow: 0 0 14px color-mix(in srgb, var(--accent) 40%, transparent); }
+.count { background: var(--accent-2); color: #fff; }
+.seg { display: inline-flex; flex: none; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; padding: 4px 9px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); cursor: pointer; }
+.seg button.on { background: var(--accent); color: var(--accent-ink); }
+.seg button:not(.on):hover { color: var(--text); }
+.top .icon-btn { width: 30px; height: 30px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.top .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+.grp { margin: 20px 2px 8px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.grp:first-child { margin-top: 2px; }
+#tab-settings .card { margin-bottom: 4px; }
+.setting.column select { margin-top: 10px; max-width: none; width: 160px; }
+.guide { display: flex; margin: 18px auto 6px; }

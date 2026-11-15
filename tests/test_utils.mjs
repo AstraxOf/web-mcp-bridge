@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 
 const context = vm.createContext({ console, setTimeout, clearTimeout });
+vm.runInContext(readFileSync(new URL('../shared/i18n.js', import.meta.url), 'utf8') + "\nWMB.i18n.setLang('es');", context); // las aserciones de este test están en español
 vm.runInContext(readFileSync(new URL('../content_scripts/utils.js', import.meta.url), 'utf8'), context);
 const { WMB } = context;
 
@@ -87,6 +88,6 @@ assert.equal(WMB.dom.hasStale(stale), true);
 assert.equal(WMB.dom.stripStale(stale), 'hola\n\nmi pregunta');
 assert.equal(WMB.dom.hasStale('texto normal sin bloques'), false);
 assert.equal(WMB.dom.stripStale('[MCP_RESULT server="a" tool="b" status="ok"]\nx\n[/MCP_RESULT]'), '');
-assert.equal(WMB.VERSION, '1.7.2');
+assert.equal(WMB.VERSION, '1.8.0');
 
 console.log('✔ test_utils: todo correcto');

@@ -26,6 +26,12 @@ export const PERMISSIONS = ['allow', 'ask', 'deny'];
 export const PERMISSION_LABELS = { allow: 'Permitir siempre', ask: 'Preguntar siempre', deny: 'No permitir' };
 
 export const DEFAULT_SETTINGS = {
+  /** v1.8: idioma de toda la extensión, del panel flotante y de lo que recibe la IA. Inglés por defecto. */
+  language: 'en',
+  /** v1.8: false hasta que el usuario elige idioma en la primera pantalla de la bienvenida. */
+  languageChosen: false,
+  /** v1.8: tema de la extensión y del panel flotante. Negro por defecto. */
+  theme: 'dark',
   /** Interruptor general: si está en false no hay conexiones ni inyección. */
   bridgeEnabled: true,
   /** Añade las instrucciones de las herramientas automáticamente al enviar el primer mensaje. */

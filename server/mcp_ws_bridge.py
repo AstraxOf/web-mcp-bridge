@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.7.2
+mcp_ws_bridge.py - Puente WebSocket <-> servidor MCP (stdio).  v1.8.0
 
 Los servidores MCP locales (como `astrax-mcp`) hablan JSON-RPC por stdin/stdout.
 El navegador solo puede hablar WebSocket. Este script lanza cada servidor MCP como
@@ -61,7 +61,7 @@ try:  # websockets >= 13
 except ImportError:  # websockets 12
     from websockets import serve as ws_serve  # type: ignore[assignment]
 
-VERSION = "1.7.2"
+VERSION = "1.8.0"
 DEFAULT_CONTROL_PORT = 8099
 log = logging.getLogger("mcp_ws_bridge")
 
@@ -155,7 +155,7 @@ async def _stdout_to_ws(proc: asyncio.subprocess.Process, ws) -> None:
         try:
             json.loads(text)
         except ValueError:
-            log.debug("stdout que no es JSON (ignorado): %.200s", text)
+            log.debug("stdout that is not JSON (ignored): %.200s", text)
             continue
         await ws.send(text)
 
@@ -191,22 +191,22 @@ async def handle_client(ws, cfg: ServerConfig) -> None:
     path, headers = _request_parts(ws)
     origin = headers.get("Origin")
     if not _origin_allowed(origin, cfg):
-        log.warning("[%s] Conexion rechazada: Origin no permitido (%s)", cfg.name, origin)
-        await ws.close(1008, "Origin no permitido")
+        log.warning("[%s] Connection rejected: Origin not allowed (%s)", cfg.name, origin)
+        await ws.close(1008, "Origin not allowed")
         return
     if not _token_ok(path, cfg):
-        log.warning("[%s] Conexion rechazada: token invalido", cfg.name)
-        await ws.close(1008, "Token invalido")
+        log.warning("[%s] Connection rejected: invalid token", cfg.name)
+        await ws.close(1008, "Invalid token")
         return
 
     try:
         proc = await _spawn(cfg)
     except (FileNotFoundError, PermissionError, OSError) as err:
-        log.error("[%s] No se pudo ejecutar %s: %s", cfg.name, cfg.command, err)
-        await ws.close(1011, "No se pudo iniciar el servidor MCP")
+        log.error("[%s] Could not run %s: %s", cfg.name, cfg.command, err)
+        await ws.close(1011, "Could not start the MCP server")
         return
 
-    log.info("[%s] Cliente conectado -> pid %s", cfg.name, proc.pid)
+    log.info("[%s] Client connected -> pid %s", cfg.name, proc.pid)
     pipes = {
         asyncio.create_task(_stdout_to_ws(proc, ws)),
         asyncio.create_task(_ws_to_stdin(proc, ws)),
@@ -219,7 +219,7 @@ async def handle_client(ws, cfg: ServerConfig) -> None:
             task.cancel()
         await asyncio.gather(*pipes, stderr_task, return_exceptions=True)
         await _stop(proc)
-        log.info("[%s] Cliente desconectado", cfg.name)
+        log.info("[%s] Client disconnected", cfg.name)
 
 
 # ------------------------------------------------------- puertos y procesos
@@ -257,7 +257,7 @@ def _port_owners(ports: list[int]) -> dict[int, tuple[int, str, str]]:
                     line = ps.stdout.strip()
                     owners[port] = (pid, line.split(" ", 1)[0] or "?", line)
     except Exception as err:  # noqa: BLE001
-        log.debug("No se pudo consultar el dueno de los puertos: %s", err)
+        log.debug("Could not look up the port owners: %s", err)
     return owners
 
 
@@ -272,7 +272,7 @@ def _kill_pid(pid: int) -> None:
         else:
             os.kill(pid, 15)
     except Exception as err:  # noqa: BLE001
-        log.debug("No se pudo matar %s: %s", pid, err)
+        log.debug("Could not kill %s: %s", pid, err)
 
 
 def _free_old_bridges(ports: list[int], quiet: bool = False) -> list[int]:
@@ -284,11 +284,11 @@ def _free_old_bridges(ports: list[int], quiet: bool = False) -> list[int]:
             continue
         if _is_bridge_cmd(cmd):
             if not quiet:
-                print(f"  - cerrando puente anterior (pid {pid}) que ocupaba el puerto {port}")
+                print(f"  - closing previous bridge (pid {pid}) that was holding port {port}")
             _kill_pid(pid)
             killed.append(pid)
         elif not quiet:
-            print(f"  ! el puerto {port} lo usa otro programa: {name} (pid {pid}); no lo toco.")
+            print(f"  ! port {port} is used by another program: {name} (pid {pid}); leaving it alone.")
     return killed
 
 
@@ -310,20 +310,20 @@ class Supervisor:
     async def _start_one(self, cfg: ServerConfig) -> None:
         for other_name, other in self.desired.items():
             if other_name != cfg.name and other_name in self.listeners and (other.host, other.port) == (cfg.host, cfg.port):
-                self.errors[cfg.name] = f"puerto {cfg.port} duplicado en servers.json (ya lo usa '{other_name}')"
+                self.errors[cfg.name] = f"port {cfg.port} is duplicated in servers.json (already used by '{other_name}')"
                 log.error("[%s] %s", cfg.name, self.errors[cfg.name])
                 return
         try:
             server = await ws_serve(lambda ws, c=cfg: handle_client(ws, c), cfg.host, cfg.port, max_size=STDIO_LIMIT)
         except OSError as err:
             owner = (await asyncio.to_thread(_port_owners, [cfg.port])).get(cfg.port)
-            who = f" por {owner[1]} (pid {owner[0]})" if owner else ""
-            self.errors[cfg.name] = f"puerto {cfg.port} ocupado{who}: {err.strerror or err}"
+            who = f" by {owner[1]} (pid {owner[0]})" if owner else ""
+            self.errors[cfg.name] = f"port {cfg.port} is in use{who}: {err.strerror or err}"
             log.error("[%s] %s", cfg.name, self.errors[cfg.name])
             return
         self.listeners[cfg.name] = server
         self.errors.pop(cfg.name, None)
-        log.info("[%s] disponible en ws://%s:%d  ->  %s", cfg.name, cfg.host, cfg.port, " ".join(cfg.command))
+        log.info("[%s] available at ws://%s:%d  ->  %s", cfg.name, cfg.host, cfg.port, " ".join(cfg.command))
 
     async def _stop_one(self, name: str) -> None:
         server = self.listeners.pop(name, None)
@@ -334,7 +334,7 @@ class Supervisor:
         except TypeError:
             server.close()  # type: ignore[attr-defined]
         await asyncio.gather(server.wait_closed(), return_exceptions=True)  # type: ignore[attr-defined]
-        log.info("[%s] detenido", name)
+        log.info("[%s] stopped", name)
 
     async def apply(self, configs: list[ServerConfig]) -> dict[str, list[str]]:
         new = {c.name: c for c in configs}
@@ -422,12 +422,12 @@ CONFIG_MAX_BYTES = 1_000_000  # tope de servers.json editado desde la extension
 def _config_snapshot(config_path: Path | None) -> dict:
     """Contenido de servers.json tal cual (para el editor JSON de la extension)."""
     if not config_path:
-        return {"ok": False, "error": "este puente no usa servers.json"}
+        return {"ok": False, "error": "this bridge does not use servers.json"}
     path = Path(config_path)
     try:
         text = path.read_text(encoding="utf-8-sig") if path.exists() else ""
     except OSError as err:
-        return {"ok": False, "error": f"no se pudo leer {path.name}: {err.strerror or err}"}
+        return {"ok": False, "error": f"could not read {path.name}: {err.strerror or err}"}
     mtime, size = _mtime(path)
     return {"ok": True, "path": str(path), "exists": path.exists(), "text": text, "mtime": mtime, "size": size}
 
@@ -435,9 +435,9 @@ def _config_snapshot(config_path: Path | None) -> dict:
 async def _save_config(sup: "Supervisor", config_path: Path | None, text: str) -> tuple[int, dict]:
     """Valida `text` como servers.json, deja copia .bak, escribe de forma atomica y aplica los cambios. -> (estado_http, cuerpo)."""
     if not config_path:
-        return 400, {"ok": False, "error": "este puente no usa servers.json"}
+        return 400, {"ok": False, "error": "this bridge does not use servers.json"}
     if len(text.encode("utf-8")) > CONFIG_MAX_BYTES:
-        return 400, {"ok": False, "error": "el archivo es demasiado grande"}
+        return 400, {"ok": False, "error": "the file is too large"}
     path = Path(config_path)
     tmp = path.with_name(path.name + ".wmb-tmp")
     backup = None
@@ -447,13 +447,13 @@ async def _save_config(sup: "Supervisor", config_path: Path | None, text: str) -
         try:
             configs, file_control = load_config(tmp)  # mismas reglas que al arrancar; el temporal vive en la misma carpeta
         except ValueError as err:
-            return 400, {"ok": False, "error": f"servers.json invalido: {err}"}
+            return 400, {"ok": False, "error": f"invalid servers.json: {err}"}
         if path.exists():
             backup = path.with_name(path.name + ".bak")
             shutil.copyfile(path, backup)
         os.replace(tmp, path)
     except OSError as err:
-        return 500, {"ok": False, "error": f"no se pudo guardar {path.name}: {err.strerror or err}"}
+        return 500, {"ok": False, "error": f"could not save {path.name}: {err.strerror or err}"}
     finally:
         try:
             if tmp.exists():
@@ -462,7 +462,7 @@ async def _save_config(sup: "Supervisor", config_path: Path | None, text: str) -
             pass
     report = await sup.apply(configs)
     sup.config_error = None
-    log.info("servers.json guardado desde la extension: %s", report)
+    log.info("servers.json saved from the extension: %s", report)
     return 200, {"ok": True, "path": str(path), "backup": str(backup) if backup else None, **report, "servers": sup.snapshot(),
                  "restart_needed": file_control is not None and file_control != sup.control_port}
 
@@ -479,9 +479,9 @@ async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | 
         host = headers.get("host", "")
         host_name = host.rsplit(":", 1)[0].strip("[]") if host else ""
         if host and host_name not in ("127.0.0.1", "localhost", "::1"):  # anti DNS-rebinding
-            await _http_reply(writer, 403, {"ok": False, "error": "host no permitido"}, None)
+            await _http_reply(writer, 403, {"ok": False, "error": "host not allowed"}, None)
         elif origin and not origin.startswith(ALLOWED_ORIGIN_PREFIXES):
-            await _http_reply(writer, 403, {"ok": False, "error": "origin no permitido"}, None)
+            await _http_reply(writer, 403, {"ok": False, "error": "origin not allowed"}, None)
         elif method == "OPTIONS":
             await _http_reply(writer, 204, None, origin)
         elif method == "GET" and path == "/health":
@@ -493,27 +493,27 @@ async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | 
         elif path == "/config" and method == "POST":
             length = int(headers.get("content-length") or 0)
             if length <= 0 or length > CONFIG_MAX_BYTES:
-                await _http_reply(writer, 400, {"ok": False, "error": "cuerpo vacio o demasiado grande"}, origin)
+                await _http_reply(writer, 400, {"ok": False, "error": "empty or too large body"}, origin)
             else:
                 raw_body = await asyncio.wait_for(reader.readexactly(length), 10)
                 try:
                     body_text = raw_body.decode("utf-8-sig")
                 except UnicodeDecodeError:
-                    await _http_reply(writer, 400, {"ok": False, "error": "el archivo no esta en UTF-8"}, origin)
+                    await _http_reply(writer, 400, {"ok": False, "error": "the file is not UTF-8"}, origin)
                 else:
                     status, payload = await _save_config(sup, config_path, body_text)
                     await _http_reply(writer, status, payload, origin)
         elif path == "/config":
-            await _http_reply(writer, 405, {"ok": False, "error": "usa GET o POST"}, origin)
+            await _http_reply(writer, 405, {"ok": False, "error": "use GET or POST"}, origin)
         elif method == "GET" and path == "/servers":
             await _http_reply(writer, 200, {"ok": True, "version": VERSION, "pid": os.getpid(),
                                             "config": str(config_path) if config_path else None, "config_error": sup.config_error,
                                             "started_at": sup.started_at, "supervised": SUPERVISED, "servers": sup.snapshot()}, origin)
         elif path in ("/reload", "/shutdown", "/restart", "/open-config") and method != "POST":
-            await _http_reply(writer, 405, {"ok": False, "error": "usa POST"}, origin)
+            await _http_reply(writer, 405, {"ok": False, "error": "use POST"}, origin)
         elif method == "POST" and path == "/reload":
             if not config_path:
-                await _http_reply(writer, 400, {"ok": False, "error": "sin servers.json"}, origin)
+                await _http_reply(writer, 400, {"ok": False, "error": "no servers.json"}, origin)
             else:
                 try:
                     configs, _ = load_config(config_path)
@@ -522,19 +522,19 @@ async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | 
                     await _http_reply(writer, 200, {"ok": True, **report, "servers": sup.snapshot()}, origin)
                 except Exception as err:  # noqa: BLE001
                     sup.config_error = str(err)
-                    await _http_reply(writer, 500, {"ok": False, "error": f"servers.json invalido: {err}"}, origin)
+                    await _http_reply(writer, 500, {"ok": False, "error": f"invalid servers.json: {err}"}, origin)
         elif method == "POST" and path == "/shutdown":
             await _http_reply(writer, 200, {"ok": True, "bye": True}, origin)
-            log.info("Apagado solicitado por el puerto de control")
+            log.info("Shutdown requested through the control port")
             sup.stop_event.set()
         elif method == "POST" and path == "/restart":
             await _http_reply(writer, 200, {"ok": True, "restarting": True, "supervised": SUPERVISED}, origin)
-            log.info("Reinicio solicitado por el puerto de control")
+            log.info("Restart requested through the control port")
             sup.restart_requested = True
             sup.stop_event.set()
         elif method == "POST" and path == "/open-config":
             if not config_path or not Path(config_path).exists():
-                await _http_reply(writer, 400, {"ok": False, "error": "no hay servers.json que abrir"}, origin)
+                await _http_reply(writer, 400, {"ok": False, "error": "there is no servers.json to open"}, origin)
             else:
                 opened, detail = _open_in_editor(Path(config_path))
                 body = {"ok": opened, "path": str(config_path)}
@@ -542,7 +542,7 @@ async def _control_handler(reader, writer, sup: Supervisor, config_path: Path | 
                     body["error"] = detail
                 await _http_reply(writer, 200 if opened else 500, body, origin)
         else:
-            await _http_reply(writer, 404, {"ok": False, "error": "ruta desconocida"}, origin)
+            await _http_reply(writer, 404, {"ok": False, "error": "unknown route"}, origin)
     except Exception as err:  # noqa: BLE001
         log.debug("control: %s", err)
     finally:
@@ -592,10 +592,10 @@ async def _watch(sup: Supervisor, path: Path) -> None:
                 configs, _ = load_config(path)
                 report = await sup.apply(configs)
                 sup.config_error = None
-                log.info("servers.json recargado: %s", report)
+                log.info("servers.json reloaded: %s", report)
             except Exception as err:  # noqa: BLE001
                 sup.config_error = str(err)
-                log.error("servers.json invalido (se mantiene la configuracion anterior): %s", err)
+                log.error("invalid servers.json (keeping the previous configuration): %s", err)
         elif ticks % 5 == 0:
             await sup.retry_failed()
 
@@ -612,9 +612,9 @@ async def run(configs: list[ServerConfig], control_port: int = 0, config_path: P
     if control_port:
         try:
             control = await asyncio.start_server(lambda r, w: _control_handler(r, w, sup, config_path), "127.0.0.1", control_port)
-            log.info("Control en http://127.0.0.1:%d  (/health /servers /reload /shutdown)", control_port)
+            log.info("Control at http://127.0.0.1:%d  (/health /servers /reload /shutdown)", control_port)
         except OSError as err:
-            log.error("Puerto de control %d no disponible: %s (la extension no podra detectar servidores)", control_port, err)
+            log.error("Control port %d unavailable: %s (the extension will not be able to detect servers)", control_port, err)
     if config_path:
         watcher = asyncio.create_task(_watch(sup, config_path))
     try:
@@ -652,46 +652,46 @@ def load_config(path: Path) -> tuple[list[ServerConfig], int | None]:
     try:
         data = json.loads(Path(path).read_text(encoding="utf-8-sig"))  # utf-8-sig: tolera el BOM que mete PowerShell
     except json.JSONDecodeError as err:
-        raise ValueError(f"JSON mal escrito (linea {err.lineno}, columna {err.colno}): {err.msg}") from err
+        raise ValueError(f"Malformed JSON (line {err.lineno}, column {err.colno}): {err.msg}") from err
     except OSError as err:
-        raise ValueError(f"no se pudo leer {Path(path).name}: {err.strerror or err}") from err
+        raise ValueError(f"could not read {Path(path).name}: {err.strerror or err}") from err
     entries = data if isinstance(data, list) else (data.get("servers") if isinstance(data, dict) else None)
     if not isinstance(entries, list):
-        raise ValueError('falta la lista "servers": [ ... ]')
+        raise ValueError('the "servers" list is missing: [ ... ]')
     base = Path(path).resolve().parent
     configs: list[ServerConfig] = []
     names: set[str] = set()
     for n, entry in enumerate(entries, start=1):
         if not isinstance(entry, dict):
-            raise ValueError(f"el servidor #{n} debe ser un objeto {{ ... }}")
+            raise ValueError(f"server #{n} must be an object {{ ... }}")
         if entry.get("disabled") or entry.get("enabled") is False:
             continue
         name = entry.get("name")
         if not isinstance(name, str) or not name.strip():
-            raise ValueError(f'el servidor #{n} no tiene "name"')
+            raise ValueError(f'server #{n} has no "name"')
         label = f'"{name}"'
         if name in names:
-            raise ValueError(f"el nombre {label} esta repetido")
+            raise ValueError(f"the name {label} is repeated")
         names.add(name)
         command = entry.get("command")
         if isinstance(command, str) and command.strip():
             try:
                 argv = shlex.split(command, posix=not WIN)
             except ValueError as err:
-                raise ValueError(f'{label}: "command" mal escrito ({err})') from err
+                raise ValueError(f'{label}: "command" is malformed ({err})') from err
         elif isinstance(command, list) and command and all(isinstance(c, (str, int, float)) for c in command):
             argv = [str(c) for c in command]
         else:
-            raise ValueError(f'{label}: "command" debe ser una lista no vacia, por ejemplo ["python", "mi_mcp.py"]')
+            raise ValueError(f'{label}: "command" must be a non-empty list, for example ["python", "my_mcp.py"]')
         try:
             port = int(entry["port"])
         except (KeyError, TypeError, ValueError):
-            raise ValueError(f'{label}: falta "port" (un numero, por ejemplo 8080)') from None
+            raise ValueError(f'{label}: "port" is missing (a number, for example 8080)') from None
         if not 1 <= port <= 65535:
-            raise ValueError(f'{label}: "port" debe estar entre 1 y 65535')
+            raise ValueError(f'{label}: "port" must be between 1 and 65535')
         env = entry.get("env") or {}
         if not isinstance(env, dict):
-            raise ValueError(f'{label}: "env" debe ser un objeto {{ "VARIABLE": "valor" }}')
+            raise ValueError(f'{label}: "env" must be an object {{ "VARIABLE": "value" }}')
         cwd = entry.get("cwd") or str(base)
         configs.append(ServerConfig(
             name=name,
@@ -706,28 +706,28 @@ def load_config(path: Path) -> tuple[list[ServerConfig], int | None]:
     try:
         return configs, (int(control) if control is not None else None)
     except (TypeError, ValueError):
-        raise ValueError('"control_port" debe ser un numero') from None
+        raise ValueError('"control_port" must be a number') from None
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Puente WebSocket <-> MCP (stdio) para Web MCP Bridge.",
-        usage="%(prog)s [--port N] [--name NOMBRE] -- COMANDO [ARGS...]\n       %(prog)s --config servers.json [--restart | --stop | --status | --reload]",
+        description="WebSocket <-> MCP (stdio) bridge for Web MCP Bridge.",
+        usage="%(prog)s [--port N] [--name NAME] -- COMMAND [ARGS...]\n       %(prog)s --config servers.json [--restart | --stop | --status | --reload]",
     )
-    parser.add_argument("--config", type=Path, help="JSON con varios servidores (ver servers.example.json)")
+    parser.add_argument("--config", type=Path, help="JSON with several servers (see servers.example.json)")
     parser.add_argument("--port", type=int, default=8080)
-    parser.add_argument("--host", default="127.0.0.1", help="Por seguridad, solo 127.0.0.1 por defecto")
-    parser.add_argument("--name", default="mcp", help="Nombre para los logs")
-    parser.add_argument("--token", help="Exige ?token=... en la URL del WebSocket")
-    parser.add_argument("--cwd", help="Directorio de trabajo del servidor MCP")
-    parser.add_argument("--log-file", type=Path, help="Escribe los logs en este archivo (util como servicio)")
-    parser.add_argument("--control-port", type=int, default=None, help=f"Puerto de control/deteccion (defecto {DEFAULT_CONTROL_PORT}; 0 = desactivado)")
-    parser.add_argument("--restart", action="store_true", help="Reinicia el puente (cierra el anterior y arranca uno nuevo en segundo plano)")
-    parser.add_argument("--stop", action="store_true", help="Apaga el puente que este corriendo")
-    parser.add_argument("--status", action="store_true", help="Muestra el estado de los servidores")
-    parser.add_argument("--reload", action="store_true", help="Pide al puente que relea servers.json")
-    parser.add_argument("--detach", action="store_true", help="Arranca en segundo plano y devuelve el control")
+    parser.add_argument("--host", default="127.0.0.1", help="For safety, 127.0.0.1 only by default")
+    parser.add_argument("--name", default="mcp", help="Name used in the logs")
+    parser.add_argument("--token", help="Requires ?token=... in the WebSocket URL")
+    parser.add_argument("--cwd", help="Working directory of the MCP server")
+    parser.add_argument("--log-file", type=Path, help="Writes the logs to this file (useful as a service)")
+    parser.add_argument("--control-port", type=int, default=None, help=f"Control/detection port (default {DEFAULT_CONTROL_PORT}; 0 = disabled)")
+    parser.add_argument("--restart", action="store_true", help="Restarts the bridge (closes the previous one and starts a new one in the background)")
+    parser.add_argument("--stop", action="store_true", help="Stops the running bridge")
+    parser.add_argument("--status", action="store_true", help="Shows the status of the servers")
+    parser.add_argument("--reload", action="store_true", help="Asks the bridge to re-read servers.json")
+    parser.add_argument("--detach", action="store_true", help="Starts in the background and returns control")
     parser.add_argument("-v", "--verbose", action="store_true")
-    parser.add_argument("command", nargs=argparse.REMAINDER, help="Comando que lanza el servidor MCP (stdio)")
+    parser.add_argument("command", nargs=argparse.REMAINDER, help="Command that launches the MCP server (stdio)")
     return parser
 
 
@@ -744,11 +744,11 @@ def _setup_logging(args) -> None:
 def _print_status(port: int) -> bool:
     info = ctl(port, "GET", "/servers")
     if not info:
-        print(f"El puente no esta corriendo (puerto de control {port}).")
+        print(f"The bridge is not running (control port {port}).")
         return False
-    print(f"Puente v{info.get('version')} activo (pid {info.get('pid')}) - config: {info.get('config')}")
+    print(f"Bridge v{info.get('version')} running (pid {info.get('pid')}) - config: {info.get('config')}")
     if info.get("config_error"):
-        print(f"  ! servers.json tiene un error: {info['config_error']}")
+        print(f"  ! servers.json has an error: {info['config_error']}")
     for s in info["servers"]:
         mark = "OK " if s["status"] == "listening" else "ERR"
         print(f"  [{mark}] {s['name']:<22} {s['url']:<24} {s.get('error') or ''}")
@@ -758,7 +758,7 @@ def _print_status(port: int) -> bool:
 def _stop_existing(control_port: int, ports: list[int]) -> None:
     """Apaga el puente anterior: primero con elegancia (/shutdown), luego liberando sus puertos."""
     if ctl(control_port, "GET", "/health"):
-        print("  - apagando el puente anterior...")
+        print("  - stopping the previous bridge...")
         ctl(control_port, "POST", "/shutdown")
         end = time.time() + 8
         while time.time() < end and ctl(control_port, "GET", "/health"):
@@ -793,17 +793,17 @@ def main(argv: list[str] | None = None) -> int:
     if not args.config:
         command = args.command[1:] if args.command[:1] == ["--"] else args.command
         if args.stop or args.status or args.reload or args.restart:
-            parser.error("--stop/--status/--reload/--restart necesitan --config servers.json")
+            parser.error("--stop/--status/--reload/--restart need --config servers.json")
         if not command:
-            parser.error("indica el comando del servidor MCP tras `--` o usa --config")
+            parser.error("give the MCP server command after `--` or use --config")
         cfg = ServerConfig(name=args.name, command=command, port=args.port, host=args.host, cwd=args.cwd, token=args.token)
         control = args.control_port or 0
         try:
             asyncio.run(run([cfg], control_port=control))
         except KeyboardInterrupt:
-            log.info("Detenido.")
+            log.info("Stopped.")
         except OSError as err:
-            log.error("No se pudo abrir el puerto: %s", err)
+            log.error("Could not open the port: %s", err)
             return 1
         return 0
 
@@ -813,8 +813,8 @@ def main(argv: list[str] | None = None) -> int:
     except ValueError as err:
         # El puente arranca igual (sin servidores) para que la extension pueda mostrar el error, abrir el archivo y reiniciarlo.
         configs, file_control, initial_error = [], None, str(err)
-        log.error("servers.json invalido: %s", err)
-        print(f"servers.json invalido: {err}")
+        log.error("invalid servers.json: %s", err)
+        print(f"invalid servers.json: {err}")
         try:
             import re
             found = re.search(r"""["']control_port["']\s*:\s*(\d+)""", Path(args.config).read_text(encoding="utf-8-sig"))
@@ -829,21 +829,21 @@ def main(argv: list[str] | None = None) -> int:
         return 0 if _print_status(control) else 1
     if args.reload:
         if not alive:
-            print("El puente no esta corriendo.")
+            print("The bridge is not running.")
             return 1
         ctl(control, "POST", "/reload", timeout=10)
         _print_status(control)
         return 0
     if args.stop:
         _stop_existing(control, ports)
-        print("Puente detenido.")
+        print("Bridge stopped.")
         return 0
 
     if args.restart:
-        print("Reiniciando el puente...")
+        print("Restarting the bridge...")
         _stop_existing(control, ports)
     elif alive:
-        print("Ya hay un puente corriendo: recargo servers.json (usa --restart para reiniciarlo del todo).")
+        print("A bridge is already running: reloading servers.json (use --restart to fully restart it).")
         ctl(control, "POST", "/reload", timeout=10)
         _print_status(control)
         return 0
@@ -856,7 +856,7 @@ def main(argv: list[str] | None = None) -> int:
         while time.time() < end and not ctl(control, "GET", "/health"):
             time.sleep(0.4)
         if not _print_status(control):
-            print("No arranco a tiempo: revisa bridge.log")
+            print("It did not start in time: check bridge.log")
             return 1
         return 0
 
@@ -864,15 +864,15 @@ def main(argv: list[str] | None = None) -> int:
     try:
         wants_restart = asyncio.run(run(configs, control_port=control, config_path=args.config, config_error=initial_error))
     except KeyboardInterrupt:
-        log.info("Detenido.")
+        log.info("Stopped.")
     except OSError as err:
-        log.error("No se pudo abrir el puerto: %s", err)
+        log.error("Could not open the port: %s", err)
         return 1
     if wants_restart:
         if SUPERVISED:
-            log.info("Reinicio: el supervisor (start_bridge_loop) levantara el puente de nuevo.")
+            log.info("Restart: the supervisor (start_bridge_loop) will bring the bridge back up.")
         else:
-            log.info("Reinicio: arrancando un puente nuevo en segundo plano.")
+            log.info("Restart: starting a new bridge in the background.")
             _spawn_detached(args, args.config, control)
     return 0
 

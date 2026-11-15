@@ -89,7 +89,7 @@ def main():
             assert set(found) == {"uno", "dos"} and all(s["status"] == "listening" for s in found.values()), found
             assert found["uno"]["url"] == "ws://127.0.0.1:18771", found
             info = call("GET", "/servers")[1]
-            assert info["config_error"] is None and info["version"] == "1.7.2", info
+            assert info["config_error"] is None and info["version"] == "1.8.0", info
 
             # Una web NO puede leer ni apagar el puente
             assert call("GET", "/servers", origin="https://chatgpt.com")[0] == 403
@@ -118,7 +118,7 @@ def main():
             assert post_body("/config", "{}", origin="https://evil.example")[0] == 403       # ni escribirlo
             before = config.read_text(encoding="utf-8-sig")
             status, body = post_body("/config", '{"servers": [ {"name": "x" ', origin=EXT)   # JSON roto: se rechaza y NO se toca el archivo
-            assert status == 400 and "JSON mal escrito" in body["error"], (status, body)
+            assert status == 400 and "Malformed JSON" in body["error"], (status, body)
             status, body = post_body("/config", json.dumps({"servers": [{"name": "x", "command": ["a"]}]}), origin=EXT)
             assert status == 400 and "port" in body["error"], (status, body)
             assert config.read_text(encoding="utf-8-sig") == before and not config.with_name("servers.json.wmb-tmp").exists()
@@ -135,12 +135,12 @@ def main():
 
             # Un servers.json roto NO tumba nada: se conserva lo anterior y el error se ve en /servers
             config.write_text('{"servers": [ {"name": "uno", "port": 18771, ', encoding="utf-8")
-            assert wait_for(lambda: "JSON mal escrito" in ((call("GET", "/servers")[1] or {}).get("config_error") or "")), call("GET", "/servers")
+            assert wait_for(lambda: "Malformed JSON" in ((call("GET", "/servers")[1] or {}).get("config_error") or "")), call("GET", "/servers")
             assert set(names()) == {"uno", "tres"} and names()["uno"]["status"] == "listening"
             for bad, expected in [
                 ({"servers": [{"name": "x", "command": ["python"]}]}, "port"),
                 ({"servers": [{"name": "x", "port": 18775}]}, "command"),
-                ({"servers": [{"name": "x", "port": 18775, "command": ["a"]}, {"name": "x", "port": 18776, "command": ["a"]}]}, "repetido"),
+                ({"servers": [{"name": "x", "port": 18775, "command": ["a"]}, {"name": "x", "port": 18776, "command": ["a"]}]}, "repeated"),
                 ({"servers": [{"port": 18775, "command": ["a"]}]}, "name"),
                 ({"servers": "no es una lista"}, "servers"),
             ]:
@@ -152,7 +152,7 @@ def main():
 
             # Un segundo `--config` con el puente activo recarga en vez de fallar con "puerto ocupado"
             again = subprocess.run([sys.executable, BRIDGE, *base], capture_output=True, text=True, timeout=30, stdin=subprocess.DEVNULL, env=ENV)
-            assert again.returncode == 0 and "Ya hay un puente" in again.stdout, again.stdout + again.stderr
+            assert again.returncode == 0 and "A bridge is already running" in again.stdout, again.stdout + again.stderr
 
             # Un puerto ocupado por otro programa no tumba el resto
             blocker = socket.socket()
@@ -200,7 +200,7 @@ def main():
         broken = spawn(base)
         try:
             assert wait_for(lambda: call("GET", "/health")[0] == 200), "con el archivo roto el puente debe arrancar igual"
-            assert "JSON mal escrito" in call("GET", "/servers")[1]["config_error"]
+            assert "Malformed JSON" in call("GET", "/servers")[1]["config_error"]
             assert names() == {}
             config.write_text(json.dumps({"servers": [entry("uno", 18771)]}), encoding="utf-8")
             assert wait_for(lambda: names().get("uno", {}).get("status") == "listening"), names()
