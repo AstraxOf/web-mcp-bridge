@@ -35,7 +35,12 @@ assert.match(WMB.buildSystemPrompt([]), /Ningún servidor MCP activo/);
 assert.equal(WMB.firstSentence('Hace A. Luego B y C.'), 'Hace A.');
 assert.equal(WMB.firstSentence('Sin punto final'), 'Sin punto final');
 assert.ok(WMB.firstSentence('x'.repeat(500)).length <= 170);
-assert.equal(WMB.firstSentence('Usa p. ej. esto.'), 'Usa p.', 'documentado: «p. ej.» corta la frase (los MCP lo evitan en la primera frase)');
+assert.equal(WMB.firstSentence('Usa p. ej. esto. Luego otra.'), 'Usa p. ej. esto.', '«p. ej.» no corta la frase');
+assert.equal(WMB.firstSentence('Busca un texto en los archivos (máx. 200 resultados). Más detalle.'), 'Busca un texto en los archivos (máx. 200 resultados).');
+assert.equal(WMB.firstSentence('¿Hace algo? Sí. Otra.'), '¿Hace algo?');
+assert.equal(WMB.firstSentence('Versión 1.2 estable. Otra.'), 'Versión 1.2 estable.');
+assert.equal(WMB.firstSentence('Modifica entidades (por handle).\n\naccion:\n- "mover"'), 'Modifica entidades (por handle).', 'la frase puede seguir en minúscula');
+assert.match(WMB.buildSystemPrompt(tools), /NO digas que no se puede/, 'la regla 6 manda pedir ayuda antes de rendirse');
 const cad = [
   { server: 'autocad-mcp', name: 'panorama', description: 'EMPIEZA AQUÍ: qué hay y dónde. Devuelve capas, rejilla y textos con su celda.',
     serverInstructions: 'Control de AutoCAD. Empieza siempre con panorama y trabaja por zonas.',

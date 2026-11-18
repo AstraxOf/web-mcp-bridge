@@ -252,3 +252,8 @@
 - El cerrojo anti-duplicado propio de DeepSeek (`deepseek.js`) también descartaba en silencio: ahora pregunta igual, y lo que el usuario aprueba (`forced`) lo salta.
 - El freno de bucles (3.ª repetición seguida) sigue igual.
 - Prueba nueva `tests/browser/test_repetida.mjs`: primera vez se ejecuta sola; repintada en otro elemento → pregunta y no se ejecuta; Ejecutar → se repite; mismo mensaje → no pregunta; Ignorar → no se ejecuta.
+
+## 2026-11-17 — Claude (asistente de desarrollo) · Catálogo: primera frase y regla 6
+- `WMB.firstSentence` cortaba en las abreviaturas («máx.», «p. ej.») y en frases seguidas de texto en minúscula; ahora el punto cierra la frase salvo tras una abreviatura conocida.
+- Regla 6 del prompt: si la IA duda o necesita algo que no ve, no debe decir que no se puede: pide `wmb.ayuda` (con o sin herramienta). Para seguir bajo 1700 caracteres se acortaron otras reglas (se quitó el ejemplo `/*PARTE2*/`).
+- Contexto: los MCP propios ahora llevan `instructions` con la regla de elección en la primera frase (ver mis-mcp, «Estándar de catálogo»).
