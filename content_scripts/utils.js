@@ -263,6 +263,27 @@
     }
   };
 
+  /** Bloques ilegibles de hasta este tamaño: el fallo es de formato (comillas, llaves), no de longitud. */
+  const SHORT_BLOCK = 700;
+
+  /**
+   * Mensaje que se envía a la IA cuando su bloque mcp_call no se pudo leer.
+   * Corto: explica el formato (no sirve trocear 200 caracteres). Largo o sin cerrar @@@: pide trozos.
+   * @returns {string}
+   */
+  WMB.unreadableCallMessage = (problem, size, attempt, total, chunk) => {
+    const head = `[MCP_RESULT status="error"]\nNo se pudo leer tu bloque mcp_call: ${problem}. No se ejecutó nada. `;
+    const fmt = 'Formato: un único bloque ```json con {"mcp_call":{"server":"…","name":"…","arguments":{…}}}.\n[/MCP_RESULT]';
+    if (size <= SHORT_BLOCK && !/@@@/.test(problem)) {
+      return head + `Tu bloque era corto (~${size} caracteres): el problema NO es el tamaño sino el formato (reintento ${attempt}/${total}). `
+        + 'Escríbelo de nuevo en UNA línea y revisa: todas las llaves { } cerradas, comillas dobles internas escapadas (\\") y barras invertidas dobles (\\\\). '
+        + 'No lo trocees ni uses write_file. Si llevaba código LISP o un comando, usa mejor la herramienta específica (dibujar, modificar, operar_seleccion…) en vez de lisp/comando. ' + fmt;
+    }
+    return head + `Tu bloque medía unos ${size} caracteres${size > 3500 ? ': es demasiado largo y el mensaje se corta' : ''}. `
+      + `No lo repitas igual (reintento ${attempt}/${total}): divídelo en trozos de máx. ~${chunk} caracteres, UNA llamada por mensaje: write_file con el primer trozo y append_file con los siguientes (si no existe append_file: edit_file cambiando el marcador /*PARTE2*/ por el trozo siguiente + marcador nuevo). `
+      + 'El contenido de archivos va en crudo entre @@@ y @@@ (sin escapar comillas ni saltos de línea). ' + fmt.replace('.\n[/MCP_RESULT]', '; usa / en las rutas.\n[/MCP_RESULT]');
+  };
+
   // ───────────────────────── Resultados MCP (sin omitir nada) ─────────────────────────
 
   const EXT = {

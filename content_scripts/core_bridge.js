@@ -460,12 +460,11 @@
       return;
     }
     const chunk = RETRY_LIMITS[unreadableRetries - 1];
-    widget.log('err', `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA trozos de ~${chunk} caracteres.`);
     const size = text.length - Math.max(at, 0);
-    const message = `[MCP_RESULT status="error"]\nNo se pudo leer tu bloque mcp_call: ${problem}. No se ejecutó nada. `
-      + `Tu bloque medía unos ${size} caracteres${size > 3500 ? ': es demasiado largo y el mensaje se corta' : ''}. `
-      + `No lo repitas igual (reintento ${unreadableRetries}/${RETRY_LIMITS.length}): divídelo en trozos de máx. ~${chunk} caracteres, UNA llamada por mensaje: write_file con el primer trozo y append_file con los siguientes (si no existe append_file: edit_file cambiando el marcador /*PARTE2*/ por el trozo siguiente + marcador nuevo). `
-      + 'El contenido de archivos va en crudo entre @@@ y @@@ (sin escapar comillas ni saltos de línea). Formato: un único bloque ```json con {"mcp_call":{"server":"…","name":"…","arguments":{…}}}; usa / en las rutas.\n[/MCP_RESULT]';
+    const message = WMB.unreadableCallMessage(problem, size, unreadableRetries, RETRY_LIMITS.length, chunk);
+    widget.log('err', message.includes('NO es el tamaño')
+      ? `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA revisar comillas y llaves (el bloque era corto).`
+      : `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA trozos de ~${chunk} caracteres.`);
     const sent = await adapter.sendToolResult(message, { autoSend: state.settings.autoSend });
     if (!sent.ok) widget.log('err', sent.error);
     else watchAi();

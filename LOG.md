@@ -264,3 +264,9 @@
 - `background.js` pasa `grupo` y `nucleo` (de `_meta` o, para MCP que no se pueden editar, de `groups` en la configuración del servidor: pendiente de exponer en el popup). Regla 6 acortada para seguir bajo 1700 caracteres.
 - Medido con el catálogo real: autocad-mcp 2.365 → 794 tokens (−66 %); autocad + terminal 3.277 → 1.706; los cuatro servidores 4.343 → 2.772.
 - Pruebas nuevas en `tests/test_prompt.mjs`: índice, núcleo sin repetir en su grupo, grupo sin distinguir mayúsculas, grupo inexistente, servidor sin grupos o pequeño (plano) y ahorro mínimo.
+
+## 2026-11-18 — Claude (asistente de desarrollo) · Aviso de bloque ilegible según su tamaño
+- Caso real: Google escribió un bloque `mcp_call` de unos 202 caracteres sin cerrar y la extensión le pidió «trozos con write_file/append_file», un consejo para archivos grandes que no sirve para un bloque corto (y nombra herramientas que quizá no existen).
+- Nuevo `WMB.unreadableCallMessage` (utils.js): hasta 700 caracteres explica que el fallo es de formato (llaves, comillas escapadas, barras dobles) y sugiere usar la herramienta específica en vez de `lisp`/`comando`; más largo, o con `@@@` sin cerrar, sigue pidiendo trozos. Mismo límite de 3 reintentos. `core_bridge.js` lo usa y registra el motivo correcto.
+- Prueba en `tests/test_utils.mjs` (corto, largo y @@@).
+
