@@ -257,3 +257,10 @@
 - `WMB.firstSentence` cortaba en las abreviaturas («máx.», «p. ej.») y en frases seguidas de texto en minúscula; ahora el punto cierra la frase salvo tras una abreviatura conocida.
 - Regla 6 del prompt: si la IA duda o necesita algo que no ve, no debe decir que no se puede: pide `wmb.ayuda` (con o sin herramienta). Para seguir bajo 1700 caracteres se acortaron otras reglas (se quitó el ejemplo `/*PARTE2*/`).
 - Contexto: los MCP propios ahora llevan `instructions` con la regla de elección en la primera frase (ver mis-mcp, «Estándar de catálogo»).
+
+## 2026-11-18 — Claude (asistente de desarrollo) · Índice por grupos en el catálogo
+- Problema: un MCP grande (autocad-mcp: 33 herramientas) costaba ~2.365 tokens en cada chat aunque se usaran 3 o 4.
+- Mecanismo (sirve a cualquier MCP): si un servidor tiene ≥ 12 herramientas y alguna declara `_meta.grupo`, el prompt muestra la firma completa solo de las del núcleo (`_meta.nucleo`) y, del resto, los nombres por grupo. `wmb.ayuda` con `"grupo"` devuelve las firmas de ese grupo; sin `grupo` ni `herramienta`, la guía lista los grupos. Un servidor sin grupos, o con menos de 12 herramientas, se describe como antes. La IA puede llamar a cualquier herramienta sin pedir antes su ficha (si falla, el error ya trae la ficha).
+- `background.js` pasa `grupo` y `nucleo` (de `_meta` o, para MCP que no se pueden editar, de `groups` en la configuración del servidor: pendiente de exponer en el popup). Regla 6 acortada para seguir bajo 1700 caracteres.
+- Medido con el catálogo real: autocad-mcp 2.365 → 794 tokens (−66 %); autocad + terminal 3.277 → 1.706; los cuatro servidores 4.343 → 2.772.
+- Pruebas nuevas en `tests/test_prompt.mjs`: índice, núcleo sin repetir en su grupo, grupo sin distinguir mayúsculas, grupo inexistente, servidor sin grupos o pequeño (plano) y ahorro mínimo.

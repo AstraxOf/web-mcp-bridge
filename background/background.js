@@ -205,6 +205,8 @@ async function getActiveTools() {
         description: t.description ?? '',
         inputSchema: t.inputSchema ?? { type: 'object', properties: {} },
         serverInstructions: connections.get(s.id)?.instructions ?? '', // guía del servidor: la da `ayuda` bajo demanda
+        grupo: String(t._meta?.grupo ?? t.meta?.grupo ?? s.groups?.[t.name] ?? '').trim(), // índice por grupos: lo declara el MCP en `_meta` (o la config del servidor)
+        nucleo: Boolean(t._meta?.nucleo ?? t.meta?.nucleo),
       });
     }
   }

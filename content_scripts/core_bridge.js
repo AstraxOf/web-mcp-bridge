@@ -247,7 +247,7 @@
     // `wmb.ayuda`: guía de un servidor o ficha completa de una herramienta. La responde la extensión (sin MCP).
     if (String(call.server ?? '').toLowerCase() === WMB.HELP_SERVER && String(call.name ?? '').toLowerCase() === 'ayuda') {
       const a = call.arguments ?? {};
-      const text = WMB.toolHelp(state.tools, a.servidor ?? a.server, a.herramienta ?? a.tool);
+      const text = WMB.toolHelp(state.tools, a.servidor ?? a.server, a.herramienta ?? a.tool, a.grupo ?? a.group);
       audit('info', 'call.help', { servidor: a.servidor ?? a.server ?? null, herramienta: a.herramienta ?? a.tool ?? null, chars: text.length });
       widget.log('ok', `Ayuda: ${a.servidor ?? a.server ?? ''}${a.herramienta ?? a.tool ? ` › ${a.herramienta ?? a.tool}` : ''}`);
       if (currentId) { const t = tracked.get(currentId); if (t) t.state = 'delivered'; } // si no, se reintentaría
