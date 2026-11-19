@@ -285,3 +285,6 @@
 - LIMITACIÓN: igual que con Mistral, los selectores no se pudieron comprobar contra la web real (Kimi pide sesión). Cada elemento lleva varios candidatos. En WebLLM se revisó el código de la app (derivado de NextChat, clases con sufijos de CSS Modules, por eso se busca por fragmento) y `getAssistantMessages` descarta los mensajes del usuario, que también usan `.markdown-body`. Si algo falla: `tools/diagnostico-dom.js` en la consola de la página.
 - WebLLM: sin imágenes (`acceptsImages = false`) y con pocos MCP activos a la vez (modelos locales pequeños).
 
+## 2026-11-19 — Claude (asistente de desarrollo) · Se quita el adaptador de WebLLM Chat
+- A petición del usuario (no le resulta útil): se elimina `webllm.js`, su permiso, su script de contenido y su plataforma. Kimi se queda.
+

@@ -34,7 +34,6 @@
     "https://kimi.ai/*",
     "https://www.kimi.com/*",
     "https://kimi.com/*",
-    "https://chat.webllm.ai/*",
     "ws://localhost/*",
     "ws://127.0.0.1/*",
     "http://localhost/*",
@@ -128,20 +127,6 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/kimi.js",
-        "content_scripts/core_bridge.js"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://chat.webllm.ai/*"
-      ],
-      "js": [
-        "content_scripts/utils.js",
-        "content_scripts/prompt_builder.js",
-        "content_scripts/ui_widget.js",
-        "content_scripts/adapters/base_adapter.js",
-        "content_scripts/adapters/webllm.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"
