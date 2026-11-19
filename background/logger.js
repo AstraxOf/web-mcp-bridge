@@ -16,6 +16,7 @@ const LEVELS = new Set(['info', 'warn', 'error']);
 const SOURCES = new Set(['background', 'popup', 'content']);
 
 let queue = [];
+let sink = null;   // receptor opcional de cada lote escrito (el puente local guarda la auditoría en disco)
 let timer = null;
 let writing = Promise.resolve();
 
@@ -43,6 +44,7 @@ function flush() {
     const data = await chrome.storage.local.get(STORAGE_KEYS.logs);
     const logs = [...(data[STORAGE_KEYS.logs] ?? []), ...batch].slice(-LOG_LIMIT);
     await chrome.storage.local.set({ [STORAGE_KEYS.logs]: logs });
+    try { sink?.(batch); } catch { /* el receptor nunca debe romper el registro */ }
   }).catch((err) => console.error('[WMB] log', err));
   return writing;
 }
@@ -67,6 +69,9 @@ export function log(level, event, details, { source = 'background', platform } =
   if (level === 'error') console.warn('[WMB]', entry.event, entry.details ?? '');
   if (!timer) timer = setTimeout(flush, LOG_FLUSH_MS);
 }
+
+/** Registra una función que recibe cada lote de entradas ya guardado (null para quitarla). */
+export function setLogSink(fn) { sink = typeof fn === 'function' ? fn : null; }
 
 /** Fuerza la escritura pendiente (tests y exportación). */
 export function flushLogs() {

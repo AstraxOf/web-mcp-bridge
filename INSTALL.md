@@ -130,3 +130,14 @@ El MCP `repo-github` (archivos, git y API de GitHub para varios repos) vive ahor
 La extensión trata de forma especial a cualquier MCP que ofrezca la herramienta `sync_check` (y `sync_apply`):
 
 **Sincronización:** antes de trabajar con un repo, la extensión consulta GitHub. Si solo cambió GitHub, actualiza la copia local y se lo cuenta a la IA. Si cambiaron GitHub y lo local, te pregunta qué conservar (*Usar GitHub* guarda un respaldo de lo local; *Mantener lo local* mezcla lo nuevo). Se repite cada 10 minutos y siempre antes de `git_commit` y `git_push`.
+
+## Auditoría de las llamadas (qué pidió cada chat y por qué falló)
+La extensión envía cada evento de su registro (llamadas a herramientas, errores, avisos) al puente local, que los guarda como una línea JSON por evento en `server\auditoria\auditoria-AAAA-MM-DD.jsonl`: rotación diaria, 30 días, textos recortados y sin claves ni tokens. No se guarda el contenido de los mensajes del chat ni los resultados completos de las herramientas (solo su tamaño y, si fallan, el mensaje de error). Funciona con cualquier MCP y cualquier chat, en cualquier PC donde esté el puente (`--config`).
+
+Resumen de lo registrado:
+```
+python server\auditoria.py                     # últimos 7 días: llamadas, errores y tiempos por herramienta
+python server\auditoria.py --dias 1 --errores  # solo los errores de hoy
+```
+`autocad-mcp` escribe su propio registro (`autocad-mcp\auditoria\`, mismo formato) con los argumentos y el error de cada herramienta; el comando de arriba también lo entiende (`--carpeta`). Cruzando las horas de ambos se ve qué pidió el chat y qué respondió AutoCAD.
+

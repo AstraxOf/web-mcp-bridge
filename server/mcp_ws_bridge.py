@@ -61,6 +61,8 @@ try:  # websockets >= 13
 except ImportError:  # websockets 12
     from websockets import serve as ws_serve  # type: ignore[assignment]
 
+import auditoria  # noqa: E402  (registro de auditoría de las llamadas; mismo directorio)
+
 log = logging.getLogger("mcp_ws_bridge")
 
 STDIO_LIMIT = 32 * 1024 * 1024  # tamaño máximo de un mensaje JSON-RPC
@@ -378,8 +380,20 @@ async def handle_control(ws, manager: BridgeManager) -> None:
     except (ValueError, AttributeError):
         await _reply(ws, type="result", ok=False, error="petición no válida")
         return
-    if kind not in ("get_config", "put_config"):
+    if kind not in ("get_config", "put_config", "audit"):
         await _reply(ws, type="result", ok=False, error=f"petición desconocida: {kind}")
+        return
+    if kind == "audit":
+        if origin != manager.owner_origin:
+            await _reply(ws, type="result", ok=False, error="no autorizado")
+            return
+        carpeta = (manager.config_path.parent if manager.config_path else Path(__file__).resolve().parent) / "auditoria"
+        try:
+            n = auditoria.escribir(carpeta, request.get("entries"), extra=request.get("extra") if isinstance(request.get("extra"), dict) else None)
+        except (ValueError, OSError) as err:
+            await _reply(ws, type="result", ok=False, error=str(err))
+            return
+        await _reply(ws, type="result", ok=True, written=n)
         return
     if not manager.config_path:
         await _reply(ws, type="result", ok=False, error="el puente no se inició con --config")

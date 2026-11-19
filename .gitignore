@@ -9,5 +9,6 @@ servers.json
 update-stamp.json
 scripts/windows/*.vbs
 server/servers.json.bak
+server/auditoria/
 repos.json
 server/servers.json.antes-*
