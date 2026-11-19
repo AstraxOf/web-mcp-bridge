@@ -279,3 +279,9 @@
 ## 2026-11-19 — Claude (asistente de desarrollo) · Versión visible en el panel
 - Pedido del usuario: ver qué versión está instalada, relacionarla con el commit y saber si es la más reciente. La cabecera del popup/panel lleva ahora un indicador `v1.2.0 · 38a33e5`; su color dice si es la más reciente de `main` (verde), si hay commits nuevos en main (ámbar), si es una rama de trabajo (violeta) o si hay una versión nueva en disco pendiente de recargar (ámbar). Pasar el ratón muestra versión, commit completo, rama y `origin/main`; un clic copia esos datos. La línea de Ajustes → Actualizaciones muestra lo mismo.
 - La extensión lee su propio `.git` (`HEAD`, la rama, `packed-refs` y `origin/main`) sin ejecutar nada (`shared/versioning.js`, probado en `tests/test_version.mjs`); si no puede, usa `update-stamp.json`. `update.ps1` hace `git fetch origin main` también en ramas de trabajo y guarda `latest` en el sello, para poder comparar.
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Adaptadores para Kimi y WebLLM Chat
+- Pedido del usuario: usar la extensión también con https://www.kimi.ai (Kimi) y https://chat.webllm.ai (modelos que corren en el navegador). Dos adaptadores nuevos, `kimi.js` (hosts kimi.ai y kimi.com, con y sin `www`) y `webllm.js`, con su permiso y script de contenido en `manifest.json`, su plataforma y casilla en Ajustes (`shared/constants.js`) y mención en `INSTALL.md`.
+- LIMITACIÓN: igual que con Mistral, los selectores no se pudieron comprobar contra la web real (Kimi pide sesión). Cada elemento lleva varios candidatos. En WebLLM se revisó el código de la app (derivado de NextChat, clases con sufijos de CSS Modules, por eso se busca por fragmento) y `getAssistantMessages` descarta los mensajes del usuario, que también usan `.markdown-body`. Si algo falla: `tools/diagnostico-dom.js` en la consola de la página.
+- WebLLM: sin imágenes (`acceptsImages = false`) y con pocos MCP activos a la vez (modelos locales pequeños).
+
