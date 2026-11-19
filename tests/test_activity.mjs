@@ -46,3 +46,9 @@ assert.equal(fmtMs(80), '80 ms');
 assert.equal(fmtMs(2300), '2.3 s');
 assert.equal(fmtMs(45000), '45 s');
 console.log('✔ test_activity: todo correcto');
+
+// Las llamadas «descartadas» por duplicado dicen qué pasó de verdad
+assert.match(titleOf({ event: 'call.skipped', details: { reason: 'duplicate', seenHere: true } }), /Ya ejecutada/);
+assert.match(titleOf({ event: 'call.skipped', details: { reason: 'duplicate', seenHere: false } }), /se te pregunta/);
+assert.equal(titleOf({ event: 'call.skipped', details: { reason: 'extra_in_message' } }), 'Llamada descartada');
+

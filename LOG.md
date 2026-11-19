@@ -253,6 +253,9 @@
 - El freno de bucles (3.ª repetición seguida) sigue igual.
 - Prueba nueva `tests/browser/test_repetida.mjs`: primera vez se ejecuta sola; repintada en otro elemento → pregunta y no se ejecuta; Ejecutar → se repite; mismo mensaje → no pregunta; Ignorar → no se ejecuta.
 
+## 2026-11-13 — Claude (asistente de desarrollo) · Rótulos de llamadas «descartadas»
+- El registro mostraba «Llamada descartada» para `reason: duplicate, seenHere: true`, que es la web volviendo a pintar el MISMO mensaje cuya llamada ya se ejecutó (no una orden perdida). Ahora dice «Ya ejecutada: la web volvió a mostrar el mismo mensaje»; las repetidas de verdad, «Llamada idéntica a una anterior: se te pregunta» (PR #15), y las antiguas, «Llamada antigua».
+
 ## 2026-11-17 — Claude (asistente de desarrollo) · Catálogo: primera frase y regla 6
 - `WMB.firstSentence` cortaba en las abreviaturas («máx.», «p. ej.») y en frases seguidas de texto en minúscula; ahora el punto cierra la frase salvo tras una abreviatura conocida.
 - Regla 6 del prompt: si la IA duda o necesita algo que no ve, no debe decir que no se puede: pide `wmb.ayuda` (con o sin herramienta). Para seguir bajo 1700 caracteres se acortaron otras reglas (se quitó el ejemplo `/*PARTE2*/`).
