@@ -7,6 +7,7 @@
  *   3. Exponer a popup y content scripts una API de mensajes (ver `handleMessage`).
  */
 import { McpConnection } from './ws_client.js';
+import { parseGit } from '../shared/versioning.js';
 import { HttpMcpConnection } from './http_client.js';
 import { log, getLogs, clearLogs, flushLogs } from './logger.js';
 import {
@@ -621,7 +622,27 @@ chrome.runtime.onInstalled.addListener(async () => {
 // La tarea programada (scripts/windows/update.ps1) baja la versión nueva de main y escribe update-stamp.json.
 // La extensión, cargada desde esa carpeta, lee el sello: si el commit cambió desde que arrancó, se recarga sola.
 
-const update = { bootCommit: null, commit: null, branch: null, status: null, checkedAt: null, pendingReload: false };
+const update = { bootCommit: null, commit: null, branch: null, latest: null, version: null, status: null, checkedAt: null, pendingReload: false };
+
+/** Texto de un archivo del propio directorio de la extensión (null si no existe o Chrome no lo sirve). */
+async function readOwnFile(path) {
+  try {
+    const res = await fetch(chrome.runtime.getURL(path), { cache: 'no-store' });
+    return res.ok ? await res.text() : null;
+  } catch { return null; }
+}
+
+/** Commit, rama y origin/main leídos del `.git` de la carpeta desde la que se cargó la extensión (sin ejecutar git). */
+async function readGit() {
+  const head = await readOwnFile('.git/HEAD');
+  if (!head) return null;
+  const packed = await readOwnFile('.git/packed-refs');
+  const wanted = new Set(['refs/remotes/origin/main']);
+  if (head.startsWith('ref:')) wanted.add(head.slice(4).trim());
+  const loose = new Map();
+  for (const ref of wanted) loose.set(ref, await readOwnFile(`.git/${ref}`));
+  return parseGit({ head, readRef: (name) => loose.get(name) ?? null, packed });
+}
 
 async function readStamp() {
   try {
@@ -645,10 +666,18 @@ async function bootCommit(current) {
 }
 
 async function checkUpdate() {
-  const stamp = await readStamp();
-  if (stamp) {
-    Object.assign(update, { commit: stamp.commit ?? null, branch: stamp.branch ?? null, status: stamp.status ?? null, checkedAt: stamp.checkedAt ?? null });
-    if (!update.bootCommit) update.bootCommit = await bootCommit(stamp.commit ?? null);
+  const [stamp, git] = [await readStamp(), await readGit()];
+  update.version = chrome.runtime.getManifest?.().version ?? null;
+  if (stamp || git) {
+    // El `.git` manda (es lo que hay en disco ahora mismo); el sello aporta el estado y la hora de la última comprobación.
+    Object.assign(update, {
+      commit: git?.commit ?? stamp?.commit ?? null,
+      branch: git?.branch ?? stamp?.branch ?? null,
+      latest: git?.latest ?? stamp?.latest ?? null,
+      status: stamp?.status ?? null,
+      checkedAt: stamp?.checkedAt ?? null,
+    });
+    if (!update.bootCommit) update.bootCommit = await bootCommit(update.commit);
   }
   const { settings } = await loadState();
   const changed = Boolean(update.bootCommit && update.commit && update.commit !== update.bootCommit);
