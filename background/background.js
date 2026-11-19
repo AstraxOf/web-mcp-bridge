@@ -9,7 +9,7 @@
 import { McpConnection } from './ws_client.js';
 import { parseGit } from '../shared/versioning.js';
 import { HttpMcpConnection } from './http_client.js';
-import { log, getLogs, clearLogs, flushLogs } from './logger.js';
+import { log, getLogs, clearLogs, flushLogs, setLogSink } from './logger.js';
 import {
   STORAGE_KEYS as KEYS, DEFAULT_SETTINGS, MAX_ACTIVE_SERVERS,
   CALL_TIMEOUT_MS, HISTORY_LIMIT, SUPPORTED_URL_PATTERNS, PERMISSIONS,
@@ -269,7 +269,11 @@ async function callToolInner({ server, name, arguments: args }) {
       throw err;
     }
     const ms = Date.now() - started;
-    log(result?.isError ? 'warn' : 'info', 'tool.call', { server: label, tool: name, status: result?.isError ? 'error' : 'ok', ms, args: entry.args });
+    const texto = (result?.content ?? []).filter((c) => c?.type === 'text').map((c) => c.text ?? '').join('\n');
+    log(result?.isError ? 'warn' : 'info', 'tool.call', {
+      server: label, tool: name, status: result?.isError ? 'error' : 'ok', ms, args: entry.args, chars: texto.length,
+      ...(result?.isError ? { error: texto.slice(0, 280) } : {}),   // el mensaje de error del MCP: lo que hace falta para auditar
+    });
     await addHistory({ ...entry, status: result?.isError ? 'error' : 'ok', ms });
     return { ok: true, result };
   } catch (err) {
@@ -690,6 +694,38 @@ async function checkUpdate() {
   return { ...update };
 }
 
+// ───────────────────────── Auditoría en disco ─────────────────────────
+// Cada lote de eventos del registro se envía también al puente local, que lo guarda en server/auditoria/*.jsonl (sin secretos,
+// rotación diaria, 30 días). Si el puente no está, se reintenta con lo pendiente (hasta AUDIT_MAX entradas; lo más viejo se descarta).
+const AUDIT_MAX = 1000;
+const AUDIT_BATCH = 200;
+let auditPending = [];
+let auditSending = false;
+
+async function flushAudit() {
+  if (auditSending || !auditPending.length || bridgeStatus.ok === false) return;
+  auditSending = true;
+  try {
+    while (auditPending.length) {
+      const lote = auditPending.slice(0, AUDIT_BATCH);
+      await bridgeControl({ type: 'audit', entries: lote, extra: { ext: auditExt() } });
+      auditPending = auditPending.slice(lote.length);
+    }
+  } catch { /* el puente no responde o no admite auditoría (versión antigua): se reintenta en la próxima alarma */ } finally {
+    auditSending = false;
+  }
+}
+
+function auditExt() {
+  const c = update.commit ? `@${String(update.commit).slice(0, 7)}` : '';
+  return `${chrome.runtime.getManifest?.().version ?? '?'}${c}`;
+}
+
+setLogSink((batch) => {
+  auditPending = [...auditPending, ...batch].slice(-AUDIT_MAX);
+  flushAudit();
+});
+
 // Red de seguridad: si el SW se duerme, la alarma lo despierta y reconecta. Cada minuto, además, se mira si hay versión nueva.
 chrome.alarms.create('wmb-keepalive', { periodInMinutes: 0.5 });
 chrome.alarms.create('wmb-update', { periodInMinutes: 1 });
@@ -697,6 +733,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'wmb-keepalive') {
     reconcile().catch((err) => log('error', 'reconcile', { error: err.message }));
     fetchDiscovery().catch(() => {}); // estado del puente al día (decide qué MCP vale la pena intentar)
+    flushAudit();                     // auditoría pendiente (el puente estaba caído)
   }
   if (alarm.name === 'wmb-update') checkUpdate().catch(() => {});
 fetchDiscovery().catch(() => {});

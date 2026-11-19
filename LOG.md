@@ -296,3 +296,10 @@
 - Los selectores de Qwen salen del código público de la app (`qwen-chat-fe`): `textarea#chat-input`, `.message-input-right-button-send` (botón de enviar; al generar muestra `icon-stop`) y respuestas con la clase `qwen-markdown`. No se probaron con una sesión real; si falla, `tools/diagnostico-dom.js`.
 - El razonamiento (modo de pensamiento) se excluye de las respuestas observadas para no ejecutar dos veces una llamada escrita en el borrador.
 
+## 2026-11-19 — Claude (asistente de desarrollo) · Auditoría en disco de las llamadas MCP
+- Pedido del usuario: un registro de las acciones que se ejecutan desde un chat para poder auditar y pulir los MCP (no solo el de AutoCAD) y encontrar la causa de los fallos. El registro de la extensión (pestaña Actividad) vivía solo en el navegador (`chrome.storage`, anillo de entradas).
+- `logger.js` admite un receptor (`setLogSink`) que recibe cada lote ya guardado; `background.js` lo reenvía al puente (hasta 1.000 entradas pendientes si el puente no está; se reintenta cada 30 s). El canal de control del puente acepta `{"type": "audit", "entries": [...]}` solo de la extensión propietaria y lo escribe `server/auditoria.py`: una línea JSON por evento en `server/auditoria/auditoria-AAAA-MM-DD.jsonl` (ignorada por git), con la hora local, la versión de la extensión + commit (`ext`), máscara de claves/tokens, lotes de 500 como máximo, 20 MB por archivo y 30 días de historia.
+- `tool.call` ahora guarda también `chars` (tamaño del resultado) y, si la herramienta falló, el mensaje de error (primeros 280 caracteres): es lo que permite entender el fallo después.
+- `python server/auditoria.py [--dias N] [--errores] [--carpeta …]` resume llamadas, errores y tiempos por herramienta, y entiende también el formato de `autocad-mcp`.
+- Pruebas: `tests/test_auditoria.py` (máscara, escritura, purga, resumen), `tests/test_audit.mjs` (receptor) y `tests/test_bridge_config.py` (el puente real guarda un lote, enmascara y rechaza a otras extensiones y lotes inválidos). `npm test` pasa.
+

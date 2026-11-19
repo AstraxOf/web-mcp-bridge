@@ -97,6 +97,25 @@ async def test_editor(cfg: Path) -> None:
         assert json.loads(await asyncio.wait_for(ws.recv(), 10))["result"] == {}
 
 
+async def test_audit(cfg: Path) -> None:
+    """La extensión propietaria guarda lotes de auditoría en disco (sin secretos); nadie más puede."""
+    lote = [{"ts": 1_760_000_000_000, "level": "info", "source": "background", "event": "tool.call", "platform": "gemini",
+             "details": {"server": "autocad-mcp", "tool": "dibujar", "status": "ok", "ms": 120, "token": "abc", "args": "ghp_" + "A" * 30}}]
+    res = await control({"type": "audit", "entries": lote, "extra": {"ext": "1.2.0@abc1234"}})
+    assert res == {"type": "result", "ok": True, "written": 1}, res
+    archivos = list((cfg.parent / "auditoria").glob("auditoria-*.jsonl"))
+    assert len(archivos) == 1, archivos
+    fila = json.loads(archivos[0].read_text(encoding="utf-8").splitlines()[0])
+    assert fila["event"] == "tool.call" and fila["ext"] == "1.2.0@abc1234" and fila["hora"].startswith("20"), fila
+    assert fila["details"]["token"] == "***" and "ghp_" not in fila["details"]["args"], fila
+    for origin in ("chrome-extension://otraextension", None):
+        res = await control({"type": "audit", "entries": lote}, origin)
+        assert res == {"type": "result", "ok": False, "error": "no autorizado"}, res
+    for malo in (None, [], "x", [1] * 501):
+        res = await control({"type": "audit", "entries": malo})
+        assert res["ok"] is False and res["error"], (malo, res)
+
+
 async def wait_for(predicate, timeout=10):
     end = time.time() + timeout
     while time.time() < end:
@@ -167,6 +186,7 @@ if __name__ == "__main__":
             time.sleep(1.5)
             asyncio.run(test_live(cfg))
             asyncio.run(test_editor(cfg))
+            asyncio.run(test_audit(cfg))
         finally:
             bridge.terminate()
             bridge.wait(timeout=5)
