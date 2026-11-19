@@ -54,7 +54,7 @@ El script:
 
 ## 4. Probar
 
-1. Entra en https://chat.deepseek.com (o ChatGPT, Gemini, Claude, Le Chat de Mistral: https://chat.mistral.ai, Kimi: https://www.kimi.ai).
+1. Entra en https://chat.deepseek.com (o ChatGPT, Gemini, Claude, Le Chat de Mistral: https://chat.mistral.ai, Qwen: https://chat.qwen.ai).
 2. Escribe: *«¿Qué hora es? Usa tus herramientas.»* y envía. La extensión añade las instrucciones automáticamente al primer mensaje.
 3. La IA responde con un bloque `mcp_call` → aparece el panel de aprobación → **Ejecutar**.
 4. El resultado vuelve al chat y la IA contesta con la hora.

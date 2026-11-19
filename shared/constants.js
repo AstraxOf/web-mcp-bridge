@@ -51,11 +51,11 @@ export const DEFAULT_SETTINGS = {
   /** Tiempo máximo (segundos) que se espera a una herramienta. Operaciones grandes de AutoCAD pueden tardar minutos. */
   toolTimeoutSec: 300,
   /** Plataformas donde actúa la extensión. Las desactivadas se ignoran por completo (no inyecta ni ejecuta nada). */
-  platforms: { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, kimi: true },
+  platforms: { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, qwen: true },
 };
 
 /** Nombres visibles de las plataformas (ids de los adaptadores). */
-export const PLATFORM_LABELS = { deepseek: 'DeepSeek', chatgpt: 'ChatGPT', gemini: 'Gemini', claude: 'Claude', mistral: 'Le Chat (Mistral)', kimi: 'Kimi' };
+export const PLATFORM_LABELS = { deepseek: 'DeepSeek', chatgpt: 'ChatGPT', gemini: 'Gemini', claude: 'Claude', mistral: 'Le Chat (Mistral)', qwen: 'Qwen Chat' };
 
 /** El servidor de prueba incluido en el repositorio (server/examples/demo_mcp_server.py). */
 export const DEMO_SERVER = { name: 'demo', url: 'ws://localhost:8090' };
@@ -74,8 +74,5 @@ export const SUPPORTED_URL_PATTERNS = [
   'https://claude.ai/*',
   'https://chat.deepseek.com/*',
   'https://chat.mistral.ai/*',
-  'https://www.kimi.ai/*',
-  'https://kimi.ai/*',
-  'https://www.kimi.com/*',
-  'https://kimi.com/*',
+  'https://chat.qwen.ai/*',
 ];

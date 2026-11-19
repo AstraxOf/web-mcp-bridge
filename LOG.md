@@ -288,3 +288,8 @@
 ## 2026-11-19 — Claude (asistente de desarrollo) · Se quita el adaptador de WebLLM Chat
 - A petición del usuario (no le resulta útil): se elimina `webllm.js`, su permiso, su script de contenido y su plataforma. Kimi se queda.
 
+## 2026-11-19 — Claude (asistente de desarrollo) · Se cambia el adaptador de Kimi por el de Qwen Chat
+- A petición del usuario: se elimina `kimi.js` (permisos, script de contenido y plataforma) y se añade `qwen.js` para https://chat.qwen.ai.
+- Los selectores de Qwen salen del código público de la app (`qwen-chat-fe`): `textarea#chat-input`, `.message-input-right-button-send` (botón de enviar; al generar muestra `icon-stop`) y respuestas con la clase `qwen-markdown`. No se probaron con una sesión real; si falla, `tools/diagnostico-dom.js`.
+- El razonamiento (modo de pensamiento) se excluye de las respuestas observadas para no ejecutar dos veces una llamada escrita en el borrador.
+
