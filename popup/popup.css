@@ -231,6 +231,10 @@ input[type="text"], input[type="number"] {
 .act-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
 .act-head time { color: var(--muted); font-size: 11px; flex: none; font-variant-numeric: tabular-nums; }
 .badges { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; min-width: 0; }
+.ver-chip { font: 600 10.5px/1.6 ui-monospace, Consolas, monospace; padding: 0 6px; margin-left: 4px; border-radius: 999px; border: 1px solid transparent; cursor: pointer; vertical-align: middle; background: var(--surface-2); color: var(--muted); }
+.ver-chip[data-state="ok"] { background: #15803d1f; color: var(--ok); }
+.ver-chip[data-state="old"], .ver-chip[data-state="reload"] { background: #b453091f; color: var(--busy); }
+.ver-chip[data-state="branch"] { background: #7c3aed1f; color: #7c3aed; }
 .badge { font: 600 10.5px/1.55 system-ui, sans-serif; padding: 0 6px; border-radius: 999px; background: var(--surface-2); color: var(--muted); border: 0; white-space: nowrap; }
 .badge.cat-call { background: var(--accent-soft); color: var(--accent); }
 .badge.cat-ai { background: #7c3aed1f; color: #7c3aed; }

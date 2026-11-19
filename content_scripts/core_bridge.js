@@ -247,7 +247,7 @@
     // `wmb.ayuda`: guía de un servidor o ficha completa de una herramienta. La responde la extensión (sin MCP).
     if (String(call.server ?? '').toLowerCase() === WMB.HELP_SERVER && String(call.name ?? '').toLowerCase() === 'ayuda') {
       const a = call.arguments ?? {};
-      const text = WMB.toolHelp(state.tools, a.servidor ?? a.server, a.herramienta ?? a.tool);
+      const text = WMB.toolHelp(state.tools, a.servidor ?? a.server, a.herramienta ?? a.tool, a.grupo ?? a.group);
       audit('info', 'call.help', { servidor: a.servidor ?? a.server ?? null, herramienta: a.herramienta ?? a.tool ?? null, chars: text.length });
       widget.log('ok', `Ayuda: ${a.servidor ?? a.server ?? ''}${a.herramienta ?? a.tool ? ` › ${a.herramienta ?? a.tool}` : ''}`);
       if (currentId) { const t = tracked.get(currentId); if (t) t.state = 'delivered'; } // si no, se reintentaría
@@ -460,12 +460,11 @@
       return;
     }
     const chunk = RETRY_LIMITS[unreadableRetries - 1];
-    widget.log('err', `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA trozos de ~${chunk} caracteres.`);
     const size = text.length - Math.max(at, 0);
-    const message = `[MCP_RESULT status="error"]\nNo se pudo leer tu bloque mcp_call: ${problem}. No se ejecutó nada. `
-      + `Tu bloque medía unos ${size} caracteres${size > 3500 ? ': es demasiado largo y el mensaje se corta' : ''}. `
-      + `No lo repitas igual (reintento ${unreadableRetries}/${RETRY_LIMITS.length}): divídelo en trozos de máx. ~${chunk} caracteres, UNA llamada por mensaje: write_file con el primer trozo y append_file con los siguientes (si no existe append_file: edit_file cambiando el marcador /*PARTE2*/ por el trozo siguiente + marcador nuevo). `
-      + 'El contenido de archivos va en crudo entre @@@ y @@@ (sin escapar comillas ni saltos de línea). Formato: un único bloque ```json con {"mcp_call":{"server":"…","name":"…","arguments":{…}}}; usa / en las rutas.\n[/MCP_RESULT]';
+    const message = WMB.unreadableCallMessage(problem, size, unreadableRetries, RETRY_LIMITS.length, chunk);
+    widget.log('err', message.includes('NO es el tamaño')
+      ? `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA revisar comillas y llaves (el bloque era corto).`
+      : `Reintento automático ${unreadableRetries}/${RETRY_LIMITS.length}: se pide a la IA trozos de ~${chunk} caracteres.`);
     const sent = await adapter.sendToolResult(message, { autoSend: state.settings.autoSend });
     if (!sent.ok) widget.log('err', sent.error);
     else watchAi();

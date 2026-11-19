@@ -131,4 +131,13 @@ assert.equal(WMB.planResult({ content: [{ type: 'text', text: 'corto' }] }, { se
   for (const normal of ['Mensaje enviado', 'El servidor respondió OK', 'frequently asked questions']) assert.ok(!WMB.RATE_LIMIT_RE.test(normal), normal);
 }
 
+// Mensaje al reintentar un bloque ilegible: corto = problema de formato; largo = trocear
+{
+  const corto = WMB.unreadableCallMessage('el bloque JSON no está cerrado', 202, 1, 3, 3000);
+  assert.match(corto, /NO es el tamaño/); assert.match(corto, /escapadas/); assert.doesNotMatch(corto, /append_file|trozos/);
+  const largo = WMB.unreadableCallMessage('el bloque JSON no está cerrado', 5000, 1, 3, 3000);
+  assert.match(largo, /append_file/); assert.match(largo, /demasiado largo/); assert.doesNotMatch(largo, /NO es el tamaño/);
+  const arroba = WMB.unreadableCallMessage('falta el @@@ de cierre del contenido', 300, 2, 3, 1500);
+  assert.match(arroba, /append_file/, 'con @@@ sin cerrar se trocea aunque sea corto');
+}
 console.log('✔ test_utils: todo correcto');

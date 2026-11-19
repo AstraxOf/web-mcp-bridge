@@ -255,3 +255,44 @@
 
 ## 2026-11-13 — Claude (asistente de desarrollo) · Rótulos de llamadas «descartadas»
 - El registro mostraba «Llamada descartada» para `reason: duplicate, seenHere: true`, que es la web volviendo a pintar el MISMO mensaje cuya llamada ya se ejecutó (no una orden perdida). Ahora dice «Ya ejecutada: la web volvió a mostrar el mismo mensaje»; las repetidas de verdad, «Llamada idéntica a una anterior: se te pregunta» (PR #15), y las antiguas, «Llamada antigua».
+
+## 2026-11-17 — Claude (asistente de desarrollo) · Catálogo: primera frase y regla 6
+- `WMB.firstSentence` cortaba en las abreviaturas («máx.», «p. ej.») y en frases seguidas de texto en minúscula; ahora el punto cierra la frase salvo tras una abreviatura conocida.
+- Regla 6 del prompt: si la IA duda o necesita algo que no ve, no debe decir que no se puede: pide `wmb.ayuda` (con o sin herramienta). Para seguir bajo 1700 caracteres se acortaron otras reglas (se quitó el ejemplo `/*PARTE2*/`).
+- Contexto: los MCP propios ahora llevan `instructions` con la regla de elección en la primera frase (ver mis-mcp, «Estándar de catálogo»).
+
+## 2026-11-18 — Claude (asistente de desarrollo) · Índice por grupos en el catálogo
+- Problema: un MCP grande (autocad-mcp: 33 herramientas) costaba ~2.365 tokens en cada chat aunque se usaran 3 o 4.
+- Mecanismo (sirve a cualquier MCP): si un servidor tiene ≥ 12 herramientas y alguna declara `_meta.grupo`, el prompt muestra la firma completa solo de las del núcleo (`_meta.nucleo`) y, del resto, los nombres por grupo. `wmb.ayuda` con `"grupo"` devuelve las firmas de ese grupo; sin `grupo` ni `herramienta`, la guía lista los grupos. Un servidor sin grupos, o con menos de 12 herramientas, se describe como antes. La IA puede llamar a cualquier herramienta sin pedir antes su ficha (si falla, el error ya trae la ficha).
+- `background.js` pasa `grupo` y `nucleo` (de `_meta` o, para MCP que no se pueden editar, de `groups` en la configuración del servidor: pendiente de exponer en el popup). Regla 6 acortada para seguir bajo 1700 caracteres.
+- Medido con el catálogo real: autocad-mcp 2.365 → 794 tokens (−66 %); autocad + terminal 3.277 → 1.706; los cuatro servidores 4.343 → 2.772.
+- Pruebas nuevas en `tests/test_prompt.mjs`: índice, núcleo sin repetir en su grupo, grupo sin distinguir mayúsculas, grupo inexistente, servidor sin grupos o pequeño (plano) y ahorro mínimo.
+
+## 2026-11-18 — Claude (asistente de desarrollo) · Aviso de bloque ilegible según su tamaño
+- Caso real: Google escribió un bloque `mcp_call` de unos 202 caracteres sin cerrar y la extensión le pidió «trozos con write_file/append_file», un consejo para archivos grandes que no sirve para un bloque corto (y nombra herramientas que quizá no existen).
+- Nuevo `WMB.unreadableCallMessage` (utils.js): hasta 700 caracteres explica que el fallo es de formato (llaves, comillas escapadas, barras dobles) y sugiere usar la herramienta específica en vez de `lisp`/`comando`; más largo, o con `@@@` sin cerrar, sigue pidiendo trozos. Mismo límite de 3 reintentos. `core_bridge.js` lo usa y registra el motivo correcto.
+- Prueba en `tests/test_utils.mjs` (corto, largo y @@@).
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Adaptador para Le Chat de Mistral (chat.mistral.ai)
+- Pedido del usuario: usar la extensión con https://chat.mistral.ai/work. Nuevo `content_scripts/adapters/mistral.js` (solo selectores, como Gemini), permiso y script de contenido para `https://chat.mistral.ai/*` en `manifest.json`, plataforma `mistral` en `shared/constants.js` (casilla en el popup) y mención en `INSTALL.md`.
+- LIMITACIÓN: los selectores no se pudieron comprobar contra la web real (Cloudflare bloquea el acceso desde el entorno de desarrollo y hace falta sesión). Cada elemento lleva varios candidatos habituales de Le Chat (editor ProseMirror, `data-message-part-type="answer"`, botones con aria-label). Si falla, `tools/diagnostico-dom.js` (pegar en la consola de la página) saca los selectores reales sin leer el contenido de los mensajes.
+- `tests/test_background.mjs` actualizado (plataformas por defecto). `npm test` pasa.
+
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Versión visible en el panel
+- Pedido del usuario: ver qué versión está instalada, relacionarla con el commit y saber si es la más reciente. La cabecera del popup/panel lleva ahora un indicador `v1.2.0 · 38a33e5`; su color dice si es la más reciente de `main` (verde), si hay commits nuevos en main (ámbar), si es una rama de trabajo (violeta) o si hay una versión nueva en disco pendiente de recargar (ámbar). Pasar el ratón muestra versión, commit completo, rama y `origin/main`; un clic copia esos datos. La línea de Ajustes → Actualizaciones muestra lo mismo.
+- La extensión lee su propio `.git` (`HEAD`, la rama, `packed-refs` y `origin/main`) sin ejecutar nada (`shared/versioning.js`, probado en `tests/test_version.mjs`); si no puede, usa `update-stamp.json`. `update.ps1` hace `git fetch origin main` también en ramas de trabajo y guarda `latest` en el sello, para poder comparar.
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Adaptadores para Kimi y WebLLM Chat
+- Pedido del usuario: usar la extensión también con https://www.kimi.ai (Kimi) y https://chat.webllm.ai (modelos que corren en el navegador). Dos adaptadores nuevos, `kimi.js` (hosts kimi.ai y kimi.com, con y sin `www`) y `webllm.js`, con su permiso y script de contenido en `manifest.json`, su plataforma y casilla en Ajustes (`shared/constants.js`) y mención en `INSTALL.md`.
+- LIMITACIÓN: igual que con Mistral, los selectores no se pudieron comprobar contra la web real (Kimi pide sesión). Cada elemento lleva varios candidatos. En WebLLM se revisó el código de la app (derivado de NextChat, clases con sufijos de CSS Modules, por eso se busca por fragmento) y `getAssistantMessages` descarta los mensajes del usuario, que también usan `.markdown-body`. Si algo falla: `tools/diagnostico-dom.js` en la consola de la página.
+- WebLLM: sin imágenes (`acceptsImages = false`) y con pocos MCP activos a la vez (modelos locales pequeños).
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Se quita el adaptador de WebLLM Chat
+- A petición del usuario (no le resulta útil): se elimina `webllm.js`, su permiso, su script de contenido y su plataforma. Kimi se queda.
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Se cambia el adaptador de Kimi por el de Qwen Chat
+- A petición del usuario: se elimina `kimi.js` (permisos, script de contenido y plataforma) y se añade `qwen.js` para https://chat.qwen.ai.
+- Los selectores de Qwen salen del código público de la app (`qwen-chat-fe`): `textarea#chat-input`, `.message-input-right-button-send` (botón de enviar; al generar muestra `icon-stop`) y respuestas con la clase `qwen-markdown`. No se probaron con una sesión real; si falla, `tools/diagnostico-dom.js`.
+- El razonamiento (modo de pensamiento) se excluye de las respuestas observadas para no ejecutar dos veces una llamada escrita en el borrador.
+
