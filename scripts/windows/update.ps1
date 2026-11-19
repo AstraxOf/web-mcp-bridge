@@ -29,7 +29,8 @@ function Write-Log($message) {
 function Write-Stamp($status) {
   $commit = (git rev-parse HEAD 2>$null | Out-String).Trim()
   $branch = (git rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
-  $data = [ordered]@{ commit = $commit; branch = $branch; status = $status; checkedAt = (Get-Date).ToUniversalTime().ToString('o') }
+  $latest = (git rev-parse origin/main 2>$null | Out-String).Trim()
+  $data = [ordered]@{ commit = $commit; branch = $branch; latest = $latest; status = $status; checkedAt = (Get-Date).ToUniversalTime().ToString('o') }
   [System.IO.File]::WriteAllText($Stamp, ($data | ConvertTo-Json), (New-Object System.Text.UTF8Encoding($false)))
 }
 
@@ -42,6 +43,8 @@ if ((Test-Path $Log) -and ((Get-Item $Log).Length -gt 200KB)) {
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Write-Log 'ERROR git no esta instalado o no esta en el PATH.'; exit 1 }
 
 $branch = (git rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
+# En cualquier rama se baja origin/main (solo lectura): el panel de la extension compara con ella para decir si la version es la mas reciente.
+git fetch --quiet origin main 2>$null
 if ($branch -ne 'main') {
   Write-Stamp "La carpeta esta en la rama '$branch': la actualizacion automatica solo sigue 'main'."
   exit 0

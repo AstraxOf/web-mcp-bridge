@@ -77,4 +77,29 @@ assert.match(line, /mcp_call/);
 assert.match(WMB.reminderLine([{ server: 's' }], 'result'), /Continúa la tarea/);
 assert.ok(!line.includes('[WMB:'), 'no debe confundirse con el marcador de instrucciones');
 
+// Índice por grupos: un servidor grande que declara `_meta.grupo` se describe por grupos; los nombres, no las firmas
+const grandes = Array.from({ length: 14 }, (_, i) => ({
+  server: 'cad', serverLabel: 'CAD', name: `herr${i}`, description: `Hace la cosa ${i}. ${'Detalle largo. '.repeat(20)}`,
+  grupo: i < 5 ? 'consultar' : i < 10 ? 'editar' : 'archivos', nucleo: i === 0, serverInstructions: 'Control de CAD. Empieza con herr0.',
+  inputSchema: { type: 'object', required: ['a'], properties: { a: { type: 'string' }, b: { type: 'number' } } },
+}));
+const indice = WMB.buildSystemPrompt(grandes);
+assert.match(indice, /Grupos \(las firmas de un grupo: ayuda "cad" con "grupo"\):/);
+assert.match(indice, /- consultar: herr1, herr2, herr3, herr4\n/, 'las del núcleo no se repiten en su grupo');
+assert.match(indice, /- editar: herr5, herr6, herr7, herr8, herr9\n- archivos: herr10, herr11, herr12, herr13/);
+assert.match(indice, /Más usadas:\n- herr0\(a: string, b\?: number\): Hace la cosa 0\./);
+assert.ok(!indice.includes('herr7(') && !indice.includes('Hace la cosa 7'), 'del resto solo los nombres');
+const plano = WMB.buildSystemPrompt(grandes.map(({ grupo, nucleo, ...r }) => r));
+assert.ok(plano.includes('- herr7(a: string, b?: number): Hace la cosa 7.') && !plano.includes('Grupos ('), 'sin grupos se queda como siempre');
+assert.ok(!WMB.buildSystemPrompt(grandes.slice(0, 5)).includes('Grupos ('), 'un servidor pequeño no usa índice aunque declare grupos');
+const base0 = WMB.buildSystemPrompt([]).length;
+assert.ok(indice.length - base0 < (plano.length - base0) * 0.6, `el catálogo por índice debe ahorrar mucho (${indice.length - base0} vs ${plano.length - base0})`);
+const hg = WMB.toolHelp(grandes, 'cad', undefined, 'EDITAR');                    // sin distinguir mayúsculas
+assert.match(hg, /# cad: grupo «editar»/);
+assert.match(hg, /- herr5\(a: string, b\?: number\): Hace la cosa 5\./);
+assert.ok(!hg.includes('herr0') && !hg.includes('herr10'));
+assert.match(WMB.toolHelp(grandes, 'cad', undefined, 'nada'), /no tiene el grupo «nada»\. Grupos: consultar, editar, archivos/);
+assert.match(WMB.toolHelp(grandes, 'cad'), /## Grupos\n- consultar \(5\): herr0, herr1, herr2, herr3, herr4\n- editar \(5\)/);
+assert.match(WMB.toolHelp(grandes, 'cad', 'herr3'), /# cad\.herr3/, 'la ficha de una herramienta sigue funcionando');
+assert.match(WMB.toolHelp(grandes.map(({ grupo, ...r }) => r), 'cad', undefined, 'x'), /no agrupa sus herramientas/);
 console.log('✔ test_prompt: todo correcto');

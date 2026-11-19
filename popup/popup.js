@@ -6,6 +6,7 @@
  *   - Actividad: llamadas a herramientas y registro de eventos (filtrar, exportar, borrar).
  *   - Ajustes:   interfaz (panel lateral) y comportamiento en el chat.
  */
+import { versionInfo } from '../shared/versioning.js';
 import { MAX_ACTIVE_SERVERS, RECOMMENDED_ACTIVE_SERVERS, PERMISSIONS, PERMISSION_LABELS, DEMO_SERVER, PLATFORM_LABELS } from '../shared/constants.js';
 import { mergeActivity, matchesFilter, CATEGORY_LABEL, fmtMs } from '../shared/activity.js';
 
@@ -379,7 +380,17 @@ function renderSettings(settings) {
   if (document.activeElement?.id !== 'set-maxSendsPerMinute') $('#set-maxSendsPerMinute').value = settings.maxSendsPerMinute ?? 8;
 }
 
+function renderVersion(update) {
+  const info = versionInfo({ version: update?.version, commit: update?.commit, branch: update?.branch, latest: update?.latest, bootCommit: update?.bootCommit });
+  const chip = $('#version-chip');
+  chip.textContent = info.label;
+  chip.dataset.state = info.state;
+  chip.title = `${info.title}\n\n(clic: copiar)`;
+  chip.dataset.copy = info.title.split('\n\n')[0];
+}
+
 function renderUpdate(update) {
+  renderVersion(update);
   const out = $('#update-status');
   if (!update?.commit) {
     out.textContent = 'No instalada: ejecuta scripts\\windows\\install.ps1 para registrar la tarea que baja las versiones nuevas de main.';
@@ -387,7 +398,7 @@ function renderUpdate(update) {
   }
   const when = update.checkedAt ? ` · comprobado ${ago(Date.parse(update.checkedAt))}` : '';
   const pending = update.pendingReload ? ' · versión nueva lista: se recargará al terminar la llamada en curso' : '';
-  out.textContent = `Versión ${update.commit.slice(0, 7)} (rama ${update.branch})${when}. ${update.status ?? ''}${pending}`;
+  out.textContent = `${versionInfo({ version: update.version, commit: update.commit, branch: update.branch, latest: update.latest, bootCommit: update.bootCommit }).title.split('\n').join(' · ')}${when}. ${update.status ?? ''}${pending}`;
 }
 
 // ───────────────────────── Pestañas y refresco ─────────────────────────
@@ -423,6 +434,9 @@ async function refresh(force = false) {
 // ───────────────────────── Eventos ─────────────────────────
 
 for (const btn of document.querySelectorAll('.tabs button')) btn.addEventListener('click', () => setTab(btn.dataset.tab));
+$('#version-chip').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#version-chip').dataset.copy ?? ''); toast('Versión copiada'); } catch { toast('No se pudo copiar'); }
+});
 document.querySelector('.tabs').addEventListener('keydown', (e) => { // flechas entre pestañas
   if (!['ArrowLeft', 'ArrowRight'].includes(e.key)) return;
   const tabs = [...document.querySelectorAll('.tabs button')];
