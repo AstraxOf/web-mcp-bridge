@@ -270,3 +270,12 @@
 - Nuevo `WMB.unreadableCallMessage` (utils.js): hasta 700 caracteres explica que el fallo es de formato (llaves, comillas escapadas, barras dobles) y sugiere usar la herramienta específica en vez de `lisp`/`comando`; más largo, o con `@@@` sin cerrar, sigue pidiendo trozos. Mismo límite de 3 reintentos. `core_bridge.js` lo usa y registra el motivo correcto.
 - Prueba en `tests/test_utils.mjs` (corto, largo y @@@).
 
+## 2026-11-19 — Claude (asistente de desarrollo) · Adaptador para Le Chat de Mistral (chat.mistral.ai)
+- Pedido del usuario: usar la extensión con https://chat.mistral.ai/work. Nuevo `content_scripts/adapters/mistral.js` (solo selectores, como Gemini), permiso y script de contenido para `https://chat.mistral.ai/*` en `manifest.json`, plataforma `mistral` en `shared/constants.js` (casilla en el popup) y mención en `INSTALL.md`.
+- LIMITACIÓN: los selectores no se pudieron comprobar contra la web real (Cloudflare bloquea el acceso desde el entorno de desarrollo y hace falta sesión). Cada elemento lleva varios candidatos habituales de Le Chat (editor ProseMirror, `data-message-part-type="answer"`, botones con aria-label). Si falla, `tools/diagnostico-dom.js` (pegar en la consola de la página) saca los selectores reales sin leer el contenido de los mensajes.
+- `tests/test_background.mjs` actualizado (plataformas por defecto). `npm test` pasa.
+
+
+## 2026-11-19 — Claude (asistente de desarrollo) · Versión visible en el panel
+- Pedido del usuario: ver qué versión está instalada, relacionarla con el commit y saber si es la más reciente. La cabecera del popup/panel lleva ahora un indicador `v1.2.0 · 38a33e5`; su color dice si es la más reciente de `main` (verde), si hay commits nuevos en main (ámbar), si es una rama de trabajo (violeta) o si hay una versión nueva en disco pendiente de recargar (ámbar). Pasar el ratón muestra versión, commit completo, rama y `origin/main`; un clic copia esos datos. La línea de Ajustes → Actualizaciones muestra lo mismo.
+- La extensión lee su propio `.git` (`HEAD`, la rama, `packed-refs` y `origin/main`) sin ejecutar nada (`shared/versioning.js`, probado en `tests/test_version.mjs`); si no puede, usa `update-stamp.json`. `update.ps1` hace `git fetch origin main` también en ramas de trabajo y guarda `latest` en el sello, para poder comparar.
