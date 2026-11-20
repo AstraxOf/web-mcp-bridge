@@ -1,6 +1,6 @@
 // Pruebas de shared/versioning.js (sin navegador).
 import assert from 'node:assert/strict';
-import { parseGit, packedRef, versionInfo } from '../shared/versioning.js';
+import { parseGit, packedRef, versionInfo, reposInfo } from '../shared/versioning.js';
 
 const A = 'a'.repeat(40);
 const B = 'b'.repeat(40);
@@ -38,4 +38,12 @@ assert.equal(versionInfo({ ...base, latest: null }).state, 'unknown');
 v = versionInfo({ version: '1.2.0', commit: null });
 assert.equal(v.state, 'unknown'); assert.equal(v.label, 'v1.2.0');
 assert.equal(versionInfo({ commit: A, latest: A, branch: 'main', bootCommit: A }).label.startsWith('v? '), true);
+// repositorios de los MCP
+let r = reposInfo([{ name: 'mis-mcp', branch: 'main', commit: A, latest: A, servers: ['telegram-mcp'] }]);
+assert.equal(r.state, 'ok'); assert.match(r.lines[0], /mis-mcp \(telegram-mcp\): main aaaaaaa · al día/);
+assert.equal(reposInfo([{ name: 'm', branch: 'main', commit: A, latest: C }]).state, 'old');
+r = reposInfo([{ name: 'm', branch: 'main', commit: A, latest: A }, { name: 'n', branch: 'vieja', commit: A, latest: C }]);
+assert.equal(r.state, 'branch'); assert.match(r.lines[1], /vieja/);
+assert.deepEqual(reposInfo(null), { state: 'unknown', lines: [] });
+assert.match(versionInfo(base).title, /^Extensión Web MCP Bridge v1.2.0/);
 console.log('✔ test_version: todo correcto');

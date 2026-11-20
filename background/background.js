@@ -320,6 +320,7 @@ async function fetchDiscovery() {
   const wasOk = bridgeStatus.ok;
   try {
     const listing = await bridgeControl();
+    if (Array.isArray(listing.repos)) update.repos = listing.repos; // versión de los repos de los MCP (p. ej. mis-mcp)
     Object.assign(bridgeStatus, {
       ok: true, at: Date.now(), count: listing.servers.length, error: null, configError: listing.config_error ?? null,
       ports: listing.servers.map((s) => Number(s.port)),
@@ -626,7 +627,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 // La tarea programada (scripts/windows/update.ps1) baja la versión nueva de main y escribe update-stamp.json.
 // La extensión, cargada desde esa carpeta, lee el sello: si el commit cambió desde que arrancó, se recarga sola.
 
-const update = { bootCommit: null, commit: null, branch: null, latest: null, version: null, status: null, checkedAt: null, pendingReload: false };
+const update = { bootCommit: null, commit: null, branch: null, latest: null, version: null, status: null, checkedAt: null, pendingReload: false, repos: null };
 
 /** Texto de un archivo del propio directorio de la extensión (null si no existe o Chrome no lo sirve). */
 async function readOwnFile(path) {

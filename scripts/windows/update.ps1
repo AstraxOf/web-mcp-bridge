@@ -6,7 +6,8 @@
       powershell -ExecutionPolicy Bypass -File scripts\windows\update.ps1 -Python C:\Python314\python.exe
 
   Que hace:
-    1. Solo actua si la carpeta esta en la rama 'main' y no hay cambios locales en archivos del repositorio.
+    1. Solo actua en la rama 'main' y sin cambios locales. Si esta en otra rama YA UNIDA a main y sin cambios,
+       vuelve a main sola.
     2. git fetch + avance rapido (--ff-only) a origin/main. Nunca sobrescribe trabajo local.
     3. Si cambio algo en server\ reinicia el puente (install_service.py lo detiene y lo vuelve a arrancar).
     4. Escribe update-stamp.json: la extension lo lee y, si el commit cambio, se recarga sola.
@@ -46,8 +47,21 @@ $branch = (git rev-parse --abbrev-ref HEAD 2>$null | Out-String).Trim()
 # En cualquier rama se baja origin/main (solo lectura): el panel de la extension compara con ella para decir si la version es la mas reciente.
 git fetch --quiet origin main 2>$null
 if ($branch -ne 'main') {
-  Write-Stamp "La carpeta esta en la rama '$branch': la actualizacion automatica solo sigue 'main'."
-  exit 0
+  # Si la rama ya esta unida a main (PR fusionado) y no hay cambios locales, se vuelve a main sola:
+  # asi la carpeta no se queda parada en una rama vieja sin actualizarse.
+  git merge-base --is-ancestor HEAD origin/main 2>$null
+  $unida = ($LASTEXITCODE -eq 0)
+  # HEAD igual a main = rama recién creada para trabajar: no se toca
+  if (((git rev-parse HEAD) | Out-String).Trim() -eq ((git rev-parse origin/main) | Out-String).Trim()) { $unida = $false }
+  $dirty0 = (git status --porcelain --untracked-files=no | Out-String).Trim()
+  if ($unida -and -not $dirty0) {
+    git checkout --quiet main 2>&1 | Out-Null
+    if ($LASTEXITCODE -eq 0) { Write-Log "rama '$branch' ya unida a main: se vuelve a main"; $branch = 'main' }
+  }
+  if ($branch -ne 'main') {
+    Write-Stamp "La carpeta esta en la rama '$branch' (sin unir a main o con cambios): la actualizacion automatica solo sigue 'main'."
+    exit 0
+  }
 }
 
 git fetch --quiet origin main 2>$null

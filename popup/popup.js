@@ -6,7 +6,7 @@
  *   - Actividad: llamadas a herramientas y registro de eventos (filtrar, exportar, borrar).
  *   - Ajustes:   interfaz (panel lateral) y comportamiento en el chat.
  */
-import { versionInfo } from '../shared/versioning.js';
+import { versionInfo, reposInfo } from '../shared/versioning.js';
 import { MAX_ACTIVE_SERVERS, RECOMMENDED_ACTIVE_SERVERS, PERMISSIONS, PERMISSION_LABELS, DEMO_SERVER, PLATFORM_LABELS } from '../shared/constants.js';
 import { mergeActivity, matchesFilter, CATEGORY_LABEL, fmtMs } from '../shared/activity.js';
 
@@ -390,7 +390,8 @@ function renderVersion(update) {
   const chip = $('#version-chip');
   chip.textContent = info.label;
   chip.dataset.state = info.state;
-  chip.title = `${info.title}\n\n(clic: copiar)`;
+  const mcp = reposInfo(update?.repos);
+  chip.title = `${info.title}${mcp.lines.length ? `\n\nRepositorios de los MCP (versión aparte):\n${mcp.lines.join('\n')}` : ''}\n\n(clic: copiar)`;
   chip.dataset.copy = info.title.split('\n\n')[0];
 }
 
@@ -404,7 +405,9 @@ function renderUpdate(update) {
   const when = update.checkedAt ? ` · comprobado ${ago(Date.parse(update.checkedAt))}` : '';
   const pending = update.pendingReload ? ' · versión nueva lista: se recargará al terminar la llamada en curso' : '';
   const info = versionInfo({ version: update.version, commit: update.commit, branch: update.branch, latest: update.latest, bootCommit: update.bootCommit });
-  out.textContent = `${info.label} (${update.branch ?? 'sin rama'}) · ${info.note ?? ''}${when}. ${update.status ?? ''}${pending}`;
+  const mcp = reposInfo(update.repos);
+  const mcpText = mcp.lines.length ? `\nMCP: ${mcp.lines.join(' | ')}` : '';
+  out.textContent = `Extensión ${info.label} (${update.branch ?? 'sin rama'}) · ${info.note ?? ''}${when}. ${update.status ?? ''}${pending}${mcpText}`;
 }
 
 // ───────────────────────── Pestañas y refresco ─────────────────────────
