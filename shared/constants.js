@@ -47,6 +47,8 @@ export const DEFAULT_SETTINGS = {
   /** Pausa entre dos envíos automáticos al chat: al azar entre estos segundos (evita «Messages too frequent»). */
   sendPauseMinSec: 2,
   sendPauseMaxSec: 5,
+  /** Pausa propia de una plataforma [mín, máx] en segundos (null = la general). AI Studio limita las peticiones por minuto de Google. */
+  platformPauses: { aistudio: [5, 8] },
   /** Máximo de envíos automáticos por minuto (0 = sin límite). */
   maxSendsPerMinute: 8,
   /** Tiempo máximo (segundos) que se espera a una herramienta. Operaciones grandes de AutoCAD pueden tardar minutos. */

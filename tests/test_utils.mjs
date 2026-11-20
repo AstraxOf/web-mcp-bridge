@@ -129,6 +129,16 @@ assert.equal(WMB.planResult({ content: [{ type: 'text', text: 'corto' }] }, { se
   assert.equal(WMB.sendWait(ocho, 100_000, { minSec: 0, perMin: 8 }), 10_500, 'tope por minuto: espera a que salga el más antiguo');
   assert.equal(WMB.sendWait(ocho, 100_000, { minSec: 0, perMin: 0 }), 0, '0 = sin tope');
   assert.equal(WMB.sendWait([10_000, 20_000], 100_000, { minSec: 0, perMin: 2 }), 0, 'los envíos de hace más de un minuto no cuentan');
+  const same = (a, e, m) => assert.equal(JSON.stringify(a), JSON.stringify(e), m);   // el objeto viene de otro contexto (vm)
+  // Pausa por plataforma: la propia si es un rango válido; si no, la general
+  const base = { sendPauseMinSec: 2, sendPauseMaxSec: 5, platformPauses: { aistudio: [5, 8], deepseek: null, mal: [3], raro: ['x', 4], invertido: [9, 4] } };
+  same(WMB.pauseFor(base, 'aistudio'), { min: 5, max: 8 });
+  same(WMB.pauseFor(base, 'deepseek'), { min: 2, max: 5 }, 'null = la general');
+  same(WMB.pauseFor(base, 'gemini'), { min: 2, max: 5 }, 'sin entrada = la general');
+  same(WMB.pauseFor(base, 'mal'), { min: 2, max: 5 }, 'rango incompleto = la general');
+  same(WMB.pauseFor(base, 'raro'), { min: 2, max: 5 }, 'valores no numéricos = la general');
+  same(WMB.pauseFor(base, 'invertido'), { min: 9, max: 9 }, 'el máximo nunca baja del mínimo');
+  same(WMB.pauseFor({}, 'x'), { min: 2, max: 5 }, 'sin ajustes: 2 a 5');
   assert.equal(WMB.backoffMs(0, sinAzar), 20_000);
   assert.equal(WMB.backoffMs(2, sinAzar), 80_000);
   assert.ok(WMB.backoffMs(1, maxAzar) === 52_000);

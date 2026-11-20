@@ -213,6 +213,10 @@ input[type="text"], input[type="number"] {
 .tool-row { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
 .tool-row input { margin-top: 2px; accent-color: var(--accent); flex: none; }
 .tools li.off b { color: var(--muted); text-decoration: line-through; }
+.platform-pauses { display: grid; gap: 4px; margin: 4px 0 8px; }
+.platform-pauses .pp { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.platform-pauses .pp span { flex: 1; }
+.platform-pauses .pp input { width: 54px; }
 .platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 4px; }
 .platform { display: flex; gap: 8px; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
 .platform input { accent-color: var(--accent); }

@@ -312,3 +312,8 @@
 - Ajustes nuevos `sendPauseMinSec` (2) y `sendPauseMaxSec` (5), con dos casillas en Ajustes → Chat (el rango siempre queda mín ≤ máx); sustituyen a `minSendIntervalSec`. Pruebas de `sendWait` actualizadas (rango, azar mínimo/medio/máximo y 200 muestras reales dentro de 2–5 s).
 - Motivo del análisis: la auditoría de una sesión de AI Studio (28 llamadas) mostró que el ciclo completo tardaba una mediana de 33 s entre resultado entregado y siguiente llamada, casi todo tiempo del modelo; la parte de la extensión era ~4 a 5 s (herramienta 0,7 s y entrega 3,6 s, de ellos 2,5 s de una espera fija tras enviar).
 
+## 2026-11-20 — Claude (asistente de desarrollo) · Pausa por plataforma
+- La auditoría de una sesión de AI Studio mostró que Google respondió «You've reached your rate limit. Please try again later.» (cuota de peticiones por minuto) y que la extensión tardó 73 s en entregar un resultado (esperas de 21 s y 46 s). Con pausas de 2 a 5 s entre envíos ese límite se alcanza antes, así que cada chat puede tener su propio rango.
+- Nuevo ajuste `platformPauses` ({plataforma: [mín, máx]}; `null` = la general): AI Studio trae 5 a 8 s; las demás usan la pausa general (2 a 5 s). `WMB.pauseFor` elige el rango (si el de la plataforma no es válido, usa el general; el máximo nunca baja del mínimo) y `core_bridge` lo aplica a su adaptador. En Ajustes → «Pausa por plataforma» hay dos casillas por chat; en blanco = la general.
+- Pruebas de `pauseFor` en `tests/test_utils.mjs`.
+

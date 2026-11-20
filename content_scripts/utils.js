@@ -40,6 +40,18 @@
     return Math.max(0, Math.round(wait));
   };
 
+  /**
+   * Pausa [mín, máx] (segundos) entre envíos para una plataforma: la suya (`platformPauses[id]`, si es un rango válido) o la general.
+   * El máximo nunca baja del mínimo.
+   */
+  WMB.pauseFor = (settings, id) => {
+    const own = settings?.platformPauses?.[id];
+    const ok = (v) => Number.isFinite(Number(v)) && Number(v) >= 0;
+    const min = Array.isArray(own) && ok(own[0]) && ok(own[1]) ? Number(own[0]) : Number(settings?.sendPauseMinSec ?? 2);
+    const max = Array.isArray(own) && ok(own[0]) && ok(own[1]) ? Number(own[1]) : Number(settings?.sendPauseMaxSec ?? 5);
+    return { min, max: Math.max(min, max) };
+  };
+
   /** Espera tras un aviso de «demasiados mensajes»: ~20 s, 40 s, 80 s… con un 30 % de azar. */
   WMB.backoffMs = (attempt, rand = Math.random) => Math.round(20_000 * 2 ** attempt * (1 + 0.3 * rand()));
 
