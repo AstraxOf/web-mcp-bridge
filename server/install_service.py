@@ -114,6 +114,19 @@ def task_xml(user: str, vbs: Path) -> str:
 """
 
 
+def current_user() -> str:
+    """Identificador del usuario actual para la tarea: su SID (resuelve siempre, p. ej. con `WORKGROUP\\usuario` no resolvía) o, si
+    `whoami` falla, DOMINIO\\USUARIO."""
+    try:
+        out = subprocess.run(["whoami", "/user", "/fo", "csv", "/nh"], capture_output=True, text=True, timeout=10).stdout.strip()
+        sid = out.split(",")[-1].strip().strip('"')
+        if sid.startswith("S-1-"):
+            return sid
+    except (OSError, subprocess.SubprocessError):
+        pass
+    return f"{os.environ.get('USERDOMAIN', '')}\\{os.environ.get('USERNAME', '')}".strip("\\")
+
+
 def bridge_listening(timeout: float = 12.0) -> bool:
     """¿Responde el canal de control del puente (127.0.0.1:47615)?"""
     import socket
@@ -131,7 +144,7 @@ def bridge_listening(timeout: float = 12.0) -> bool:
 def start_windows_bridge(vbs: Path) -> str:
     """Arranca el puente fuera de la sesión que lo pide. Devuelve cómo lo hizo: «tarea», «independiente» o «directo»."""
     import tempfile
-    user = f"{os.environ.get('USERDOMAIN', '')}\\{os.environ.get('USERNAME', '')}".strip("\\")
+    user = current_user()
     try:
         xml = Path(tempfile.gettempdir()) / f"{START_TASK}.xml"
         xml.write_text(task_xml(user, vbs), encoding="utf-16")
