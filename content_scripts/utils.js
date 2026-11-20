@@ -368,8 +368,8 @@
    * Si el adjunto falla, `build(false)` deja TODO el texto en línea.
    * @returns {{files:object[], build:(attached:boolean)=>string}}
    */
-  WMB.planResult = (result, { server, name, status, maxChars = 12000 }) => {
-    const base = `${server}_${name}`.replace(/[^\w.-]+/g, '_').slice(0, 40);
+  WMB.planResult = (result, { server, name, status, maxChars = 12000, tag = '' }) => {
+    const base = `${tag}${server}_${name}`.replace(/[^\w.-]+/g, '_').slice(0, 40);
     const { parts, files } = WMB.parseResult(result, base);
     const full = WMB.renderParts(parts, true);
     let overflow = null;

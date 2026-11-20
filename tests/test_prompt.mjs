@@ -30,6 +30,14 @@ assert.match(prompt, /SÍ tienes acceso/);
 assert.ok(prompt.length < 1700, 'el prompt base debe ser compacto');
 assert.notEqual(WMB.toolsSignature(tools), WMB.toolsSignature([]));
 assert.match(WMB.buildSystemPrompt([]), /Ningún servidor MCP activo/);
+{ // varias llamadas por mensaje: solo cambia el prompt si se activa
+  const uno = WMB.buildSystemPrompt([]);
+  assert.match(uno, /UNA llamada por mensaje/); assert.doesNotMatch(uno, /4b\./);
+  const tres = WMB.buildSystemPrompt([], { maxCalls: 3 });
+  assert.match(tres, /1 a 3 llamadas por mensaje/); assert.match(tres, /4b\. Puedes escribir hasta 3 llamadas/); assert.match(tres, /independientes/); assert.match(tres, /las siguientes no se ejecutan/);
+  assert.ok(tres.length - uno.length < 520, `el aviso de varias llamadas debe ser corto (${tres.length - uno.length} caracteres)`);
+  assert.equal(WMB.buildSystemPrompt([], { maxCalls: 1 }), uno);
+}
 
 // Por niveles: catálogo con la primera frase; guía y ficha completa con `wmb.ayuda`
 assert.equal(WMB.firstSentence('Hace A. Luego B y C.'), 'Hace A.');

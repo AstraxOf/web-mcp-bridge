@@ -140,6 +140,7 @@
       sendPauseMinSec: WMB.pauseFor(state.settings, adapter.id).min,   // la pausa de esta plataforma o la general
       sendPauseMaxSec: WMB.pauseFor(state.settings, adapter.id).max,
       maxSendsPerMinute: Number(state.settings.maxSendsPerMinute ?? 8),
+      maxCallsPerMessage: maxCalls(),
     });
     const host = document.getElementById('wmb-host');
     if (host) host.style.display = platformOn() ? '' : 'none'; // plataforma desactivada: ni panel ni acciones
@@ -170,7 +171,7 @@
       widget.log('err', 'No hay herramientas: añade un MCP en el popup, comprueba que esté conectado y que no esté bloqueado.');
       return;
     }
-    const result = await adapter.injectSystemPrompt(state.tools);
+    const result = await adapter.injectSystemPrompt(state.tools, { maxCalls: maxCalls() });
     if (result.ok) {
       sessionStorage.setItem(INJECT_KEY, WMB.toolsSignature(state.tools));
       resetTurns();
@@ -187,8 +188,8 @@
    * (y los textos muy largos) como archivos adjuntos. Si el chat no admite el adjunto, se descarga.
    * Termina con una línea de recordatorio para que la IA no olvide sus herramientas y siga con la tarea.
    */
-  async function deliver(srv, call, { status, text, raw }) {
-    const { autoSend, maxResultChars, reminder } = state.settings;
+  /** Plan de entrega de un resultado (texto en línea + archivos), sustituyendo las imágenes si el chat no las aprovecha. */
+  function planFor(srv, call, { status, text, raw }, maxChars, tag = '') {
     let result = raw ?? { content: [{ type: 'text', text }] };
     // Plataformas que no aprovechan imágenes (DeepSeek solo extrae texto de ellas): adjuntar una captura no aporta
     // nada y la subida puede atascar el envío del resultado. Se sustituye por una nota para la IA.
@@ -199,7 +200,13 @@
       widget.log('ok', `Captura no adjuntada: ${adapter.name} no ve imágenes (se envía una nota en su lugar).`);
       audit('info', 'result.image_skipped', { server: srv.slug, tool: call.name, platform: adapter.id });
     }
-    const plan = WMB.planResult(result, { server: srv.slug, name: call.name, status, maxChars: maxResultChars });
+    return WMB.planResult(result, { server: srv.slug, name: call.name, status, maxChars, tag });
+  }
+
+  async function deliver(srv, call, res) {
+    const { autoSend, maxResultChars, reminder } = state.settings;
+    const { status } = res;
+    const plan = planFor(srv, call, res, maxResultChars);
 
     let attached = true;
     if (plan.files.length) {
@@ -222,6 +229,35 @@
     if (sent.ok) watchAi();
   }
 
+  /**
+   * Entrega los resultados de VARIAS llamadas en un solo mensaje: un bloque [MCP_RESULT] por llamada, en el orden en que se pidieron.
+   * El límite de caracteres se REPARTE entre ellas (lo que sobre de cada una va como archivo adjunto) para no inflar el contexto.
+   */
+  async function deliverMany(items) {
+    if (items.length === 1) return deliver(items[0].srv, items[0].call, items[0].result);
+    const { autoSend, maxResultChars, reminder } = state.settings;
+    const share = Math.max(1500, Math.floor((Number(maxResultChars) || 12000) / items.length));
+    const plans = items.map(({ srv, call, result }, i) => planFor(srv, call, result, share, `${i + 1}-`));
+    const files = plans.flatMap((p) => p.files);
+    let attached = true;
+    if (files.length) {
+      widget.log('ok', `Adjuntando ${files.length} archivo(s) al chat…`);
+      attached = await adapter.attachFiles(files);
+      if (!attached) {
+        for (const file of files.filter((f) => !f.overflow)) { try { WMB.dom.download(WMB.dom.fileFrom(file)); } catch { /* noop */ } }
+        widget.log('err', 'No se pudo adjuntar al chat: se descargó el archivo (arrástralo al chat).');
+      }
+    }
+    const tail = reminder !== false && state.tools.length ? `\n${WMB.reminderLine(state.tools, 'result')}` : '';
+    const sent = await adapter.sendToolResult(`${plans.map((p) => p.build(attached)).join('\n\n')}${tail}`, { autoSend, settleMs: attached && files.length ? 1500 : 0 });
+    audit(sent.ok ? 'info' : 'error', 'result.delivered', {
+      batch: items.length, tools: items.map((i) => i.call?.name), statuses: items.map((i) => i.result?.status), ok: sent.ok, error: sent.error,
+      files: files.length, attached, ...(sent.reintentos ? { rate_limit_retries: sent.reintentos } : {}),
+    });
+    widget.log(sent.ok ? 'ok' : 'err', sent.ok ? `${items.length} resultados enviados a ${adapter.name}.` : sent.error);
+    if (sent.ok) watchAi();
+  }
+
   /** Busca el MCP y la herramienta de una llamada; si el estado local pudiera estar viejo, lo refresca una vez. */
   async function resolveCall(call) {
     const find = () => {
@@ -239,8 +275,14 @@
     return found;
   }
 
-  /** Procesa una llamada MCP detectada en la respuesta de la IA. */
-  async function handleCall({ call }) {
+  /** Llamadas por mensaje que se aceptan (1 = una, como siempre; máx. 3). */
+  const maxCalls = () => Math.min(3, Math.max(1, Math.round(Number(state.settings?.maxCallsPerMessage ?? 1)) || 1));
+
+  /**
+   * Procesa una llamada MCP detectada en la respuesta de la IA. Con `collector`, en lugar de entregar el resultado al chat lo
+   * entrega a esa función (lote de varias llamadas: se devuelven juntas en un solo mensaje).
+   */
+  async function handleCall({ call }, collector = null) {
     if (!state.settings.bridgeEnabled) { audit('warn', 'call.ignored', { reason: 'bridge_off', tool: call.name }); widget.log('err', `Llamada no ejecutada (${call.name}): el puente está apagado.`); return; }
     if (!platformOn()) { audit('warn', 'call.ignored', { reason: 'platform_off', tool: call.name }); widget.log('err', `Llamada no ejecutada (${call.name}): esta web está desactivada en la extensión.`); return; }
     audit('info', 'call.detected', { server: call.server, tool: call.name, args: JSON.stringify(call.arguments ?? {}) });
@@ -252,6 +294,7 @@
       audit('info', 'call.help', { servidor: a.servidor ?? a.server ?? null, herramienta: a.herramienta ?? a.tool ?? null, chars: text.length });
       widget.log('ok', `Ayuda: ${a.servidor ?? a.server ?? ''}${a.herramienta ?? a.tool ? ` › ${a.herramienta ?? a.tool}` : ''}`);
       if (currentId) { const t = tracked.get(currentId); if (t) t.state = 'delivered'; } // si no, se reintentaría
+      if (collector) { collector({ srv: { slug: WMB.HELP_SERVER }, call, result: { status: 'ok', text } }); return; }
       await guarded(deliver({ slug: WMB.HELP_SERVER }, call, { status: 'ok', text }), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
       return;
     }
@@ -336,8 +379,35 @@
       else result.text = `${sync.note}\n${result.text ?? ''}`.trim();
     }
     if (currentId) { const t = tracked.get(currentId); if (t) t.state = 'delivered'; }
+    if (collector) { collector({ srv, call, result }); return; }
     audit('info', 'result.deliver.start', { server: srv.slug, tool: call.name, status: result.status });
     await guarded(deliver(srv, call, result), DELIVER_TIMEOUT_MS, 'El chat no aceptó el resultado a tiempo.');
+  }
+
+  /**
+   * Varias llamadas del mismo mensaje: se ejecutan EN ORDEN y, si una falla o el usuario la rechaza, las siguientes no se ejecutan.
+   * Los resultados vuelven juntos en un solo mensaje (un envío = menos riesgo de «demasiados mensajes»).
+   */
+  async function handleBatch(detected) {
+    const items = [];
+    const collector = (item) => items.push(item);
+    await handleCall(detected, collector);
+    const extra = detected.extra ?? [];
+    audit('info', 'call.batch', { calls: 1 + extra.length, tools: [detected.call?.name, ...extra.map((e) => e.call?.name)] });
+    for (const e of extra) {
+      const last = items.at(-1);
+      if (!last || last.result?.status !== 'ok') {
+        const srv = (await resolveCall(e.call)).srv ?? { slug: String(e.call.server ?? '?') };
+        items.push({ srv, call: e.call, result: { status: 'error', text: 'No se ejecutó: la llamada anterior de este mismo mensaje falló o fue rechazada. Si aún la necesitas, envíala en un mensaje aparte.' } });
+        audit('warn', 'call.batch.skipped', { tool: e.call?.name });
+        continue;
+      }
+      await handleCall({ call: e.call }, collector);
+    }
+    if (!items.length) return;
+    if (currentId) { const t = tracked.get(currentId); if (t) t.state = 'delivered'; }
+    audit('info', 'result.deliver.start', { batch: items.length, tools: items.map((i) => i.call?.name) });
+    await guarded(deliverMany(items), DELIVER_TIMEOUT_MS * 2, 'El chat no aceptó los resultados a tiempo.');
   }
 
   // ───── Sincronización con GitHub antes de tocar un repo (servidores con herramienta `sync_check`, p. ej. repo-github) ─────
@@ -480,7 +550,7 @@
     const startedAt = Date.now();
     unreadableRetries = 0; // llegó una llamada legible: se reinicia el reintento automático
     try {
-      await handleCall(detected);
+      await (detected.extra?.length && maxCalls() > 1 ? handleBatch(detected) : handleCall(detected));
     } catch (err) {
       widget.log('err', `Error: ${err.message}`);
       audit('error', 'call.failed', { tool: detected?.call?.name, error: err.message, stack: String(err.stack ?? '').split('\n').slice(0, 3).join(' | ') });
@@ -532,7 +602,7 @@
     injecting = true;
     (async () => {
       const message = full
-        ? `${WMB.buildSystemPrompt(state.tools)}\n\n---\n## Petición del usuario\n${userText}`
+        ? `${WMB.buildSystemPrompt(state.tools, { maxCalls: maxCalls() })}\n\n---\n## Petición del usuario\n${userText}`
         : `${userText}\n\n${WMB.reminderLine(state.tools)}`;
       if (await WMB.dom.setText(composer, message, { append: false })) {
         if (full) {
