@@ -49,6 +49,8 @@ export const DEFAULT_SETTINGS = {
   sendPauseMaxSec: 5,
   /** Pausa propia de una plataforma [mín, máx] en segundos (null = la general). AI Studio limita las peticiones por minuto de Google. */
   platformPauses: { aistudio: [5, 8] },
+  /** Llamadas que la IA puede escribir en UN mensaje (1 = una, como siempre; máx. 3): se ejecutan en orden y vuelven juntas. */
+  maxCallsPerMessage: 1,
   /** Máximo de envíos automáticos por minuto (0 = sin límite). */
   maxSendsPerMinute: 8,
   /** Tiempo máximo (segundos) que se espera a una herramienta. Operaciones grandes de AutoCAD pueden tardar minutos. */

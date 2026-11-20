@@ -384,6 +384,7 @@ function renderSettings(settings) {
   if (document.activeElement?.id !== 'set-toolTimeoutSec') $('#set-toolTimeoutSec').value = settings.toolTimeoutSec ?? 300;
   if (document.activeElement?.id !== 'set-sendPauseMinSec') $('#set-sendPauseMinSec').value = settings.sendPauseMinSec ?? 2;
   if (document.activeElement?.id !== 'set-sendPauseMaxSec') $('#set-sendPauseMaxSec').value = settings.sendPauseMaxSec ?? 5;
+  if (document.activeElement?.id !== 'set-maxCallsPerMessage') $('#set-maxCallsPerMessage').value = settings.maxCallsPerMessage ?? 1;
   if (document.activeElement?.id !== 'set-maxSendsPerMinute') $('#set-maxSendsPerMinute').value = settings.maxSendsPerMinute ?? 8;
 }
 
@@ -496,6 +497,11 @@ for (const key of ['sendPauseMinSec', 'sendPauseMaxSec']) {
     return api('UPDATE_SETTINGS', { settings: { sendPauseMinSec: min, sendPauseMaxSec: max } });
   }));
 }
+$('#set-maxCallsPerMessage').addEventListener('change', guard((e) => {
+  const value = Math.min(3, Math.max(1, Math.round(Number(e.target.value)) || 1));
+  e.target.value = value;
+  return api('UPDATE_SETTINGS', { settings: { maxCallsPerMessage: value } });
+}));
 $('#set-maxSendsPerMinute').addEventListener('change', guard((e) => {
   const value = Math.min(60, Math.max(0, Math.round(Number(e.target.value)) || 0));
   return api('UPDATE_SETTINGS', { settings: { maxSendsPerMinute: value } });

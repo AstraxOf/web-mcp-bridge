@@ -47,7 +47,7 @@
       this.lastActivity = 0;
       this.freshChat = false;
       this.awaitingSince = 0;   // momento en que se envió algo y se espera una respuesta nueva
-      this.options = { focusFallback: true, sendPauseMinSec: 2, sendPauseMaxSec: 5, maxSendsPerMinute: 8 };
+      this.options = { focusFallback: true, sendPauseMinSec: 2, sendPauseMaxSec: 5, maxSendsPerMinute: 8, maxCallsPerMessage: 1 };
       this.sendTimes = [];              // envíos automáticos recientes (ritmo de envío)
       this.rescan = () => {};
     }
@@ -86,10 +86,10 @@
      * No las envía: el usuario puede añadir su petición y enviarlo todo junto.
      * @returns {Promise<{ok:boolean,error?:string}>}
      */
-    async injectSystemPrompt(activeToolsList) {
+    async injectSystemPrompt(activeToolsList, promptOptions = {}) {
       const composer = await WMB.waitFor(() => this.getComposer(), { timeout: 4000 });
       if (!composer) return { ok: false, error: 'No se encontró el cuadro de texto del chat.' };
-      const ok = await WMB.dom.setText(composer, WMB.buildSystemPrompt(activeToolsList), { append: true });
+      const ok = await WMB.dom.setText(composer, WMB.buildSystemPrompt(activeToolsList, promptOptions), { append: true });
       return ok ? { ok: true } : { ok: false, error: 'No se pudo escribir en el cuadro de texto.' };
     }
 
@@ -160,6 +160,8 @@
         for (const i of indexes) {
           const element = messages[i];
           const calls = WMB.extractMcpCalls(i === last ? text : element.textContent || '');
+          let fire = null; // llamada que se lanza + las extra (hasta maxCallsPerMessage) del MISMO mensaje, como un solo lote
+          const maxCalls = Math.min(3, Math.max(1, Number(this.options.maxCallsPerMessage) || 1));
           calls.forEach((call, n) => {
             const id = `${this.getMessageKey(element, i)}#${n}:${WMB.hash(JSON.stringify(call))}`;
             let known = this.executed.has(id);
@@ -219,10 +221,12 @@
             const launched = this.seenOn.get(element) ?? new Set();
             launched.add(id);
             this.seenOn.set(element, launched);
-            // Protocolo: una llamada por mensaje → solo se ejecuta la primera.
-            if (!baseline && n === 0) callback({ id, call, element });
+            // Protocolo: por defecto una llamada por mensaje (solo la primera). Con `maxCallsPerMessage` > 1, las siguientes nuevas entran en el lote.
+            if (!baseline && n === 0) fire = { id, call, element, extra: [] };
+            else if (!baseline && fire && n < maxCalls) fire.extra.push({ id, call });
             else this.trace('call.skipped', { reason: baseline ? 'baseline' : 'extra_in_message', server: call.server, tool: call.name, n }, baseline ? 'info' : 'warn'); // al recargar la pestaña es normal memorizar las llamadas viejas
           });
+          if (fire) callback(fire);
           if (!baseline && i === last && !calls.length && !streaming && onDone) {
             const doneKey = `${this.getMessageKey(element, i)}:${text.length}`;
             if (doneKey !== lastDone) { lastDone = doneKey; this.trace('ai.done', { chars: text.length, calls: 0, mentionsCall: text.includes('mcp_call') }); onDone({ text, element }); }
