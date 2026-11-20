@@ -376,7 +376,8 @@ function renderSettings(settings) {
   if (document.activeElement?.id !== 'set-maxResultChars') $('#set-maxResultChars').value = settings.maxResultChars;
   if (document.activeElement?.id !== 'set-reinjectEvery') $('#set-reinjectEvery').value = settings.reinjectEvery;
   if (document.activeElement?.id !== 'set-toolTimeoutSec') $('#set-toolTimeoutSec').value = settings.toolTimeoutSec ?? 300;
-  if (document.activeElement?.id !== 'set-minSendIntervalSec') $('#set-minSendIntervalSec').value = settings.minSendIntervalSec ?? 5;
+  if (document.activeElement?.id !== 'set-sendPauseMinSec') $('#set-sendPauseMinSec').value = settings.sendPauseMinSec ?? 2;
+  if (document.activeElement?.id !== 'set-sendPauseMaxSec') $('#set-sendPauseMaxSec').value = settings.sendPauseMaxSec ?? 5;
   if (document.activeElement?.id !== 'set-maxSendsPerMinute') $('#set-maxSendsPerMinute').value = settings.maxSendsPerMinute ?? 8;
 }
 
@@ -477,10 +478,18 @@ $('#set-reinjectEvery').addEventListener('change', guard((e) => {
   const value = Math.min(100, Math.max(0, Math.round(Number(e.target.value)) || 0));
   return api('UPDATE_SETTINGS', { settings: { reinjectEvery: value } });
 }));
-$('#set-minSendIntervalSec').addEventListener('change', guard((e) => {
-  const value = Math.min(120, Math.max(0, Math.round(Number(e.target.value)) || 0));
-  return api('UPDATE_SETTINGS', { settings: { minSendIntervalSec: value } });
-}));
+for (const key of ['sendPauseMinSec', 'sendPauseMaxSec']) {
+  $(`#set-${key}`).addEventListener('change', guard(() => {
+    const clamp = (v) => Math.min(120, Math.max(0, Math.round(Number(v)) || 0));
+    let min = clamp($('#set-sendPauseMinSec').value);
+    let max = clamp($('#set-sendPauseMaxSec').value);
+    if (key === 'sendPauseMinSec' && min > max) max = min;       // el rango siempre es válido (mín ≤ máx)
+    if (key === 'sendPauseMaxSec' && max < min) min = max;
+    $('#set-sendPauseMinSec').value = min;
+    $('#set-sendPauseMaxSec').value = max;
+    return api('UPDATE_SETTINGS', { settings: { sendPauseMinSec: min, sendPauseMaxSec: max } });
+  }));
+}
 $('#set-maxSendsPerMinute').addEventListener('change', guard((e) => {
   const value = Math.min(60, Math.max(0, Math.round(Number(e.target.value)) || 0));
   return api('UPDATE_SETTINGS', { settings: { maxSendsPerMinute: value } });

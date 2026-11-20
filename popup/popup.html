@@ -175,9 +175,12 @@
         <input type="number" id="set-maxResultChars" min="500" max="100000" step="500">
       </label>
       <label class="setting column">
-        <strong>Pausa mínima entre envíos al chat (segundos)</strong>
-        <small>Evita el aviso «Messages too frequent» de DeepSeek y otros chats. Se suma hasta un 50 % al azar. 0 = sin pausa.</small>
-        <input type="number" id="set-minSendIntervalSec" min="0" max="120" step="1">
+        <strong>Pausa entre envíos al chat (segundos, de … a …)</strong>
+        <small>Evita el aviso «Messages too frequent» de DeepSeek y otros chats. Cada envío espera una pausa al azar dentro de este rango. 0 y 0 = sin pausa.</small>
+        <span class="row-gap">
+          <input type="number" id="set-sendPauseMinSec" min="0" max="120" step="1" aria-label="Pausa mínima">
+          <input type="number" id="set-sendPauseMaxSec" min="0" max="120" step="1" aria-label="Pausa máxima">
+        </span>
       </label>
       <label class="setting column">
         <strong>Máximo de envíos al chat por minuto</strong>

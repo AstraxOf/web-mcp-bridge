@@ -113,11 +113,18 @@ assert.equal(WMB.planResult({ content: [{ type: 'text', text: 'corto' }] }, { se
 // Ritmo de envío («Messages too frequent»)
 {
   const sinAzar = () => 0, maxAzar = () => 1;
-  assert.equal(WMB.sendWait([], 100_000, { minSec: 5, perMin: 8 }), 0, 'primer envío: sin espera');
-  assert.equal(WMB.sendWait([98_000], 100_000, { minSec: 5 }, sinAzar), 3000, 'faltan 3 s para los 5 s mínimos');
-  assert.equal(WMB.sendWait([98_000], 100_000, { minSec: 5 }, maxAzar), 5500, 'con azar máximo: 7,5 s desde el último');
-  assert.equal(WMB.sendWait([90_000], 100_000, { minSec: 5 }, maxAzar), 0, 'ya pasó el tiempo');
-  assert.equal(WMB.sendWait([98_000], 100_000, { minSec: 0 }), 0, '0 = sin pausa');
+  assert.equal(WMB.sendWait([], 100_000, { minSec: 2, maxSec: 5, perMin: 8 }), 0, 'primer envío: sin espera');
+  assert.equal(WMB.sendWait([98_000], 100_000, { minSec: 2, maxSec: 5 }, sinAzar), 0, 'pausa de 2 s (mínimo del rango): ya pasaron');
+  assert.equal(WMB.sendWait([99_000], 100_000, { minSec: 2, maxSec: 5 }, sinAzar), 1000, 'rango 2–5 con el azar al mínimo: faltan 1 s para los 2 s');
+  assert.equal(WMB.sendWait([99_000], 100_000, { minSec: 2, maxSec: 5 }, maxAzar), 4000, 'con el azar al máximo: 5 s desde el último');
+  assert.equal(WMB.sendWait([99_000], 100_000, { minSec: 2, maxSec: 5 }, () => 0.5), 2500, 'a mitad del rango: 3,5 s desde el último');
+  assert.equal(WMB.sendWait([90_000], 100_000, { minSec: 2, maxSec: 5 }, maxAzar), 0, 'ya pasó el tiempo');
+  assert.equal(WMB.sendWait([99_000], 100_000, { minSec: 5 }, maxAzar), 4000, 'sin máximo: pausa fija de 5 s');
+  assert.equal(WMB.sendWait([98_000], 100_000, { minSec: 0, maxSec: 0 }), 0, '0 y 0 = sin pausa');
+  for (let i = 0; i < 200; i += 1) {                                  // con azar real, siempre dentro del rango (2–5 s desde el último envío)
+    const espera = WMB.sendWait([100_000], 100_000, { minSec: 2, maxSec: 5 });
+    assert.ok(espera >= 2000 && espera <= 5000, `espera fuera del rango: ${espera}`);
+  }
   const ocho = [50_000, 55_000, 60_000, 65_000, 70_000, 75_000, 80_000, 85_000];
   assert.equal(WMB.sendWait(ocho, 100_000, { minSec: 0, perMin: 8 }), 10_500, 'tope por minuto: espera a que salga el más antiguo');
   assert.equal(WMB.sendWait(ocho, 100_000, { minSec: 0, perMin: 0 }), 0, '0 = sin tope');
