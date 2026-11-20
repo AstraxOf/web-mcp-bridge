@@ -43,7 +43,7 @@ try {
   for (const code of scripts) await page.addScriptTag({ content: code });
   await page.evaluate(() => {
     window.a = WMB.findAdapter('chat.deepseek.com');
-    window.a.configure({ minSendIntervalSec: 1, maxSendsPerMinute: 0 });
+    window.a.configure({ sendPauseMinSec: 1, sendPauseMaxSec: 1, maxSendsPerMinute: 0 });
     window.registro = []; window.a.debug = (k, m) => window.registro.push(m);
     WMB.backoffMs = () => 400; // en la prueba no se esperan 20 s
   });
@@ -57,9 +57,9 @@ try {
   // 2) Pausa mínima: el siguiente envío espera al menos 1 s desde el anterior
   // (el envío anterior acabó hace ~2,5 s: con una pausa mínima de 4 s todavía hay que esperar ≥ 1,5 s)
   r = await page.evaluate(async () => {
-    window.a.configure({ minSendIntervalSec: 4 });
+    window.a.configure({ sendPauseMinSec: 4, sendPauseMaxSec: 4 });
     const t0 = Date.now(); const res = await window.a.sendToolResult('RESULTADO 2');
-    window.a.configure({ minSendIntervalSec: 1 });
+    window.a.configure({ sendPauseMinSec: 1, sendPauseMaxSec: 1 });
     return { ...res, ms: Date.now() - t0 };
   });
   assert.ok(r.ok && !r.reintentos && r.ms >= 1300, JSON.stringify(r));

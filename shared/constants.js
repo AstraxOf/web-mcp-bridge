@@ -44,8 +44,9 @@ export const DEFAULT_SETTINGS = {
   preferSidePanel: false,
   /** Recargar la extensión sola cuando la tarea de actualización baja una versión nueva (update-stamp.json). */
   autoUpdate: true,
-  /** Segundos mínimos entre dos envíos automáticos al chat (+ hasta un 50 % al azar): evita «Messages too frequent». */
-  minSendIntervalSec: 5,
+  /** Pausa entre dos envíos automáticos al chat: al azar entre estos segundos (evita «Messages too frequent»). */
+  sendPauseMinSec: 2,
+  sendPauseMaxSec: 5,
   /** Máximo de envíos automáticos por minuto (0 = sin límite). */
   maxSendsPerMinute: 8,
   /** Tiempo máximo (segundos) que se espera a una herramienta. Operaciones grandes de AutoCAD pueden tardar minutos. */

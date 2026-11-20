@@ -47,7 +47,7 @@
       this.lastActivity = 0;
       this.freshChat = false;
       this.awaitingSince = 0;   // momento en que se envió algo y se espera una respuesta nueva
-      this.options = { focusFallback: true, minSendIntervalSec: 5, maxSendsPerMinute: 8 };
+      this.options = { focusFallback: true, sendPauseMinSec: 2, sendPauseMaxSec: 5, maxSendsPerMinute: 8 };
       this.sendTimes = [];              // envíos automáticos recientes (ritmo de envío)
       this.rescan = () => {};
     }
@@ -349,7 +349,7 @@
     async sendToolResult(text, { autoSend = true, settleMs = 0 } = {}) {
       // Ritmo: los chats rechazan mensajes muy seguidos («Messages too frequent. Try again later.»).
       const wait = autoSend ? WMB.sendWait([...this.sendTimes, this.lastSendAt].filter(Boolean), Date.now(), {
-        minSec: this.options.minSendIntervalSec, perMin: this.options.maxSendsPerMinute }) : 0;
+        minSec: this.options.sendPauseMinSec, maxSec: this.options.sendPauseMaxSec, perMin: this.options.maxSendsPerMinute }) : 0;
       if (wait > 0) {
         this.debug?.('ok', `Esperando ${Math.ceil(wait / 1000)} s antes de enviar (para no mandar mensajes demasiado seguidos).`);
         await WMB.sleep(wait);

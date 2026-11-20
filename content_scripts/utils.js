@@ -24,14 +24,15 @@
 
   /**
    * Milisegundos que hay que esperar antes del siguiente envío automático para respetar:
-   * - `minSec` segundos desde el último envío, más un margen aleatorio de hasta el 50 % (parece menos un robot);
+   * - entre `minSec` y `maxSec` segundos desde el último envío, a suerte dentro de ese rango (parece menos un robot; sin `maxSec`, fija);
    * - como mucho `perMin` envíos en los últimos 60 s (0 = sin límite).
    * @param {number[]} times instantes (ms) de los envíos anteriores
    */
-  WMB.sendWait = (times, now, { minSec = 0, perMin = 0 } = {}, rand = Math.random) => {
+  WMB.sendWait = (times, now, { minSec = 0, maxSec = 0, perMin = 0 } = {}, rand = Math.random) => {
     let wait = 0;
     const last = times.length ? Math.max(...times) : 0;
-    if (minSec > 0 && last) wait = Math.max(wait, last + minSec * 1000 * (1 + 0.5 * rand()) - now);
+    const pausa = minSec + (Math.max(maxSec, minSec) - minSec) * rand();     // segundos, al azar dentro del rango
+    if (pausa > 0 && last) wait = Math.max(wait, last + pausa * 1000 - now);
     if (perMin > 0) {
       const recent = times.filter((t) => now - t < 60_000).sort((a, b) => a - b);
       if (recent.length >= perMin) wait = Math.max(wait, recent[recent.length - perMin] + 60_000 - now + 500);

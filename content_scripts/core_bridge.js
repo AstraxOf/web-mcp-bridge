@@ -137,7 +137,8 @@
     state.tools = active.tools;
     adapter.configure({
       focusFallback: state.settings.focusFallback !== false,
-      minSendIntervalSec: Number(state.settings.minSendIntervalSec ?? 5),
+      sendPauseMinSec: Number(state.settings.sendPauseMinSec ?? 2),
+      sendPauseMaxSec: Number(state.settings.sendPauseMaxSec ?? 5),
       maxSendsPerMinute: Number(state.settings.maxSendsPerMinute ?? 8),
     });
     const host = document.getElementById('wmb-host');
