@@ -47,8 +47,6 @@ export const DEFAULT_SETTINGS = {
   /** Pausa entre dos envíos automáticos al chat: al azar entre estos segundos (evita «Messages too frequent»). */
   sendPauseMinSec: 2,
   sendPauseMaxSec: 5,
-  /** Pausa propia de una plataforma [mín, máx] en segundos (null = la general). AI Studio limita las peticiones por minuto de Google. */
-  platformPauses: { aistudio: [5, 8] },
   /** Llamadas que la IA puede escribir en UN mensaje (1 = una, como siempre; máx. 3): se ejecutan en orden y vuelven juntas. */
   maxCallsPerMessage: 1,
   /** Máximo de envíos automáticos por minuto (0 = sin límite). */
@@ -56,7 +54,7 @@ export const DEFAULT_SETTINGS = {
   /** Tiempo máximo (segundos) que se espera a una herramienta. Operaciones grandes de AutoCAD pueden tardar minutos. */
   toolTimeoutSec: 300,
   /** Plataformas donde actúa la extensión. Las desactivadas se ignoran por completo (no inyecta ni ejecuta nada). */
-  platforms: { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, qwen: true, aistudio: true },
+  platforms: { chatgpt: false, gemini: false, claude: false, deepseek: false, mistral: false, qwen: false, aistudio: false },
 };
 
 /** Nombres visibles de las plataformas (ids de los adaptadores). */

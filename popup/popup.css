@@ -213,13 +213,6 @@ input[type="text"], input[type="number"] {
 .tool-row { display: flex; gap: 8px; align-items: flex-start; cursor: pointer; }
 .tool-row input { margin-top: 2px; accent-color: var(--accent); flex: none; }
 .tools li.off b { color: var(--muted); text-decoration: line-through; }
-.platform-pauses { display: grid; gap: 4px; margin: 4px 0 8px; }
-.platform-pauses .pp { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
-.platform-pauses .pp span { flex: 1; }
-.platform-pauses .pp input { width: 54px; }
-.platforms { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 4px; }
-.platform { display: flex; gap: 8px; align-items: center; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); cursor: pointer; }
-.platform input { accent-color: var(--accent); }
 
 /* ───────── Actividad: listado único con insignias ───────── */
 .act-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
@@ -256,3 +249,25 @@ input[type="text"], input[type="number"] {
   .badge.cat-ai { color: #c4b5fd; } .badge.cat-sync { color: #7dd3fc; }
 }
 .slug { margin-left: 6px; font-size: 10.5px; color: var(--muted); }
+
+/* Ajustes compactos: una fila por opción (icono · nombre · control) y el texto explicativo en una pista (i) */
+.srow { position: relative; display: flex; align-items: center; gap: 8px; min-height: 34px; padding: 3px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.srow.toggle { cursor: pointer; }
+.srow > .icon { flex: none; color: var(--muted); }
+.srow .slabel { flex: 1; min-width: 0; }
+.srow .sctl { display: inline-flex; align-items: center; gap: 4px; flex: none; }
+.srow .sctl input[type="number"] { width: 58px; padding: 3px 6px; text-align: right; }
+#set-maxResultChars { width: 78px !important; }
+.srow .sctl b { color: var(--muted); font-weight: 500; }
+.hint { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 3px; border: 1px solid var(--muted); border-radius: 50%; font: 600 9px/1 system-ui, sans-serif; font-style: normal; color: var(--muted); cursor: help; vertical-align: 1px; }
+.hint:hover, .hint:focus { color: var(--accent); border-color: var(--accent); outline: none; }
+.hint::after { content: attr(data-hint); display: none; position: absolute; left: 0; right: 0; top: calc(100% + 2px); z-index: 20; padding: 7px 9px; background: var(--ink); color: var(--bg, #fff); border-radius: 6px; font: 400 12px/1.35 system-ui, sans-serif; text-align: left; box-shadow: 0 4px 14px #0003; white-space: normal; }
+.hint:hover::after, .hint:focus::after { display: block; }
+.hint-line { position: relative; margin: 4px 0 0; }
+.notice { margin: 6px 0 0; padding: 6px 8px; border-radius: 6px; background: var(--busy-soft, #b453091f); color: var(--busy); font-size: 12px; }
+.platforms { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 4px; }
+.platform { position: relative; cursor: pointer; }
+.platform input { position: absolute; opacity: 0; width: 0; height: 0; }
+.platform span { display: inline-block; padding: 3px 10px; border: 1px solid var(--line); border-radius: 999px; font-size: 12.5px; color: var(--muted); background: var(--surface); }
+.platform input:checked + span { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.platform input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }

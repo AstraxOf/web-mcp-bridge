@@ -16,7 +16,7 @@ const files = ['utils.js', 'prompt_builder.js', 'ui_widget.js', 'adapters/base_a
 const FAKE_CHROME = (maxCalls, failTool) => `
   window.calls = [];
   window.chrome = { runtime: { id: 'test', onMessage: { addListener() {} }, sendMessage: async (m) => {
-    if (m.type === 'GET_STATE') return { ok: true, settings: { bridgeEnabled: true, autoSend: false, autoInject: false, reminder: false, toolTimeoutSec: 30, maxResultChars: 12000, maxCallsPerMessage: ${maxCalls} },
+    if (m.type === 'GET_STATE') return { ok: true, settings: { platforms: { deepseek: true }, bridgeEnabled: true, autoSend: false, autoInject: false, reminder: false, toolTimeoutSec: 30, maxResultChars: 12000, maxCallsPerMessage: ${maxCalls} },
       servers: [{ id: 's1', name: 'autocad', slug: 'autocad', url: 'http://x', enabled: true, permission: 'allow' }] };
     if (m.type === 'GET_ACTIVE_TOOLS') return { ok: true, tools: ['panorama', 'textos', 'buscar'].map((name) => ({ server: 'autocad', serverLabel: 'autocad', name, description: '', inputSchema: { type: 'object', properties: {} } })) };
     if (m.type === 'CALL_TOOL') {
