@@ -135,10 +135,11 @@ assert.match(bloqueada.error, /desactivada por el usuario/);
 await call({ type: 'SET_TOOLS_ENABLED', id: conTools.id, enabled: true }); // todas de nuevo
 assert.ok((await call({ type: 'GET_ACTIVE_TOOLS' })).tools.some((t) => t.name === nombre));
 
-// 8c) Plataformas: una configuración antigua sin `platforms` se completa con todas activas
-assert.deepEqual(state.settings.platforms, { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, qwen: true, aistudio: true });
-await call({ type: 'UPDATE_SETTINGS', settings: { platforms: { ...state.settings.platforms, gemini: false } } });
-assert.equal((await call({ type: 'GET_STATE' })).settings.platforms.gemini, false);
+// 8c) Plataformas: ninguna viene activa; una configuración antigua se completa con todas apagadas y lo que el usuario eligió se conserva
+assert.deepEqual(state.settings.platforms, { chatgpt: false, gemini: false, claude: false, deepseek: false, mistral: false, qwen: false, aistudio: false });
+await call({ type: 'UPDATE_SETTINGS', settings: { platforms: { ...state.settings.platforms, gemini: true } } });
+assert.equal((await call({ type: 'GET_STATE' })).settings.platforms.gemini, true);
+assert.equal((await call({ type: 'GET_STATE' })).settings.platforms.claude, false);
 
 // 9) Registro de eventos: llamadas, cambios de configuración y eventos del chat; recorte de textos y borrado
 let logs = (await call({ type: 'GET_LOGS' })).logs;

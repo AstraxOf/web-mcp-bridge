@@ -371,14 +371,11 @@ function renderSettings(settings) {
   $('#set-autoUpdate').checked = settings.autoUpdate !== false;
   for (const [id] of Object.entries(PLATFORM_LABELS)) {
     const box = $(`#plat-${id}`);
-    if (box) box.checked = settings.platforms?.[id] !== false;
-    const own = settings.platformPauses?.[id];
-    for (const [k, i] of [['min', 0], ['max', 1]]) {
-      const inp = $(`#pp-${id}-${k}`);
-      if (inp && document.activeElement !== inp) inp.value = Array.isArray(own) ? own[i] : '';
-      if (inp) inp.placeholder = String(k === 'min' ? settings.sendPauseMinSec ?? 2 : settings.sendPauseMaxSec ?? 5);
-    }
+    if (box) box.checked = settings.platforms?.[id] === true;     // ninguna viene activa
   }
+  const ningunaActiva = !Object.keys(PLATFORM_LABELS).some((id) => settings.platforms?.[id] === true);
+  $('#platform-notice').hidden = !ningunaActiva;
+  if (settings.bridgeEnabled && ningunaActiva) $('#master-label').textContent = 'Bridge activado · ningún chat activo (Ajustes)';
   if (document.activeElement?.id !== 'set-maxResultChars') $('#set-maxResultChars').value = settings.maxResultChars;
   if (document.activeElement?.id !== 'set-reinjectEvery') $('#set-reinjectEvery').value = settings.reinjectEvery;
   if (document.activeElement?.id !== 'set-toolTimeoutSec') $('#set-toolTimeoutSec').value = settings.toolTimeoutSec ?? 300;
@@ -406,7 +403,8 @@ function renderUpdate(update) {
   }
   const when = update.checkedAt ? ` · comprobado ${ago(Date.parse(update.checkedAt))}` : '';
   const pending = update.pendingReload ? ' · versión nueva lista: se recargará al terminar la llamada en curso' : '';
-  out.textContent = `${versionInfo({ version: update.version, commit: update.commit, branch: update.branch, latest: update.latest, bootCommit: update.bootCommit }).title.split('\n').join(' · ')}${when}. ${update.status ?? ''}${pending}`;
+  const info = versionInfo({ version: update.version, commit: update.commit, branch: update.branch, latest: update.latest, bootCommit: update.bootCommit });
+  out.textContent = `${info.label} (${update.branch ?? 'sin rama'}) · ${info.note ?? ''}${when}. ${update.status ?? ''}${pending}`;
 }
 
 // ───────────────────────── Pestañas y refresco ─────────────────────────
@@ -531,24 +529,8 @@ $('#export-logs').addEventListener('click', guard(async () => {
   toast(`Exportados ${logs.length} eventos y ${history.length} llamadas.`);
 }));
 
-// Pausa por plataforma: dos casillas (mín y máx) por chat; en blanco = la general
-$('#platform-pauses').replaceChildren(...Object.entries(PLATFORM_LABELS).map(([id, name]) => {
-  const min = el('input', { type: 'number', min: '0', max: '120', step: '1', id: `pp-${id}-min`, 'aria-label': `${name}: pausa mínima` });
-  const max = el('input', { type: 'number', min: '0', max: '120', step: '1', id: `pp-${id}-max`, 'aria-label': `${name}: pausa máxima` });
-  const save = guard(async () => {
-    const { settings } = await api('GET_STATE');
-    const clamp = (v) => Math.min(120, Math.max(0, Math.round(Number(v)) || 0));
-    let value = null;                                              // los dos vacíos: vuelve a la pausa general
-    if (min.value !== '' || max.value !== '') {
-      const a = clamp(min.value !== '' ? min.value : settings.sendPauseMinSec ?? 2);
-      value = [a, Math.max(a, clamp(max.value !== '' ? max.value : settings.sendPauseMaxSec ?? 5))];
-    }
-    await api('UPDATE_SETTINGS', { settings: { platformPauses: { ...settings.platformPauses, [id]: value } } });
-  });
-  min.addEventListener('change', save);
-  max.addEventListener('change', save);
-  return el('div', { class: 'pp' }, el('span', { text: name }), min, max);
-}));
+// Las pistas (i) dentro de una fila-interruptor no deben activarla al pulsarlas
+document.addEventListener('click', (e) => { if (e.target.closest?.('.hint')) e.preventDefault(); });
 
 // Plataformas: casillas generadas a partir de PLATFORM_LABELS
 $('#platforms').replaceChildren(...Object.entries(PLATFORM_LABELS).map(([id, name]) => {

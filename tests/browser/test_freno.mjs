@@ -18,7 +18,7 @@ const FAKE_CHROME = `
   Element.prototype.attachShadow = function (o) { return attach.call(this, { ...o, mode: 'open' }); };
   window.calls = [];
   window.chrome = { runtime: { id: 'test', onMessage: { addListener() {} }, sendMessage: async (m) => {
-    if (m.type === 'GET_STATE') return { ok: true, settings: { bridgeEnabled: true, autoSend: false, autoInject: false, reminder: false, toolTimeoutSec: 30, maxResultChars: 12000 },
+    if (m.type === 'GET_STATE') return { ok: true, settings: { platforms: { deepseek: true }, bridgeEnabled: true, autoSend: false, autoInject: false, reminder: false, toolTimeoutSec: 30, maxResultChars: 12000 },
       servers: [{ id: 's1', name: 'autocad', slug: 'autocad', url: 'http://x', enabled: true, permission: 'allow' }] };
     if (m.type === 'GET_ACTIVE_TOOLS') return { ok: true, tools: [{ server: 'autocad', serverLabel: 'autocad', name: 'lisp', description: '', inputSchema: { type: 'object', properties: {} } }] };
     if (m.type === 'CALL_TOOL') { window.calls.push(m.arguments.n); return { ok: false, error: 'AutoCAD está ocupado' }; }

@@ -137,8 +137,8 @@
     state.tools = active.tools;
     adapter.configure({
       focusFallback: state.settings.focusFallback !== false,
-      sendPauseMinSec: WMB.pauseFor(state.settings, adapter.id).min,   // la pausa de esta plataforma o la general
-      sendPauseMaxSec: WMB.pauseFor(state.settings, adapter.id).max,
+      sendPauseMinSec: Number(state.settings.sendPauseMinSec ?? 2),
+      sendPauseMaxSec: Math.max(Number(state.settings.sendPauseMinSec ?? 2), Number(state.settings.sendPauseMaxSec ?? 5)),
       maxSendsPerMinute: Number(state.settings.maxSendsPerMinute ?? 8),
       maxCallsPerMessage: maxCalls(),
     });
@@ -158,7 +158,7 @@
 
   /** ¿El usuario quiere que la extensión actúe en esta plataforma? (Ajustes → Plataformas) */
   function platformOn() {
-    return state.settings.platforms?.[adapter.id] !== false;
+    return state.settings.platforms?.[adapter.id] === true;   // ninguna plataforma viene activa: se elige en Ajustes
   }
 
   async function injectInstructions() {
