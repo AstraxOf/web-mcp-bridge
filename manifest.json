@@ -31,6 +31,7 @@
     "https://chat.deepseek.com/*",
     "https://chat.mistral.ai/*",
     "https://chat.qwen.ai/*",
+    "https://aistudio.google.com/*",
     "ws://localhost/*",
     "ws://127.0.0.1/*",
     "http://localhost/*",
@@ -121,6 +122,20 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/qwen.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://aistudio.google.com/*"
+      ],
+      "js": [
+        "content_scripts/utils.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/aistudio.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"

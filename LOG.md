@@ -303,3 +303,7 @@
 - `python server/auditoria.py [--dias N] [--errores] [--carpeta …]` resume llamadas, errores y tiempos por herramienta, y entiende también el formato de `autocad-mcp`.
 - Pruebas: `tests/test_auditoria.py` (máscara, escritura, purga, resumen), `tests/test_audit.mjs` (receptor) y `tests/test_bridge_config.py` (el puente real guarda un lote, enmascara y rechaza a otras extensiones y lotes inválidos). `npm test` pasa.
 
+## 2026-11-20 — Claude (asistente de desarrollo) · Adaptador para Google AI Studio
+- Pedido del usuario: usar la extensión también con https://aistudio.google.com. Nuevo `content_scripts/adapters/aistudio.js` (cuadro de texto de `ms-prompt-box`, botón «Run»/«Stop», respuestas en `ms-text-chunk`/`ms-cmark-node`), con permiso y script de contenido en `manifest.json`, plataforma y casilla «Google AI Studio» en Ajustes y mención en `INSTALL.md`.
+- LIMITACIÓN: AI Studio exige sesión de Google y no se pudo ver desde el entorno de desarrollo: los selectores son los habituales de su interfaz, con varios candidatos por elemento. Se excluyen el razonamiento («Thoughts», `ms-thought-chunk`) y los turnos del usuario, que llevan ejemplos de `mcp_call`. Si algo falla: `tools/diagnostico-dom.js` en la consola de la página.
+

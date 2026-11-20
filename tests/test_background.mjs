@@ -136,7 +136,7 @@ await call({ type: 'SET_TOOLS_ENABLED', id: conTools.id, enabled: true }); // to
 assert.ok((await call({ type: 'GET_ACTIVE_TOOLS' })).tools.some((t) => t.name === nombre));
 
 // 8c) Plataformas: una configuración antigua sin `platforms` se completa con todas activas
-assert.deepEqual(state.settings.platforms, { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, qwen: true });
+assert.deepEqual(state.settings.platforms, { chatgpt: true, gemini: true, claude: true, deepseek: true, mistral: true, qwen: true, aistudio: true });
 await call({ type: 'UPDATE_SETTINGS', settings: { platforms: { ...state.settings.platforms, gemini: false } } });
 assert.equal((await call({ type: 'GET_STATE' })).settings.platforms.gemini, false);
 
