@@ -507,6 +507,19 @@ $('#set-maxSendsPerMinute').addEventListener('change', guard((e) => {
   const value = Math.min(60, Math.max(0, Math.round(Number(e.target.value)) || 0));
   return api('UPDATE_SETTINGS', { settings: { maxSendsPerMinute: value } });
 }));
+$('#update-now').addEventListener('click', guard(async () => {
+  const btn = $('#update-now');
+  btn.disabled = true;
+  try {
+    const res = await api('UPDATE_NOW');
+    if (!res?.ok) { toast(`No se pudo buscar: ${res?.error ?? 'error'}`); return; }
+    toast(`Buscando actualizaciones (${res.repos.join(', ')})… si hay algo nuevo, se instala y la extensión se recarga sola.`);
+    $('#update-status').textContent = 'Buscando actualizaciones en GitHub…';
+  } finally {
+    setTimeout(() => { btn.disabled = false; }, 20_000);
+  }
+}));
+
 $('#set-toolTimeoutSec').addEventListener('change', guard((e) => {
   const value = Math.min(1800, Math.max(10, Math.round(Number(e.target.value)) || 300));
   return api('UPDATE_SETTINGS', { settings: { toolTimeoutSec: value } });

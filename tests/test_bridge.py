@@ -55,7 +55,30 @@ async def main():
     print("✔ test_bridge: todo correcto")
 
 
+def test_scripts_actualizacion():
+    """El de la extensión va al final (puede reiniciar el puente); los de los repos de los MCP, antes."""
+    import tempfile
+    from pathlib import Path
+    import mcp_ws_bridge as B
+    raiz = Path(tempfile.mkdtemp())
+    (raiz / ".git").mkdir()
+    (raiz / ".git" / "HEAD").write_text("ref: refs/heads/main\n")
+    (raiz / "actualizacion").mkdir()
+    (raiz / "actualizacion" / "actualizar.ps1").write_text("")
+    (raiz / "x-mcp").mkdir()
+    (raiz / "x-mcp" / "x.py").write_text("")
+
+    class M:
+        active = {"x": (B.ServerConfig(name="x", command=["python", str(raiz / "x-mcp" / "x.py")], port=1), None)}
+    s = B.scripts_actualizacion(M())
+    assert s[0] == raiz / "actualizacion" / "actualizar.ps1"
+    assert s[-1].name == "update.ps1"
+    print("✔ test_scripts_actualizacion")
+
+
 if __name__ == "__main__":
+    sys.path.insert(0, str(ROOT / "server"))
+    test_scripts_actualizacion()
     bridge = subprocess.Popen(
         [sys.executable, str(ROOT / "server/mcp_ws_bridge.py"), "--port", str(PORT), "--name", "demo", "--",
          sys.executable, str(ROOT / "server/examples/demo_mcp_server.py")],
@@ -67,3 +90,4 @@ if __name__ == "__main__":
     finally:
         bridge.terminate()
         bridge.wait(timeout=5)
+

@@ -79,6 +79,18 @@ function scheduleBroadcast() {
 /** Último estado registrado por servidor: evita llenar el registro con cada reintento de reconexión. */
 const lastLogged = new Map();
 
+/** Aviso que manda un MCP por su cuenta (notifications/message o notifications/progress) → registro de Actividad. */
+function logNotice(conn, method, params) {
+  const raw = method === 'notifications/progress'
+    ? (params.message ?? `${params.progress ?? '?'}${params.total ? ` de ${params.total}` : ''}`)
+    : params.data;
+  const message = String(typeof raw === 'string' ? raw : JSON.stringify(raw ?? '')).slice(0, 400);
+  if (!message) return;
+  const level = ['error', 'critical', 'alert', 'emergency'].includes(params.level) ? 'error'
+    : params.level === 'warning' ? 'warn' : 'info';
+  log(level, 'server.notice', { server: conn.server.name, message });
+}
+
 function logConnection(conn, evt) {
   const name = conn.server.name;
   if (evt.kind === 'tools') {
@@ -144,6 +156,7 @@ async function reconcile() {
     } else {
       const Connection = isHttp(server.url) ? HttpMcpConnection : McpConnection;
       const conn = new Connection(server, (evt) => onConnectionChange(evt, conn), () => gateFor(conn.server));
+      conn.onNotice = (method, params) => logNotice(conn, method, params);
       connections.set(id, conn);
       conn.connect();
     }
@@ -562,6 +575,7 @@ async function handleMessage(msg, sender) {
       return { ok: true, servers: res.servers };
     }
     case 'CHECK_UPDATE': return { ok: true, update: await checkUpdate() };
+    case 'UPDATE_NOW': return updateNow();
     case 'OPEN_EDITOR':
       await chrome.tabs.create({ url: chrome.runtime.getURL('editor/editor.html') });
       return { ok: true };
@@ -670,6 +684,23 @@ async function bootCommit(current) {
   return current;
 }
 
+let forcedUntil = 0;
+
+/**
+ * «Buscar actualizaciones ahora»: el puente ejecuta ya los scripts de actualización (los de los MCP y el de la
+ * extensión) y aquí se vuelve a mirar varias veces: si llegó una versión nueva, la extensión se recarga sola.
+ */
+async function updateNow() {
+  const res = await bridgeControl({ type: 'update_now' });
+  if (!res?.ok) return { ok: false, error: res?.error ?? 'el puente no respondió' };
+  forcedUntil = Date.now() + 3 * 60_000;
+  log('info', 'update.now', { repos: (res.repos ?? []).join(', ') });
+  for (const s of [10, 25, 45, 75, 120]) {
+    setTimeout(() => { checkUpdate().catch(() => {}); fetchDiscovery().catch(() => {}); }, s * 1000);
+  }
+  return { ok: true, repos: res.repos ?? [] };
+}
+
 async function checkUpdate() {
   const [stamp, git] = [await readStamp(), await readGit()];
   update.version = chrome.runtime.getManifest?.().version ?? null;
@@ -687,7 +718,8 @@ async function checkUpdate() {
   const { settings } = await loadState();
   const changed = Boolean(update.bootCommit && update.commit && update.commit !== update.bootCommit);
   update.pendingReload = changed;
-  if (changed && settings.autoUpdate !== false && inFlight === 0) {
+  const pedida = Date.now() < forcedUntil;          // el usuario pulsó «Buscar actualizaciones ahora»
+  if (changed && (settings.autoUpdate !== false || pedida) && inFlight === 0) {
     log('info', 'update.reload', { from: update.bootCommit.slice(0, 7), to: update.commit.slice(0, 7) });
     await flushLogs();
     setTimeout(() => chrome.runtime.reload(), 300);

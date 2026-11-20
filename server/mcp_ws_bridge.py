@@ -397,8 +397,50 @@ def repos_of(configs) -> list[dict]:
         except OSError:
             continue
         info["servers"] = sorted(item["servers"])
+        info["ruta"] = str(item["root"])
         out.append(info)
     return sorted(out, key=lambda r: r["name"])
+
+
+def scripts_actualizacion(manager) -> list[Path]:
+    """Scripts que actualizan desde GitHub: los de los repos de los MCP y, AL FINAL, el de la propia extensión
+    (puede reiniciar este puente si cambió server/)."""
+    out = []
+    for repo in repos_of([cfg for cfg, _ in manager.active.values()]):
+        s = Path(repo["ruta"]) / "actualizacion" / "actualizar.ps1"
+        if s.is_file():
+            out.append(s)
+    propio = Path(__file__).resolve().parent.parent / "scripts" / "windows" / "update.ps1"
+    if propio.is_file() and propio not in out:
+        out.append(propio)
+    return out
+
+
+def lanzar_actualizacion(manager) -> list[str]:
+    """Ejecuta ya (sin esperar a las tareas programadas) los scripts de actualización, en un proceso aparte."""
+    import subprocess
+    if os.name != "nt":
+        raise RuntimeError("solo en Windows")
+    scripts = scripts_actualizacion(manager)
+    if not scripts:
+        raise RuntimeError("no encontré scripts de actualización")
+    py = Path(sys.executable)
+    py = py.with_name("python.exe") if py.name.lower() == "pythonw.exe" and py.with_name("python.exe").exists() else py
+    partes = []
+    for s in scripts:
+        extra = f" -Python '{py}'" if s.name == "update.ps1" else ""
+        partes.append(f"& '{s}'{extra}")
+    comando = "; ".join(partes)
+    kw = dict(stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, close_fds=True)
+    args = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-WindowStyle", "Hidden", "-Command", comando]
+    flags = 0x00000008 | 0x00000200                      # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    try:
+        subprocess.Popen(args, creationflags=flags | 0x01000000, **kw)   # + BREAKAWAY_FROM_JOB
+    except OSError:
+        subprocess.Popen(args, creationflags=flags, **kw)
+    log.info("⟳ actualización pedida desde la extensión: %s", ", ".join(s.parent.parent.name if s.name == "actualizar.ps1"
+                                                                       else "web-mcp-bridge" for s in scripts))
+    return [s.parent.parent.name if s.name == "actualizar.ps1" else "web-mcp-bridge" for s in scripts]
 
 
 async def handle_control(ws, manager: BridgeManager) -> None:
@@ -427,8 +469,19 @@ async def handle_control(ws, manager: BridgeManager) -> None:
     except (ValueError, AttributeError):
         await _reply(ws, type="result", ok=False, error="petición no válida")
         return
-    if kind not in ("get_config", "put_config", "audit"):
+    if kind not in ("get_config", "put_config", "audit", "update_now"):
         await _reply(ws, type="result", ok=False, error=f"petición desconocida: {kind}")
+        return
+    if kind == "update_now":
+        if origin != manager.owner_origin:
+            await _reply(ws, type="result", ok=False, error="no autorizado")
+            return
+        try:
+            repos = lanzar_actualizacion(manager)
+        except Exception as err:  # noqa: BLE001
+            await _reply(ws, type="result", ok=False, error=str(err))
+            return
+        await _reply(ws, type="result", ok=True, repos=repos)
         return
     if kind == "audit":
         if origin != manager.owner_origin:

@@ -337,3 +337,7 @@
 - Pausa entre envíos: una sola general para todos los chats (mín y máx, por defecto 2 a 5 s). Se elimina el ajuste `platformPauses` y su sección. Por el límite de peticiones de AI Studio conviene subirla (p. ej. 5 y 8) si se usa ese chat.
 - Pruebas: `test_background` (plataformas apagadas por defecto y se conserva lo elegido), `test_utils` (sin `pauseFor`) y los tests de navegador (simulan `platforms: { deepseek: true }`). Revisado con una captura de la pestaña en Chromium.
 
+
+## 2026-11-20 — Claude (asistente de desarrollo) · Avisos de los MCP en Actividad y «Buscar ahora»
+- `notifications/message` y `notifications/progress` de un MCP (antes se ignoraban) → evento `server.notice` en Actividad, con el texto del MCP como título («telegram-mcp: T1120-…: bajando 12 MB de 32 MB (38 %) · 180 KB/s»). Lo usa telegram-mcp para los archivos grandes en segundo plano.
+- Ajustes › Extensión › **Actualizar ahora · Buscar ahora**: el puente (petición de control `update_now`, solo la extensión propietaria) lanza en un proceso aparte los `actualizacion/actualizar.ps1` de los repos de los MCP y, al final, `scripts/windows/update.ps1` (puede reiniciar el puente). La extensión vuelve a mirar a los 10/25/45/75/120 s y se recarga si llegó versión nueva, aunque «Actualizar sola» esté apagado.

@@ -45,6 +45,7 @@ assert.equal(f('calls', 'autocad'), 1);
 assert.equal(fmtMs(80), '80 ms');
 assert.equal(fmtMs(2300), '2.3 s');
 assert.equal(fmtMs(45000), '45 s');
+assert.equal(titleOf({ event: 'server.notice', details: { server: 'telegram-mcp', message: 'T1: bajando 50%' } }), 'telegram-mcp: T1: bajando 50%');
 console.log('✔ test_activity: todo correcto');
 
 // Las llamadas «descartadas» por duplicado dicen qué pasó de verdad

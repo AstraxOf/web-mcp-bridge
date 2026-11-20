@@ -192,6 +192,8 @@ export class McpConnection {
     // Notificaciones / peticiones del servidor
     if (msg.method === 'notifications/tools/list_changed') {
       this.refreshTools().catch(() => {});
+    } else if (msg.method === 'notifications/message' || msg.method === 'notifications/progress') {
+      this.onNotice?.(msg.method, msg.params ?? {});   // avisos del MCP (p. ej. progreso de un trabajo largo)
     } else if (msg.method && msg.id !== undefined) {
       const result = msg.method === 'ping' ? { result: {} }
         : { error: { code: -32601, message: 'Método no soportado por Web MCP Bridge' } };

@@ -200,6 +200,11 @@
         <span class="slabel">Actualizar sola <i class="hint" tabindex="0" data-hint="Recarga la extensión cuando llega una versión nueva de main. La tarea programada de Windows baja la versión nueva cada 10 minutos.">i</i></span>
         <span class="sctl"><span class="switch"><input type="checkbox" id="set-autoUpdate"><span></span></span></span>
       </label>
+      <div class="srow">
+        <svg class="icon"><use href="#i-refresh"/></svg>
+        <span class="slabel">Actualizar ahora <i class="hint" tabindex="0" data-hint="Busca ya las versiones nuevas en GitHub (extensión y MCP) sin esperar a las tareas programadas. Si hay algo nuevo, se instala y la extensión se recarga sola en uno o dos minutos.">i</i></span>
+        <span class="sctl"><button type="button" id="update-now" class="ghost small">Buscar ahora</button></span>
+      </div>
       <p class="muted small-text" id="update-status">Estado de la versión…</p>
     </section>
   </main>
