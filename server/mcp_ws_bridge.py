@@ -354,6 +354,53 @@ async def _write_config(manager: BridgeManager, content: str) -> list[ServerConf
     return configs
 
 
+def _git_info(root: Path) -> dict:
+    """Rama, commit y origin/main del repositorio en `root`, leyendo .git sin ejecutar git."""
+    git = root / ".git"
+
+    def ref(name: str):
+        f = git / name
+        if f.is_file():
+            return f.read_text(encoding="utf-8").strip() or None
+        packed = git / "packed-refs"
+        if packed.is_file():
+            for line in packed.read_text(encoding="utf-8").splitlines():
+                parts = line.split()
+                if len(parts) == 2 and parts[1] == name:
+                    return parts[0]
+        return None
+
+    head = (git / "HEAD").read_text(encoding="utf-8").strip()
+    branch, commit = None, head
+    if head.startswith("ref:"):
+        name = head[4:].strip()
+        branch, commit = name.removeprefix("refs/heads/"), ref(name)
+    return {"name": root.name, "branch": branch, "commit": commit, "latest": ref("refs/remotes/origin/main")}
+
+
+def repos_of(configs) -> list[dict]:
+    """Repositorios git de los que salen los MCP (p. ej. mis-mcp), para que el panel muestre SU versión."""
+    roots: dict[str, dict] = {}
+    for cfg in configs:
+        candidates = [Path(a) for a in cfg.command[1:] if a.lower().endswith((".py", ".js", ".mjs", ".ps1"))]
+        if cfg.cwd:
+            candidates.append(Path(cfg.cwd))
+        for cand in candidates:
+            root = next((d for d in [cand, *cand.parents] if (d / ".git").is_dir()), None)
+            if root is not None:
+                roots.setdefault(str(root), {"root": root, "servers": set()})["servers"].add(cfg.name)
+                break
+    out = []
+    for item in roots.values():
+        try:
+            info = _git_info(item["root"])
+        except OSError:
+            continue
+        info["servers"] = sorted(item["servers"])
+        out.append(info)
+    return sorted(out, key=lambda r: r["name"])
+
+
 async def handle_control(ws, manager: BridgeManager) -> None:
     """Canal de control.
 
@@ -369,7 +416,7 @@ async def handle_control(ws, manager: BridgeManager) -> None:
         await ws.close(1008, "Origin no permitido")
         return
     await _reply(ws, type="servers", servers=manager.listing(), editable=bool(manager.config_path),
-                 config_error=manager.config_error)
+                 config_error=manager.config_error, repos=repos_of([cfg for cfg, _ in manager.active.values()]))
     try:
         raw = await asyncio.wait_for(ws.recv(), CONTROL_REQUEST_TIMEOUT)
     except Exception:  # noqa: BLE001  (el cliente cerró o no pidió nada)

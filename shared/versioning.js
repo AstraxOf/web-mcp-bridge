@@ -49,7 +49,7 @@ export function versionInfo({ version, commit, branch, latest, bootCommit }) {
   const v = version ? `v${version}` : 'v?';
   if (!commit) return { state: 'unknown', label: v, title: `${v}\nCommit desconocido: la carpeta no tiene .git ni update-stamp.json.` };
   const label = `${v} · ${short(commit)}`;
-  const lines = [`Versión ${v}`, `Commit ${commit}`, `Rama ${branch ?? '(HEAD suelto)'}`];
+  const lines = [`Extensión Web MCP Bridge ${v}`, `Commit ${commit}`, `Rama ${branch ?? '(HEAD suelto)'}`];
   if (latest) lines.push(`origin/main ${short(latest)}`);
   let state = 'unknown';
   let note = 'No se pudo comparar con main (aún no hay un git fetch).';
@@ -69,4 +69,24 @@ export function versionInfo({ version, commit, branch, latest, bootCommit }) {
   }
   lines.push('', note);
   return { state, label, title: lines.join('\n'), note };
+}
+
+/**
+ * Estado de los repositorios de los MCP (los manda el puente: [{name, branch, commit, latest, servers}]).
+ * @returns {{state:'ok'|'old'|'branch'|'unknown', lines:string[]}}
+ */
+export function reposInfo(repos) {
+  const lines = [];
+  let peor = 'ok';
+  const rango = { ok: 0, unknown: 1, old: 2, branch: 3 };
+  for (const r of Array.isArray(repos) ? repos : []) {
+    let state = 'unknown';
+    let note = 'sin comparar con main';
+    if (r.latest && r.commit === r.latest) { state = 'ok'; note = 'al día'; }
+    else if (r.latest && r.branch === 'main') { state = 'old'; note = `hay commits nuevos en main (${short(r.latest)}): se bajarán solos`; }
+    else if (r.latest) { state = 'branch'; note = `rama «${r.branch ?? 'HEAD suelto'}»: no es main y no se actualiza sola`; }
+    if (rango[state] > rango[peor]) peor = state;
+    lines.push(`${r.name} (${(r.servers ?? []).join(', ')}): ${r.branch ?? '?'} ${short(r.commit)} · ${note}`);
+  }
+  return { state: lines.length ? peor : 'unknown', lines };
 }
