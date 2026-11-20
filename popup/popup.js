@@ -372,6 +372,12 @@ function renderSettings(settings) {
   for (const [id] of Object.entries(PLATFORM_LABELS)) {
     const box = $(`#plat-${id}`);
     if (box) box.checked = settings.platforms?.[id] !== false;
+    const own = settings.platformPauses?.[id];
+    for (const [k, i] of [['min', 0], ['max', 1]]) {
+      const inp = $(`#pp-${id}-${k}`);
+      if (inp && document.activeElement !== inp) inp.value = Array.isArray(own) ? own[i] : '';
+      if (inp) inp.placeholder = String(k === 'min' ? settings.sendPauseMinSec ?? 2 : settings.sendPauseMaxSec ?? 5);
+    }
   }
   if (document.activeElement?.id !== 'set-maxResultChars') $('#set-maxResultChars').value = settings.maxResultChars;
   if (document.activeElement?.id !== 'set-reinjectEvery') $('#set-reinjectEvery').value = settings.reinjectEvery;
@@ -517,6 +523,25 @@ $('#export-logs').addEventListener('click', guard(async () => {
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   toast(`Exportados ${logs.length} eventos y ${history.length} llamadas.`);
+}));
+
+// Pausa por plataforma: dos casillas (mín y máx) por chat; en blanco = la general
+$('#platform-pauses').replaceChildren(...Object.entries(PLATFORM_LABELS).map(([id, name]) => {
+  const min = el('input', { type: 'number', min: '0', max: '120', step: '1', id: `pp-${id}-min`, 'aria-label': `${name}: pausa mínima` });
+  const max = el('input', { type: 'number', min: '0', max: '120', step: '1', id: `pp-${id}-max`, 'aria-label': `${name}: pausa máxima` });
+  const save = guard(async () => {
+    const { settings } = await api('GET_STATE');
+    const clamp = (v) => Math.min(120, Math.max(0, Math.round(Number(v)) || 0));
+    let value = null;                                              // los dos vacíos: vuelve a la pausa general
+    if (min.value !== '' || max.value !== '') {
+      const a = clamp(min.value !== '' ? min.value : settings.sendPauseMinSec ?? 2);
+      value = [a, Math.max(a, clamp(max.value !== '' ? max.value : settings.sendPauseMaxSec ?? 5))];
+    }
+    await api('UPDATE_SETTINGS', { settings: { platformPauses: { ...settings.platformPauses, [id]: value } } });
+  });
+  min.addEventListener('change', save);
+  max.addEventListener('change', save);
+  return el('div', { class: 'pp' }, el('span', { text: name }), min, max);
 }));
 
 // Plataformas: casillas generadas a partir de PLATFORM_LABELS

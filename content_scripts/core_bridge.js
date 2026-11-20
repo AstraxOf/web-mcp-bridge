@@ -137,8 +137,8 @@
     state.tools = active.tools;
     adapter.configure({
       focusFallback: state.settings.focusFallback !== false,
-      sendPauseMinSec: Number(state.settings.sendPauseMinSec ?? 2),
-      sendPauseMaxSec: Number(state.settings.sendPauseMaxSec ?? 5),
+      sendPauseMinSec: WMB.pauseFor(state.settings, adapter.id).min,   // la pausa de esta plataforma o la general
+      sendPauseMaxSec: WMB.pauseFor(state.settings, adapter.id).max,
       maxSendsPerMinute: Number(state.settings.maxSendsPerMinute ?? 8),
     });
     const host = document.getElementById('wmb-host');
