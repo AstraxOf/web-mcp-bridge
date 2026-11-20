@@ -86,6 +86,73 @@ def stop_windows_bridges(dry: bool) -> None:
         print(f"  Detenidos: {', '.join(stopped)}")
 
 
+START_TASK = "WebMCPBridge-Start"
+CONTROL_PORT = 47615
+
+
+def task_xml(user: str, vbs: Path) -> str:
+    """XML de una tarea programada SIN disparador que lanza el arranque oculto del puente en la sesión interactiva del usuario.
+
+    Arrancarlo con `schtasks /run` lo independiza de quien lo pida: un `Popen` desde una sesión SSH queda dentro del «job» de esa
+    sesión y muere al cerrarla; una tarea la lanza el Programador de tareas, fuera de ese job.
+    """
+    from xml.sax.saxutils import escape
+    return f"""<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.3" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo><Description>Web MCP Bridge: arranca el puente (lo usa install_service.py para reiniciarlo desde fuera de la sesión)</Description></RegistrationInfo>
+  <Principals><Principal id="Author"><UserId>{escape(user)}</UserId><LogonType>InteractiveToken</LogonType></Principal></Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT2M</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <Enabled>true</Enabled>
+  </Settings>
+  <Actions Context="Author"><Exec><Command>wscript.exe</Command><Arguments>"{escape(str(vbs))}"</Arguments></Exec></Actions>
+</Task>
+"""
+
+
+def bridge_listening(timeout: float = 12.0) -> bool:
+    """¿Responde el canal de control del puente (127.0.0.1:47615)?"""
+    import socket
+    import time
+    end = time.time() + timeout
+    while time.time() < end:
+        try:
+            with socket.create_connection(("127.0.0.1", CONTROL_PORT), timeout=1):
+                return True
+        except OSError:
+            time.sleep(0.5)
+    return False
+
+
+def start_windows_bridge(vbs: Path) -> str:
+    """Arranca el puente fuera de la sesión que lo pide. Devuelve cómo lo hizo: «tarea», «independiente» o «directo»."""
+    import tempfile
+    user = f"{os.environ.get('USERDOMAIN', '')}\\{os.environ.get('USERNAME', '')}".strip("\\")
+    try:
+        xml = Path(tempfile.gettempdir()) / f"{START_TASK}.xml"
+        xml.write_text(task_xml(user, vbs), encoding="utf-16")
+        made = subprocess.run(["schtasks", "/create", "/tn", START_TASK, "/xml", str(xml), "/f"], capture_output=True, text=True)
+        xml.unlink(missing_ok=True)
+        if made.returncode == 0:
+            ran = subprocess.run(["schtasks", "/run", "/tn", START_TASK], capture_output=True, text=True)
+            if ran.returncode == 0 and bridge_listening():
+                return "tarea"
+    except OSError:
+        pass
+    # Sin tarea: proceso desligado del «job» de la sesión (CREATE_BREAKAWAY_FROM_JOB) si el sistema lo permite
+    for flags, nombre in ((0x00000008 | 0x00000200 | 0x01000000, "independiente"), (0x00000008 | 0x00000200, "directo")):
+        try:
+            subprocess.Popen(bridge_command(windowless=True), creationflags=flags, close_fds=True)
+            return nombre
+        except OSError:
+            continue
+    return "ninguno"
+
+
 def install_windows(dry: bool) -> None:
     cmd = " ".join(f'""{part}""' for part in bridge_command(windowless=True))
     script = f'CreateObject("Wscript.Shell").Run "{cmd}", 0, False\n'
@@ -95,7 +162,8 @@ def install_windows(dry: bool) -> None:
         return
     target.write_text(script, encoding="utf-8")
     stop_windows_bridges(dry)  # si no, el puente nuevo choca con los puertos del anterior
-    subprocess.Popen(bridge_command(windowless=True), creationflags=0x00000008 | 0x00000200, close_fds=True)  # DETACHED | NEW_GROUP
+    como = start_windows_bridge(target)
+    print(f"• Puente arrancado ({como}); {'responde' if bridge_listening(8) else 'NO responde todavía: abre WebMCPBridge.vbs de la carpeta Inicio'}")
 
 
 def uninstall_windows(dry: bool) -> None:
@@ -103,6 +171,7 @@ def uninstall_windows(dry: bool) -> None:
     print(f"• Eliminando {target}")
     if not dry:
         target.unlink(missing_ok=True)
+        subprocess.run(["schtasks", "/delete", "/tn", START_TASK, "/f"], capture_output=True)
     stop_windows_bridges(dry)
 
 
