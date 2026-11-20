@@ -43,6 +43,8 @@ const LABELS = {
   'server.connected': 'MCP conectado',
   'server.down': 'MCP sin conexión',
   'server.tools': 'Herramientas del MCP cargadas',
+  'server.notice': 'Aviso del MCP',
+  'update.now': 'Buscar actualizaciones ahora',
   'bridge.up': 'Puente local disponible',
   'bridge.down': 'Puente local caído',
   'sw.start': 'Extensión iniciada',
@@ -55,6 +57,7 @@ const show = (value) => clip(typeof value === 'string' ? value : JSON.stringify(
 /** Título legible del evento. En «chat.panel» el título es el propio mensaje. */
 export function titleOf(entry) {
   if (entry.event === 'chat.panel' && entry.details?.message) return String(entry.details.message);
+  if (entry.event === 'server.notice' && entry.details?.message) return `${entry.details.server ?? 'MCP'}: ${entry.details.message}`;
   // «Descartada» asustaba: casi siempre es volver a leer el MISMO mensaje cuya llamada ya se ejecutó.
   if (entry.event === 'call.skipped' && entry.details?.reason === 'duplicate') {
     return entry.details.seenHere ? 'Ya ejecutada: la web volvió a mostrar el mismo mensaje' : 'Llamada idéntica a una anterior: se te pregunta';
