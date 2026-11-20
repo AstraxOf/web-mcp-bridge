@@ -317,3 +317,7 @@
 - Nuevo ajuste `platformPauses` ({plataforma: [mín, máx]}; `null` = la general): AI Studio trae 5 a 8 s; las demás usan la pausa general (2 a 5 s). `WMB.pauseFor` elige el rango (si el de la plataforma no es válido, usa el general; el máximo nunca baja del mínimo) y `core_bridge` lo aplica a su adaptador. En Ajustes → «Pausa por plataforma» hay dos casillas por chat; en blanco = la general.
 - Pruebas de `pauseFor` en `tests/test_utils.mjs`.
 
+## 2026-11-20 — Claude (asistente de desarrollo) · Envío más rápido: sin la espera fija de 2,5 s
+- La auditoría de AI Studio mostró que cada entrega tardaba al menos 3 s: tras enviar, `sendToolResult` esperaba SIEMPRE 2,5 s buscando un aviso de «demasiados mensajes». Ahora sale en cuanto el chat empieza a responder (pasados 700 ms): ha aceptado el mensaje, así que el aviso (que llega en lugar de la respuesta) ya no puede llegar. Si hay aviso, sigue el reintento con espera creciente de siempre. Se detecta que el chat responde por el indicador «generando», por un mensaje nuevo del asistente o por un cambio en el texto del último.
+- AI Studio: más candidatos para el botón «Stop» (en español «Detener»/«Parar», clases `stop`/`loading`): la auditoría no registró ningún evento de «generando» en esa plataforma. Si sigue sin verse, `tools/diagnostico-dom.js` con una respuesta GENERÁNDOSE da el selector real.
+

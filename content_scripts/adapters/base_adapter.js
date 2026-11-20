@@ -377,11 +377,21 @@
       }
       if (sent) { this.awaitingSince = Date.now(); this.lastSendAt = this.awaitingSince; }
       let reintentos = 0;
+      // Si el chat ya empezó a responder, aceptó el mensaje: no hace falta esperar un aviso de «demasiados mensajes» (que llega en vez
+      // de la respuesta). Antes se esperaban 2,5 s fijos después de CADA envío.
+      const textoAntes = this.#lastAssistantText();
+      const cuantosAntes = this.getAssistantMessages().length;
+      const enviadoEn = Date.now();
+      const respuestaEmpezo = () => Date.now() - enviadoEn > 700
+        && (this.isStreaming() || this.getAssistantMessages().length > cuantosAntes || this.#lastAssistantText() !== textoAntes);
       // Si el chat responde «demasiados mensajes», se espera cada vez más y se reenvía (hasta 3 veces).
       while (sent && reintentos < 3) {
-        const aviso = await WMB.waitFor(() => { const v = this.rateLimitNotices(text); return v.length > avisos ? v.at(-1) : null; },
-          { timeout: 2500, interval: 300 });
-        if (!aviso) break;
+        const aviso = await WMB.waitFor(() => {
+          const v = this.rateLimitNotices(text);
+          if (v.length > avisos) return v.at(-1);
+          return reintentos === 0 && respuestaEmpezo() ? 'respuesta' : null;       // sale ya: el chat está respondiendo
+        }, { timeout: 2500, interval: 150 });
+        if (!aviso || aviso === 'respuesta') break;
         avisos = this.rateLimitNotices(text).length;
         const pausa = WMB.backoffMs(reintentos);
         reintentos += 1;
@@ -399,6 +409,12 @@
       return sent
         ? { ok: true, ...(reintentos ? { reintentos } : {}) }
         : { ok: false, error: 'No se pudo confirmar el envío al chat. Pulsa Enter en el chat.' };
+    }
+
+    /** Texto de la última respuesta del asistente (para saber si el chat ya empezó a responder). */
+    #lastAssistantText() {
+      const list = this.getAssistantMessages();
+      return list.length ? (list[list.length - 1].textContent || '') : '';
     }
 
     /**
