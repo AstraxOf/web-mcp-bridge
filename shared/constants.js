@@ -51,7 +51,7 @@ export const DEFAULT_SETTINGS = {
   /** Detecta solos los servidores de servers.json preguntando al puente (control port). */
   autoDiscover: true,
   /** Activa también los servidores detectados (hasta el máximo). Si es false solo se activa el primero cuando no hay ninguno activo. */
-  autoEnableDiscovered: false,
+  autoEnableDiscovered: true,
   /** Puerto de control del puente (http://127.0.0.1:PUERTO/servers). */
   controlPort: 8099,
   /** Muestra los avisos del autor (novedades, versiones nuevas, incidencias). No instala nada: solo informa. */

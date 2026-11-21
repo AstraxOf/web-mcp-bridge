@@ -18,10 +18,10 @@
   const tr = (key, vars) => (typeof WMB.t === 'function' ? WMB.t(key, vars) : key);
 
   const BASELINE_MS = 2500;     // ventana tras cargar/navegar en la que solo se «memorizan» llamadas antiguas
-  const DEBOUNCE_MS = 800;      // el mensaje debe quedar estable este tiempo antes de analizarlo
-  const POLL_MS = 1000;         // latido: red de seguridad por si el MutationObserver se pierde un cambio
+  const DEBOUNCE_MS = 150;      // el mensaje debe quedar estable este tiempo antes de analizarlo (antes 800 ms)
+  const POLL_MS = 300;          // latido: red de seguridad (antes 1000 ms)
   const WAKE_MS = 30_000;       // pestaña oculta esperando respuesta sin cambios en el DOM → se «despierta» un instante
-  const STUCK_MS = 2500;        // texto estable con el indicador «generando» pegado → se da por terminado
+  const STUCK_MS = 400;         // texto estable con «generando» pegado → terminado (antes 2500 ms)
   const FRESH_CHAT_MS = 300_000;   // v1.7.0: 120 s -> 300 s (Gemini/DeepSeek lentos tardan en recibir la URL del chat nuevo)
   const STORE_KEY = 'wmb:executed';
   const STORE_LIMIT = 500;
@@ -112,7 +112,7 @@
       let stableSince = Date.now();
       this.baselineUntil = Date.now() + BASELINE_MS;
 
-      // Como mucho un análisis cada `delay` ms mientras haya cambios (sin acumular temporizadores).
+      // Como antes: como mucho un analisis cada `delay` ms mientras haya cambios.
       const schedule = (delay = DEBOUNCE_MS) => {
         if (scheduled) return;
         scheduled = true;

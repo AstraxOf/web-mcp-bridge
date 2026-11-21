@@ -38,8 +38,9 @@
       --glow: 0 0 0 1px rgba(0,229,255,.14), 0 14px 44px rgba(0,0,0,.6), 0 0 26px rgba(0,229,255,.10);
       --soft: rgba(255,255,255,.04); --row-line: rgba(255,255,255,.06);
       --dot-ok-glow: 0 0 8px var(--ok); --dot-warn-glow: 0 0 8px var(--warn);
-      position: fixed; left: var(--x, 16px); top: var(--y, auto); bottom: var(--y, 16px); z-index: 2147483647;
-      user-select: none;
+      position: fixed; left: var(--x, auto); right: 16px; top: var(--y, 16px); bottom: auto; z-index: 2147483647;
+      max-width: calc(100vw - 24px);
+      touch-action: none; user-select: none;
       font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg);
       display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
     }
@@ -79,12 +80,14 @@
     }
     .head {
       flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;
-      padding: 14px 16px 8px; touch-action: none;
+      padding: 12px 16px 6px; touch-action: none;
     }
     .head .ttl { min-width: 0; flex: 1; }
-    .head strong { display: block; font-size: 14px; letter-spacing: .02em; white-space: nowrap; }
-    .head .sub { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .tools { display: flex; align-items: center; gap: 6px; flex: none; }
+    .head strong { display: block; font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
+    .head .sub { display: block; font-size: 10px; color: var(--muted); letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tools { display: flex; align-items: center; gap: 4px; flex: none; }
+    .head button, .head .seg button { padding: 2px 6px; font-size: 10px; }
+    .seg { border-radius: 6px; }
     .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
     .seg button { border: 0; border-radius: 0; padding: 3px 8px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
     .seg button.on { background: var(--accent); color: var(--accent-fg); }
@@ -158,7 +161,15 @@
     ul.log::-webkit-scrollbar-track, ul.srvs::-webkit-scrollbar-track { background: transparent; }
     ul.log::-webkit-scrollbar-thumb, ul.srvs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
     ul.log::-webkit-scrollbar-thumb:hover, ul.srvs::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
+    .seg.tabs { margin-top: 10px; }
+    ul.log.files { max-height: 160px; }
+    ul.log.files li { display: flex; flex-direction: column; gap: 1px; }
+    ul.log.files .path { font-size: 11px; word-break: break-all; }
+    ul.log.files .add { color: var(--ok); font-weight: 700; }
+    ul.log.files .rem { color: var(--err); font-weight: 700; }
+    .approvals { flex: none; }
+    .log { font-size: 12px; color: var(--muted); }
+    .log .err { color: var(--err); } .log .ok { color: var(--ok); }
     .perm { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; min-height: 26px; }
     .perm + .perm { margin-top: 10px; }
     select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--fg); cursor: pointer; flex: none; max-width: 128px; }
@@ -173,9 +184,18 @@
       this.model = { adapterName: '', servers: [], toolCount: 0, injection: 'none', bridgeEnabled: true, bridge: null, bridgeBusy: null, responseDelayMs: 1500, language: 'en', theme: 'dark' };
       this.logs = [];
       this.approvals = [];
+      this.fileOps = [];          // registro de archivos tocados en esta instancia
+      this.tab = 'servers';       // 'servers' | 'files'
       this.open = false;
       this.selectFocusedAt = 0;
 
+      // Evitar duplicados: al recargar la extension quedaban hosts viejos
+      // y se veian varios panels/pills a la vez. Shadow DOM cerrado => el
+      // id no se ve desde fuera, asi que hay que buscar por atributo id via
+      // la raiz del documento (los hosts viven document.documentElement).
+      for (const el of Array.from(document.documentElement.children)) {
+        if (el.id === 'wmb-host' || el.getAttribute?.('id') === 'wmb-host') el.remove();
+      }
       this.host = document.createElement('div');
       this.host.id = 'wmb-host';
       this.shadow = this.host.attachShadow({ mode: 'closed' });
@@ -302,6 +322,18 @@
       this.render();
     }
 
+    /** Registra una operacion de archivo con el diff que devolvio el MCP. */
+    recordFileOp(server, name, args, text) {
+      const m = /\[WMB_DIFF path=(.*?) op=(\w+) added=(\d+) removed=(\d+)\]/.exec(text || '');
+      if (!m) return;
+      this.fileOps.unshift({
+        ts: new Date(), server, name, op: m[2],
+        path: m[1], added: Number(m[3]), removed: Number(m[4]),
+      });
+      this.fileOps.length = Math.min(this.fileOps.length, 200);
+      this.render();
+    }
+
     /** Pide confirmación al usuario. Resuelve `true` (ejecutar), `'always'` (ejecutar y permitir siempre) o `false` (rechazar). */
     requestApproval(call) {
       return new Promise((resolve) => {
@@ -321,6 +353,7 @@
       if (!force && this.shadow.activeElement?.tagName === 'SELECT' && Date.now() - this.selectFocusedAt < 6000) return;
       const { servers, toolCount } = this.model;
       const pending = this.approvals.length;
+      const detecting = Boolean(this.model.detecting);
       const bridgeDown = Boolean(this.model.bridge?.checked && !this.model.bridge.online);
       const activeLabel = !this.model.bridgeEnabled ? tr('wd.disabled') : bridgeDown ? tr('wd.bridgeOff') : servers.length
         ? tr('wd.label', { servers: servers.length, tools: toolCount })
@@ -332,8 +365,9 @@
         'aria-expanded': String(this.open),
         onclick: () => { if (this._suppressClickUntil && Date.now() < this._suppressClickUntil) return; this.open = !this.open; this.render(); },
       },
-      h('i', { class: `dot ${pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
-      h('span', {}, pending ? trp('wd.pending', pending) : activeLabel));
+      h('i', { class: `dot ${detecting ? 'warn' : pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
+      h('span', {}, detecting ? (this.model.language === 'es' ? 'Detectando herramienta… esperando a que termine' : 'Tool detected… waiting for it to finish')
+        : pending ? trp('wd.pending', pending) : activeLabel));
 
       const bodyScroll = this.root.querySelector('.body')?.scrollTop ?? 0;
       const srvScroll = this.root.querySelector('ul.srvs')?.scrollTop ?? 0;
@@ -422,15 +456,18 @@
       const locale = this.model.language === 'es' ? 'es' : 'en';
 
       const serversSection = h('div', { class: 'sec first srvsec' },
-        servers.length
-          ? h('ul', { class: `srvs${servers.length >= 4 ? ' scroll' : ''}` }, servers.map((s) => {
-            const info = s.permission === 'deny' ? tr('wd.blocked') : s.status === 'connected' ? tr('wd.toolsShort', { n: s.toolCount }) : tr('wd.noConn');
-            return h('li', { class: 'srv' },
-              h('i', { class: `dot ${s.status === 'connected' ? 'ok' : s.status === 'connecting' ? 'warn' : ''}` }),
-              h('span', { class: 'grow' }, h('span', { class: 'nm', title: s.name }, s.name), h('span', { class: 'muted' }, info)),
-              this.#permSelect(s.permission, (value) => this.handlers.onSetPermission(s.id, value), tr('p.srv.permAria', { name: s.name })));
-          }))
-          : h('p', { class: 'muted' }, tr('wd.noServers')));
+        this.#tabsSection(),
+        this.tab === 'servers'
+          ? (servers.length
+            ? h('ul', { class: `srvs${servers.length >= 2 ? ' scroll' : ''}` }, servers.map((s) => {
+              const info = s.permission === 'deny' ? tr('wd.blocked') : s.status === 'connected' ? tr('wd.toolsShort', { n: s.toolCount }) : tr('wd.noConn');
+              return h('li', { class: 'srv' },
+                h('i', { class: `dot ${s.status === 'connected' ? 'ok' : s.status === 'connecting' ? 'warn' : ''}` }),
+                h('span', { class: 'grow' }, h('span', { class: 'nm', title: s.name }, s.name), h('span', { class: 'muted' }, info)),
+                this.#permSelect(s.permission, (value) => this.handlers.onSetPermission(s.id, value), tr('p.srv.permAria', { name: s.name })));
+            }))
+            : h('p', { class: 'muted' }, tr('wd.noServers')))
+          : this.#filesSection());
 
       const injectSection = h('div', { class: 'sec' },
         h('p', { class: 'muted' }, injectionText),
@@ -456,6 +493,37 @@
           logSection),
         h('div', { class: 'foot' }, `Web MCP Bridge v${WMB.VERSION} · Github: @AstraxOf`));
     }
+
+    /** Pestañas: Servidores / Archivos. */
+    #tabsSection() {
+      const tab = (id, label) => h('button', {
+        class: this.tab === id ? 'on' : '',
+        'aria-pressed': String(this.tab === id),
+        onclick: () => { this.tab = id; this.render(true); },
+      }, label);
+      return h('div', { class: 'seg tabs', role: 'group', 'aria-label': 'Panel' },
+        tab('servers', this.model.language === 'es' ? 'Servidores' : 'Servers'),
+        tab('files', `${this.model.language === 'es' ? 'Archivos' : 'Files'}${this.fileOps.length ? ` (${this.fileOps.length})` : ''}`));
+    }
+
+    /** Historial de archivos tocados en esta instancia del chat. */
+    #filesSection() {
+      if (!this.fileOps.length) {
+        return h('p', { class: 'muted' }, this.model.language === 'es'
+          ? 'Aun no se modifico ningun archivo en este chat.'
+          : 'No files changed in this chat yet.');
+      }
+      const locale = this.model.language === 'es' ? 'es' : 'en';
+      return h('ul', { class: 'log files' }, this.fileOps.map((f) => h('li', { class: 'ok' },
+        h('div', {}, `${f.ts.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${f.op} · ${f.name}`),
+        h('div', { class: 'muted path' }, f.path),
+        h('div', {},
+          h('span', { class: 'add' }, `+${f.added}`),
+          ' ',
+          h('span', { class: 'rem' }, `-${f.removed}`),
+          ` ${this.model.language === 'es' ? 'lineas' : 'lines'}`))));
+    }
+
 
     /** La aprobación va SIEMPRE arriba del cuerpo para que sus botones nunca queden fuera del panel. */
     #approvalSection() {

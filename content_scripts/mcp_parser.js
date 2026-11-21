@@ -304,6 +304,16 @@
     return loose.length ? loose : flagCalls(raw, tools);
   };
 
+  /** ¿Esta el bloque mcp_call COMPLETO (llaves/corchetes cerrados, comillas pareadas)?
+   *  Evita ejecutar codigo partido mientras el chat sigue escribiendo un bloque grande. */
+  WMB.mcpBlockComplete = (rawText) => {
+    const raw = String(rawText ?? '');
+    if (!raw.includes('mcp_call')) return true; // no hay bloque: no aplica
+    // Si el parser estricto/reparado ya extrae la llamada, el bloque esta cerrado.
+    // Si no puede, puede ser un bloque a medias o mal formateado: no ejecutar.
+    return WMB.extractMcpCalls(raw).length > 0;
+  };
+
   /** Hay intencion de llamada MCP (bandera mcp_call + name) pero no se pudo leer nada. */
   WMB.looksMalformed = (rawText) => {
     const raw = String(rawText);
