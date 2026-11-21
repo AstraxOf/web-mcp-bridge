@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Web MCP Bridge",
   "version": "1.8.0",
-  "description": "Connect ChatGPT, Gemini, Claude and DeepSeek to your local MCP servers over WebSocket.",
+  "description": "Connect ChatGPT, Gemini, Claude, DeepSeek, Grok, Z.ai, Qwen and Kimi to your local MCP servers over WebSocket.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
@@ -23,6 +23,14 @@
     "https://gemini.google.com/*",
     "https://claude.ai/*",
     "https://chat.deepseek.com/*",
+    "https://grok.com/*",
+    "https://*.grok.com/*",
+    "https://grok.x.ai/*",
+    "https://chat.z.ai/*",
+    "https://z.ai/*",
+    "https://chat.qwen.ai/*",
+    "https://www.kimi.com/*",
+    "https://kimi.com/*",
     "ws://localhost/*",
     "ws://127.0.0.1/*",
     "http://127.0.0.1/*",
@@ -90,6 +98,76 @@
         "content_scripts/ui_widget.js",
         "content_scripts/adapters/base_adapter.js",
         "content_scripts/adapters/deepseek.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://grok.com/*",
+        "https://*.grok.com/*",
+        "https://grok.x.ai/*"
+      ],
+      "js": [
+        "shared/i18n.js",
+        "content_scripts/utils.js",
+        "content_scripts/mcp_parser.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/tool_catalog.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/grok.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://chat.z.ai/*",
+        "https://z.ai/*"
+      ],
+      "js": [
+        "shared/i18n.js",
+        "content_scripts/utils.js",
+        "content_scripts/mcp_parser.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/tool_catalog.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/zai.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://chat.qwen.ai/*"],
+      "js": [
+        "shared/i18n.js",
+        "content_scripts/utils.js",
+        "content_scripts/mcp_parser.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/tool_catalog.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/qwen.js",
+        "content_scripts/core_bridge.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.kimi.com/*",
+        "https://kimi.com/*"
+      ],
+      "js": [
+        "shared/i18n.js",
+        "content_scripts/utils.js",
+        "content_scripts/mcp_parser.js",
+        "content_scripts/prompt_builder.js",
+        "content_scripts/tool_catalog.js",
+        "content_scripts/ui_widget.js",
+        "content_scripts/adapters/base_adapter.js",
+        "content_scripts/adapters/kimi.js",
         "content_scripts/core_bridge.js"
       ],
       "run_at": "document_idle"

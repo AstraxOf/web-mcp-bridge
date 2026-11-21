@@ -1,6 +1,26 @@
 {
   "notices": [
     {
+      "id": "2026-11-new-adapters-en",
+      "title": "New chats supported",
+      "message": "Web MCP Bridge now works with Grok, Z.ai, Qwen and Kimi, besides ChatGPT, Gemini, Claude and DeepSeek.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge",
+      "level": "update",
+      "date": "2026-11-21",
+      "expires": "2027-02-21",
+      "maxVersion": "1.8.0"
+    },
+    {
+      "id": "2026-11-new-adapters-es",
+      "title": "Nuevos chats compatibles",
+      "message": "Web MCP Bridge ahora funciona con Grok, Z.ai, Qwen y Kimi, además de ChatGPT, Gemini, Claude y DeepSeek.",
+      "url": "https://github.com/AstraxOf/web-mcp-bridge",
+      "level": "update",
+      "date": "2026-11-21",
+      "expires": "2027-02-21",
+      "maxVersion": "1.8.0"
+    },
+    {
       "id": "2026-11-v1.8.0-en",
       "title": "Web MCP Bridge 1.8.0",
       "message": "New design and English/Spanish language selector now active.",
