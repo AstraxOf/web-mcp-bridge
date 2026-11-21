@@ -5,6 +5,16 @@
       "name": "demo",
       "port": 8090,
       "command": ["python", "server/examples/demo_mcp_server.py"]
+    },
+    {
+      "name": "windows-administrator",
+      "port": 8091,
+      "command": [
+        "cmd.exe",
+        "/d",
+        "/c",
+        "python -m pip show -q windows-server-mcp >nul 2>&1 || python -m pip install -q windows-server-mcp >nul 2>&1 & python -m windows_server_mcp.server"
+      ]
     }
   ]
 }
