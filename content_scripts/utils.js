@@ -295,6 +295,10 @@
       return true;
     }
 
+    // v1.8.1 · Editores Lexical (Kimi): escribir línea a línea con pausas rompía el cuadro (se perdía el principio del
+    // prompt y el texto del usuario salía duplicado). Se escribe TODO de una vez y se comprueba el resultado.
+    if (el.hasAttribute?.('data-lexical-editor')) return dom.setTextLexical(el, text, { append });
+
     const selection = getSelection();
     const selectAll = () => {
       const range = document.createRange();
@@ -338,6 +342,63 @@
     return dom.getText(el).length > before;
   };
 
+  /**
+   * v1.8.1 · Escritura para editores Lexical (Kimi). Lexical sincroniza su selección de forma asíncrona (`selectionchange`),
+   * así que se espera tras cada selección, se vacía el cuadro, se pega TODO el texto en una sola operación y se comprueba
+   * que quedó íntegro (ni recortado ni duplicado). Si no, se restaura lo que había: nunca se envía un mensaje a medias.
+   */
+  dom.setTextLexical = async (el, text, { append = true } = {}) => {
+    const norm = (value) => String(value ?? '').replace(/\s+/g, ' ').trim();
+    const previous = append ? dom.getText(el).trim() : '';
+    const full = previous ? `${previous}\n\n${text}` : String(text ?? '');
+    const want = norm(full);
+    const selection = getSelection();
+    const empty = () => !dom.getText(el).trim();
+    const intact = () => {
+      const got = norm(dom.getText(el));
+      return got.length >= want.length * 0.98 && got.length <= want.length * 1.02
+        && got.startsWith(want.slice(0, 40)) && got.endsWith(want.slice(-40));
+    };
+    const selectAll = async () => {
+      el.focus();
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      await WMB.sleep(80);
+    };
+    const wipe = async () => {
+      await selectAll();
+      document.execCommand('delete');
+      await WMB.sleep(80);
+      if (empty()) return true;
+      await selectAll();
+      el.dispatchEvent(new InputEvent('beforeinput', { inputType: 'deleteContentBackward', bubbles: true, cancelable: true }));
+      await WMB.sleep(80);
+      return empty();
+    };
+    const paste = async (value) => {
+      await selectAll(); // si quedara algo, pegar lo sustituye
+      const data = new DataTransfer();
+      data.setData('text/plain', value);
+      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+      await WMB.sleep(200);
+    };
+
+    await wipe();
+    await paste(full);
+    if (intact()) return true;
+
+    await wipe(); // segundo intento: un único insertText con todo el texto
+    await selectAll();
+    document.execCommand('insertText', false, full);
+    await WMB.sleep(200);
+    if (intact()) return true;
+
+    await wipe(); // no se pudo: se deja el cuadro como estaba
+    if (previous) await paste(previous);
+    return false;
+  };
   /** Vacía el cuadro de texto avisando al framework de la página. Devuelve true si quedó vacío. */
   dom.clear = async (el) => {
     el.focus();
