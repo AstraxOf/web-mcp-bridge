@@ -222,8 +222,9 @@
   // Si repite la misma llamada demasiadas veces seguidas se le reenvia el ultimo resultado en vez de ejecutarla otra vez.
   // v1.7.1 · ANTI-COLA: cada llamada detectada recibe un numero; si llega otra (de la IA) o el usuario envia algo, las anteriores\n  // que aun esperan en la cola o se estan ejecutando quedan OBSOLETAS: no se ejecutan y su resultado no se entrega (era el eco).
   let callSeq = 0;
+  let lastDetectedKey = '';
   const REPEAT_WINDOW_MS = 15 * 60 * 1000;
-  const MAX_REPEATS = 4;
+  const MAX_REPEATS = Number.MAX_SAFE_INTEGER; // desactivado: reenviaba resultados viejos como si fueran nuevos
   const recentCalls = new Map(); // clave de llamada -> { count, at, result }
 
   /** Procesa una llamada MCP detectada en la respuesta de la IA. */
@@ -273,7 +274,7 @@
           await send({ type: 'SET_PERMISSION', id: srv.id, permission: 'allow' });
           await refresh();
         }
-      } // 'allow': se ejecuta siempre, sin preguntar nunca
+      } // 'allow': se ejecuta siempre sin preguntar
 
       if (!approved) {
         result = { status: 'rejected', text: WMB.t('cb.res.rejected') };
@@ -288,6 +289,9 @@
         }
         if (!response?.ok) result = { status: 'error', text: response?.error ?? WMB.t('common.unknownError') };
         else result = { status: response.result?.isError ? 'error' : 'ok', raw: response.result };
+        // Registrar operaciones de archivos para la pestaña "Archivos" del panel.
+        const textos = response?.result?.content?.filter((c) => c.type === 'text').map((c) => c.text) ?? [];
+        for (const t of textos) widget.recordFileOp?.(srv.slug, call.name, call.arguments, t);
         widget.log(result.status === 'ok' ? 'ok' : 'err', `${call.name}: ${result.status}`);
       }
     }
@@ -441,8 +445,9 @@
     if (!event.isTrusted || injecting) return;
     adapter.markActivity();
     epoch += 1; // el usuario envía algo: se cancela cualquier vigilancia de entrega anterior
-    callSeq += 1; // v1.7.1: lo que esperaba en la cola ya es viejo
-    recentCalls.clear(); // mensaje nuevo del usuario: se reinicia el conteo de repeticiones // el usuario envía algo: la respuesta que llegue es NUEVA (no historial)
+    // callSeq NO se incrementa aquí: hacerlo marcaba como obsoleta la llamada
+    // que la IA acababa de hacer y entregaba un resultado viejo en su lugar.
+    recentCalls.clear(); // mensaje nuevo del usuario: se reinicia el conteo de repeticiones
     const { bridgeEnabled, autoInject, reminder, reinjectEvery } = state.settings;
     if (!bridgeEnabled || !state.tools.length) return;
 
@@ -513,6 +518,11 @@
       (detected) => {
         // Se procesan en serie para no mezclar resultados.
         epoch += 1; // llegó una llamada nueva de la IA: la vigilancia anterior ya no hace falta
+        // Deduplicacion: el mismo bloque mcp_call puede aparecer en varios
+        // mensajes del historial; solo se ejecuta una vez por contenido.
+        const key = WMB.hash(JSON.stringify(detected.call ?? detected) ?? '');
+        if (key && key === lastDetectedKey) return;
+        lastDetectedKey = key;
         detected.seq = ++callSeq; // v1.7.1
         queue = queue.then(() => processCall(detected));
       },

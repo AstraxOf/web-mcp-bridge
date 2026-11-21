@@ -5,6 +5,9 @@
  * y un diseño más aireado. Muestra el estado de los MCP activos, permite inyectar las instrucciones y elegir el permiso
  * de cada MCP (permitir siempre · preguntar siempre · no permitir). Con «preguntar» pide APROBACIÓN antes de cada
  * herramienta (human-in-the-loop).
+ *
+ * Maquetación del panel: cabecera fija · cuerpo con scroll (nada se aplasta ni se desborda) · pie fijo (créditos siempre
+ * visibles). Con el panel abierto la píldora se oculta: el panel ocupa su lugar y la ✕ lo vuelve a convertir en píldora.
  */
 (() => {
   'use strict';
@@ -29,103 +32,148 @@
     :host { all: initial; }
     .wrap {
       /* ── Tema OSCURO ciberpunk (por defecto) ── */
-      --bg:#0a0c12; --bg2:#10141d; --fg:#e8f1ff; --muted:#8893aa; --line:#1c2333;
+      --bg:#0a0c12; --bg2:#10141d; --field:#10141d; --fg:#e8f1ff; --muted:#8893aa; --line:#1c2333;
       --accent:#00e5ff; --accent2:#ff2e97; --accent-fg:#031217;
       --ok:#27f5a0; --warn:#ffb020; --err:#ff4d6d;
       --glow: 0 0 0 1px rgba(0,229,255,.14), 0 14px 44px rgba(0,0,0,.6), 0 0 26px rgba(0,229,255,.10);
-      --soft: rgba(255,255,255,.04);
-      position: fixed; left: var(--x, 16px); top: var(--y, auto); bottom: var(--y, 16px); z-index: 2147483647;
+      --soft: rgba(255,255,255,.04); --row-line: rgba(255,255,255,.06);
+      --dot-ok-glow: 0 0 8px var(--ok); --dot-warn-glow: 0 0 8px var(--warn);
+      position: fixed; left: var(--x, auto); right: 16px; top: var(--y, 16px); bottom: auto; z-index: 2147483647;
+      max-width: calc(100vw - 24px);
       touch-action: none; user-select: none;
       font: 13px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--fg);
       display: flex; flex-direction: column; gap: 10px; align-items: flex-start;
     }
-    /* ── Tema CLARO (opcional) ── */
+    /* ── Tema CLARO (opcional): papel limpio, acento cian oscuro con buen contraste ── */
     .wrap[data-theme="light"] {
-      --bg:#ffffff; --bg2:#f3f6fb; --fg:#0b1220; --muted:#5b6577; --line:#e1e6ef;
-      --accent:#0891b2; --accent2:#c026d3; --accent-fg:#ffffff;
-      --ok:#059669; --warn:#d97706; --err:#dc2626;
-      --glow: 0 0 0 1px rgba(8,145,178,.14), 0 12px 36px rgba(15,23,42,.16);
-      --soft: rgba(15,23,42,.05);
+      --bg:#fcfdff; --bg2:#f1f5f9; --field:#ffffff; --fg:#0f172a; --muted:#5f6b7e; --line:#d9e0ea;
+      --accent:#0e7490; --accent2:#9333ea; --accent-fg:#ffffff;
+      --ok:#047857; --warn:#b45309; --err:#be123c;
+      --glow: 0 0 0 1px rgba(15,23,42,.04), 0 12px 32px rgba(15,23,42,.16), 0 2px 6px rgba(15,23,42,.06);
+      --soft:#f1f5f9; --row-line:#e4e9f1;
+      --dot-ok-glow: 0 0 0 3px rgba(4,120,87,.16); --dot-warn-glow: 0 0 0 3px rgba(180,83,9,.18);
     }
     .pill, .panel { background: var(--bg); border: 1px solid var(--line); box-shadow: var(--glow); }
     .pill {
       display: flex; gap: 10px; align-items: center; padding: 8px 14px; border-radius: 999px;
-      cursor: grab; color: inherit; font: inherit; font-weight: 600; letter-spacing: .01em;
+      cursor: grab; color: inherit; font: inherit; font-weight: 600; letter-spacing: .01em; touch-action: none;
       border-color: color-mix(in srgb, var(--accent) 38%, var(--line));
     }
     .pill:hover { border-color: var(--accent); }
     .wrap.dragging .pill { cursor: grabbing; }
     .wrap.dragging { transition: none !important; }
     .wrap:not(.dragging) { transition: left .12s ease, top .12s ease; }
-    .wrap.flip { flex-direction: column-reverse; }
-    .wrap.flip .panel { margin-bottom: 4px; }
     @media (prefers-reduced-motion: reduce) { .wrap:not(.dragging) { transition: none; } }
     .pill.alert { border-color: var(--warn); }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
-    .dot.ok { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
-    .dot.warn { background: var(--warn); box-shadow: 0 0 8px var(--warn); }
+    .dot.ok { background: var(--ok); box-shadow: var(--dot-ok-glow); }
+    .dot.warn { background: var(--warn); box-shadow: var(--dot-warn-glow); }
 
+    /* ── Panel: cabecera fija + cuerpo con scroll + pie fijo ── */
     .panel {
-      position: relative; width: 348px; max-width: calc(100vw - 24px); max-height: min(72vh, calc(100vh - 40px));
-      overflow: hidden; display: flex; flex-direction: column; border-radius: 16px; padding: 16px 16px 12px;
+      position: relative; width: 364px; max-width: calc(100vw - 24px); max-height: min(560px, calc(100vh - 100px));
+      overflow: hidden; display: flex; flex-direction: column; border-radius: 16px;
     }
     .panel::before { /* filo de neón superior */
-      content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px;
+      content: ""; position: absolute; left: 0; right: 0; top: 0; height: 2px; z-index: 1;
       background: linear-gradient(90deg, var(--accent), var(--accent2));
     }
-    .panel > * { flex: none; }
-    .head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 12px; }
-    .head .ttl { min-width: 0; }
-    .head strong { display: block; font-size: 14px; letter-spacing: .02em; }
-    .head .sub { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; }
-    .tools { display: flex; align-items: center; gap: 6px; }
+    .head {
+      flex: none; display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 12px 16px 6px; touch-action: none;
+    }
+    .head .ttl { min-width: 0; flex: 1; }
+    .head strong { display: block; font-size: 12px; letter-spacing: .02em; white-space: nowrap; }
+    .head .sub { display: block; font-size: 10px; color: var(--muted); letter-spacing: .08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tools { display: flex; align-items: center; gap: 4px; flex: none; }
+    .head button, .head .seg button { padding: 2px 6px; font-size: 10px; }
+    .seg { border-radius: 6px; }
     .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
     .seg button { border: 0; border-radius: 0; padding: 3px 8px; font-size: 11px; font-weight: 700; letter-spacing: .06em; color: var(--muted); }
     .seg button.on { background: var(--accent); color: var(--accent-fg); }
     .icon { padding: 3px 8px; line-height: 1.2; }
+    .body {
+      flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow-x: hidden; overflow-y: auto;
+      overscroll-behavior: contain; padding: 2px 16px 10px; scrollbar-width: none;
+    }
+    .body::-webkit-scrollbar { display: none; }
+    .body > * { flex: none; }
+    .body > .srvsec { flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .body > .logsec { flex: 0 10 auto; min-height: 0; display: flex; flex-direction: column; }
+    .foot {
+      flex: none; padding: 8px 16px 9px; border-top: 1px solid var(--line); background: var(--bg);
+      text-align: center; font-size: 11px; color: var(--muted); letter-spacing: .04em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
     .muted { color: var(--muted); font-size: 12px; }
-    .sec { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
-    .sec:first-of-type { margin-top: 0; }
-    .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; }
-    ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 8px; }
-    li.srv { display: flex; gap: 10px; align-items: center; padding: 8px 10px; background: var(--soft); border-radius: 10px; }
-    .row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    button { font: inherit; cursor: pointer; border-radius: 9px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); transition: border-color .12s, background .12s; }
-    button:hover:not(:disabled) { border-color: var(--accent); }
+    .sec { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+    .sec.first { margin-top: 0; padding-top: 0; border-top: 0; }
+    .sec p.muted { margin: 0; }
+    .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--muted); font-weight: 600; white-space: nowrap; }
+    ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; }
+
+    /* Lista de MCP: cada fila con altura propia (no se aplasta); con 4 o más, scroll interno */
+    ul.srvs { grid-auto-rows: min-content; align-content: start; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    ul.srvs.scroll { max-height: 150px; padding-right: 6px; }
+    li.srv {
+      display: flex; gap: 10px; align-items: center; min-height: 40px; box-sizing: border-box; padding: 4px 10px;
+      background: var(--soft); border: 1px solid var(--row-line); border-radius: 10px;
+    }
+    li.srv .grow { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 4px; }
+    li.srv .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+    li.srv .grow .muted { flex: none; white-space: nowrap; }
+
+    .row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .row button { flex: 1 1 auto; white-space: nowrap; }
+    .actions button { font-size: 12px; padding: 6px 9px; }
+    .actions .primary { flex-grow: 2; }
+    button { font: inherit; cursor: pointer; border-radius: 9px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); line-height: 1.3; transition: border-color .12s, background .12s; }
+    button:hover:not(:disabled) { border-color: var(--accent); background: var(--soft); }
     button.primary { background: var(--accent); color: var(--accent-fg); border-color: transparent; font-weight: 700; }
-    button.primary:hover:not(:disabled) { filter: brightness(1.08); }
+    button.primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.1); }
     button.danger { color: var(--err); }
     button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
     button:disabled { opacity: .5; cursor: default; }
-    .bridge .state { display: inline-flex; gap: 6px; align-items: center; }
-    .bridge .row button { flex: 1; }
-    .bridge .row + .perm { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); min-height: 34px; }
+
+    .bridge .state { display: inline-flex; gap: 6px; align-items: center; min-width: 0; white-space: nowrap; }
+    .bridge .row { margin-top: 8px; }
+    .bridge .row button { flex: 1 1 0; }
+    .bridge .row + .perm { margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--line); }
+
     .card { margin: 0 0 12px; padding: 12px; border: 1px solid var(--warn); border-radius: 12px; background: var(--soft); }
     .card pre {
       margin: 8px 0; padding: 8px 10px; max-height: 140px; overflow: auto; white-space: pre-wrap; word-break: break-word;
       background: var(--bg2); border-radius: 8px; font: 12px/1.4 ui-monospace, Menlo, Consolas, monospace;
     }
-    .panel > ul.log { flex: 0 1 auto; min-height: 56px; max-height: 100px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-    ul.log { gap: 3px; margin-top: 12px; }
+    .approvals .queue { margin: -4px 0 12px; text-align: center; }
+    .panel.has-approval .card pre { max-height: 96px; }
+
+    /* Registro: filas con aire, separador fino e hora atenuada */
+    ul.log { display: block; flex: 1 1 auto; min-height: 0; max-height: 104px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; font-size: 12px; line-height: 1.45; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    ul.log li { padding: 5px 0; border-bottom: 1px solid var(--row-line); overflow-wrap: anywhere; }
+    ul.log li:first-child { padding-top: 0; }
+    ul.log li:last-child { border-bottom: 0; padding-bottom: 0; }
+    ul.log .ts { color: var(--muted); font-variant-numeric: tabular-nums; margin-right: 6px; opacity: .85; }
+    ul.log .msg { color: var(--muted); }
+    ul.log li.err .msg { color: var(--err); }
+    ul.log li.ok .msg { color: var(--ok); }
     ul.log::-webkit-scrollbar, ul.srvs::-webkit-scrollbar { width: 5px; }
     ul.log::-webkit-scrollbar-track, ul.srvs::-webkit-scrollbar-track { background: transparent; }
     ul.log::-webkit-scrollbar-thumb, ul.srvs::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
     ul.log::-webkit-scrollbar-thumb:hover, ul.srvs::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-    .panel > ul.srvs { flex: 0 0.25 auto; min-height: 0; }
-    .panel > ul.srvs.scroll { max-height: 128px; min-height: 64px; overflow-y: auto; overscroll-behavior: contain; padding-right: 6px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
-    .panel > .foot, .panel > .head { flex: none; }
-    .panel > p.muted { margin: 10px 0 0; }
+    .seg.tabs { margin-top: 10px; }
+    ul.log.files { max-height: 160px; }
+    ul.log.files li { display: flex; flex-direction: column; gap: 1px; }
+    ul.log.files .path { font-size: 11px; word-break: break-all; }
+    ul.log.files .add { color: var(--ok); font-weight: 700; }
+    ul.log.files .rem { color: var(--err); font-weight: 700; }
     .approvals { flex: none; }
-    .approvals .queue { margin: -4px 0 12px; text-align: center; }
-    .panel.has-approval .card pre { max-height: 96px; }
     .log { font-size: 12px; color: var(--muted); }
     .log .err { color: var(--err); } .log .ok { color: var(--ok); }
-    .perm { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; }
+    .perm { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; min-height: 26px; }
     .perm + .perm { margin-top: 10px; }
-    select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg2); color: var(--fg); cursor: pointer; }
+    select { font: inherit; font-size: 12px; padding: 4px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--field); color: var(--fg); cursor: pointer; flex: none; max-width: 128px; }
     select.allow { border-color: var(--ok); } select.deny { border-color: var(--err); }
-    li.srv .grow { flex: 1; min-width: 0; }
-    .foot { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); text-align: center; font-size: 11px; color: var(--muted); letter-spacing: .04em; }
   `;
 
   const MAX_LOGS = 200;
@@ -136,9 +184,18 @@
       this.model = { adapterName: '', servers: [], toolCount: 0, injection: 'none', bridgeEnabled: true, bridge: null, bridgeBusy: null, responseDelayMs: 1500, language: 'en', theme: 'dark' };
       this.logs = [];
       this.approvals = [];
+      this.fileOps = [];          // registro de archivos tocados en esta instancia
+      this.tab = 'servers';       // 'servers' | 'files'
       this.open = false;
       this.selectFocusedAt = 0;
 
+      // Evitar duplicados: al recargar la extension quedaban hosts viejos
+      // y se veian varios panels/pills a la vez. Shadow DOM cerrado => el
+      // id no se ve desde fuera, asi que hay que buscar por atributo id via
+      // la raiz del documento (los hosts viven document.documentElement).
+      for (const el of Array.from(document.documentElement.children)) {
+        if (el.id === 'wmb-host' || el.getAttribute?.('id') === 'wmb-host') el.remove();
+      }
       this.host = document.createElement('div');
       this.host.id = 'wmb-host';
       this.shadow = this.host.attachShadow({ mode: 'closed' });
@@ -150,7 +207,7 @@
     }
 
     // ═════════════════════════════ Arrastre de la ventana ═════════════════════════════
-    // La pill es el asa. La posición se recuerda por URL en sessionStorage; doble clic la resetea.
+    // La pill (o la cabecera del panel abierto) es el asa. La posición se recuerda por URL en sessionStorage; doble clic en la pill la resetea.
     #posKey() { return `wmb-widget-pos:${location.origin}${location.pathname}`; }
 
     #applyPosition(pos) {
@@ -265,6 +322,18 @@
       this.render();
     }
 
+    /** Registra una operacion de archivo con el diff que devolvio el MCP. */
+    recordFileOp(server, name, args, text) {
+      const m = /\[WMB_DIFF path=(.*?) op=(\w+) added=(\d+) removed=(\d+)\]/.exec(text || '');
+      if (!m) return;
+      this.fileOps.unshift({
+        ts: new Date(), server, name, op: m[2],
+        path: m[1], added: Number(m[3]), removed: Number(m[4]),
+      });
+      this.fileOps.length = Math.min(this.fileOps.length, 200);
+      this.render();
+    }
+
     /** Pide confirmación al usuario. Resuelve `true` (ejecutar), `'always'` (ejecutar y permitir siempre) o `false` (rechazar). */
     requestApproval(call) {
       return new Promise((resolve) => {
@@ -284,6 +353,7 @@
       if (!force && this.shadow.activeElement?.tagName === 'SELECT' && Date.now() - this.selectFocusedAt < 6000) return;
       const { servers, toolCount } = this.model;
       const pending = this.approvals.length;
+      const detecting = Boolean(this.model.detecting);
       const bridgeDown = Boolean(this.model.bridge?.checked && !this.model.bridge.online);
       const activeLabel = !this.model.bridgeEnabled ? tr('wd.disabled') : bridgeDown ? tr('wd.bridgeOff') : servers.length
         ? tr('wd.label', { servers: servers.length, tools: toolCount })
@@ -295,12 +365,17 @@
         'aria-expanded': String(this.open),
         onclick: () => { if (this._suppressClickUntil && Date.now() < this._suppressClickUntil) return; this.open = !this.open; this.render(); },
       },
-      h('i', { class: `dot ${pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
-      h('span', {}, pending ? trp('wd.pending', pending) : activeLabel));
+      h('i', { class: `dot ${detecting ? 'warn' : pending ? 'warn' : allUp && this.model.bridgeEnabled ? 'ok' : ''}` }),
+      h('span', {}, detecting ? (this.model.language === 'es' ? 'Detectando herramienta… esperando a que termine' : 'Tool detected… waiting for it to finish')
+        : pending ? trp('wd.pending', pending) : activeLabel));
 
+      const bodyScroll = this.root.querySelector('.body')?.scrollTop ?? 0;
       const srvScroll = this.root.querySelector('ul.srvs')?.scrollTop ?? 0;
       const logScroll = this.root.querySelector('ul.log')?.scrollTop ?? 0;
-      this.root.replaceChildren(...(this.open ? [this.#panel()] : []), pill);
+      // Con el panel abierto la píldora desaparece (el panel ocupa su lugar); la ✕ vuelve a mostrarla.
+      this.root.replaceChildren(this.open ? this.#panel() : pill);
+      const body = this.root.querySelector('.body');
+      if (body && bodyScroll) body.scrollTop = bodyScroll;
       const logList = this.root.querySelector('ul.log');
       if (logList && logScroll) logList.scrollTop = logScroll;
       const srvList = this.root.querySelector('ul.srvs');
@@ -380,35 +455,76 @@
       const injectionText = tr({ none: 'wd.inj.none', ok: 'wd.inj.ok', stale: 'wd.inj.stale' }[injection] ?? 'wd.inj.none');
       const locale = this.model.language === 'es' ? 'es' : 'en';
 
-      return h('div', { class: `panel${this.approvals.length ? ' has-approval' : ''}`, role: 'dialog', 'aria-label': 'Web MCP Bridge' },
-        this.#headSection(),
+      const serversSection = h('div', { class: 'sec first srvsec' },
+        this.#tabsSection(),
+        this.tab === 'servers'
+          ? (servers.length
+            ? h('ul', { class: `srvs${servers.length >= 2 ? ' scroll' : ''}` }, servers.map((s) => {
+              const info = s.permission === 'deny' ? tr('wd.blocked') : s.status === 'connected' ? tr('wd.toolsShort', { n: s.toolCount }) : tr('wd.noConn');
+              return h('li', { class: 'srv' },
+                h('i', { class: `dot ${s.status === 'connected' ? 'ok' : s.status === 'connecting' ? 'warn' : ''}` }),
+                h('span', { class: 'grow' }, h('span', { class: 'nm', title: s.name }, s.name), h('span', { class: 'muted' }, info)),
+                this.#permSelect(s.permission, (value) => this.handlers.onSetPermission(s.id, value), tr('p.srv.permAria', { name: s.name })));
+            }))
+            : h('p', { class: 'muted' }, tr('wd.noServers')))
+          : this.#filesSection());
 
-        this.#approvalSection(),
-
-        servers.length
-          ? h('ul', { class: `srvs${servers.length >= 3 ? ' scroll' : ''}` }, servers.map((s) => h('li', { class: 'srv' },
-            h('i', { class: `dot ${s.status === 'connected' ? 'ok' : s.status === 'connecting' ? 'warn' : ''}` }),
-            h('span', { class: 'grow' }, s.name, h('span', { class: 'muted' }, s.permission === 'deny' ? tr('wd.blocked') : s.status === 'connected' ? tr('wd.toolsShort', { n: s.toolCount }) : tr('wd.noConn'))),
-            this.#permSelect(s.permission, (value) => this.handlers.onSetPermission(s.id, value), tr('p.srv.permAria', { name: s.name })))))
-          : h('p', { class: 'muted' }, tr('wd.noServers')),
-
-        this.#bridgeSection(),
-
+      const injectSection = h('div', { class: 'sec' },
         h('p', { class: 'muted' }, injectionText),
-        h('div', { class: 'row' },
+        h('div', { class: 'row actions' },
           h('button', { class: 'primary', onclick: () => this.handlers.onInject() }, tr('wd.inject')),
           h('button', { onclick: () => this.handlers.onRefresh() }, tr('wd.refresh')),
-          h('button', { title: tr('wd.rescanTip'), onclick: () => this.handlers.onRescan?.() }, tr('wd.rescan'))),
+          h('button', { title: tr('wd.rescanTip'), onclick: () => this.handlers.onRescan?.() }, tr('wd.rescan'))));
 
-        this.logs.length
-          ? h('ul', { class: 'log' }, this.logs.map((l) => h('li', { class: l.kind },
-            `${l.ts.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${l.text}`)))
-          : null,
+      const logSection = this.logs.length
+        ? h('div', { class: 'sec logsec' },
+          h('ul', { class: 'log' }, this.logs.map((l) => h('li', { class: l.kind },
+            h('span', { class: 'ts' }, l.ts.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })),
+            h('span', { class: 'msg' }, l.text)))))
+        : null;
 
+      return h('div', { class: `panel${this.approvals.length ? ' has-approval' : ''}`, role: 'dialog', 'aria-label': 'Web MCP Bridge' },
+        this.#headSection(),
+        h('div', { class: 'body' },
+          this.#approvalSection(),
+          serversSection,
+          this.#bridgeSection(),
+          injectSection,
+          logSection),
         h('div', { class: 'foot' }, `Web MCP Bridge v${WMB.VERSION} · Github: @AstraxOf`));
     }
 
-    /** La aprobación va SIEMPRE arriba (bajo el encabezado) para que sus botones nunca queden fuera del panel. */
+    /** Pestañas: Servidores / Archivos. */
+    #tabsSection() {
+      const tab = (id, label) => h('button', {
+        class: this.tab === id ? 'on' : '',
+        'aria-pressed': String(this.tab === id),
+        onclick: () => { this.tab = id; this.render(true); },
+      }, label);
+      return h('div', { class: 'seg tabs', role: 'group', 'aria-label': 'Panel' },
+        tab('servers', this.model.language === 'es' ? 'Servidores' : 'Servers'),
+        tab('files', `${this.model.language === 'es' ? 'Archivos' : 'Files'}${this.fileOps.length ? ` (${this.fileOps.length})` : ''}`));
+    }
+
+    /** Historial de archivos tocados en esta instancia del chat. */
+    #filesSection() {
+      if (!this.fileOps.length) {
+        return h('p', { class: 'muted' }, this.model.language === 'es'
+          ? 'Aun no se修改o ningun archivo en este chat.'
+          : 'No files changed in this chat yet.');
+      }
+      const locale = this.model.language === 'es' ? 'es' : 'en';
+      return h('ul', { class: 'log files' }, this.fileOps.map((f) => h('li', { class: 'ok' },
+        h('div', {}, `${f.ts.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', second: '2-digit' })} · ${f.op} · ${f.name}`),
+        h('div', { class: 'muted path' }, f.path),
+        h('div', {},
+          h('span', { class: 'add' }, `+${f.added}`),
+          ' ',
+          h('span', { class: 'rem' }, `-${f.removed}`),
+          ` ${this.model.language === 'es' ? 'lineas' : 'lines'}`))));
+    }
+
+    /** La aprobación va SIEMPRE arriba del cuerpo para que sus botones nunca queden fuera del panel. */
     #approvalSection() {
       if (!this.approvals.length) return null;
       const rest = this.approvals.length - 1;

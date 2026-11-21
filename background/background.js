@@ -37,6 +37,10 @@ async function loadState() {
   delete settings.checkUpdates; // v1.4: las actualizaciones automaticas ya no existen
   settings.language = globalThis.WMB.i18n.setLang(settings.language); // v1.8: el idioma elegido manda en todos los mensajes
   if (!['dark', 'light'].includes(settings.theme)) settings.theme = 'dark';
+  // v1.8.1: activar automaticamente los servidores detectados (ej. `files`).
+  // Se aplica aunque el navegador tuviera guardado el valor viejo en false.
+  settings.autoEnableDiscovered = true;
+  // Entrega de resultados con la pausa original (1,5 s).
   // Migración desde 1.0: «ejecutar sin preguntar» (autoExecute) pasa a ser el permiso «allow».
   if (!PERMISSIONS.includes(stored.defaultPermission)) settings.defaultPermission = stored.autoExecute ? 'allow' : 'ask';
   const servers = (data[KEYS.servers] ?? []).filter((s) => s.url).map((s) => ({ // sin dirección = marcador de la 1.1: se descarta
@@ -162,6 +166,12 @@ async function discoverServers(force = false) {
       const existing = servers.find((x) => x.url === s.url || (isLocalUrl(x.url) && portOf(x.url) === portOf(s.url)));
       if (existing) {
         if (existing.auto && !existing.renamed && existing.name !== s.name) { existing.name = s.name; changed = true; }
+        // v1.8.1: los auto-descubiertos se activan solos aunque el storage
+        // anterior los tuviera desactivados ( ej. `files` agregado en caliente ).
+        if (existing.auto && !existing.enabled && settings.autoEnableDiscovered !== false
+            && servers.filter((x) => x.enabled && x.id !== existing.id).length < MAX_ACTIVE_SERVERS) {
+          existing.enabled = true; changed = true;
+        }
         continue;
       }
       const active = servers.filter((x) => x.enabled).length;
