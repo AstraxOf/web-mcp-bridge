@@ -26,3 +26,6 @@ PLAN_*.txt
 ERRORES*.txt
 server/_autostart_backup/
 server/servers.json
+
+# Servidor MCP de YouTube (local, contiene credenciales de Google)
+youtube-mcp-server-main/
