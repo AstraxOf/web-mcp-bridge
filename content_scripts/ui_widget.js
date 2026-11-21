@@ -510,7 +510,7 @@
     #filesSection() {
       if (!this.fileOps.length) {
         return h('p', { class: 'muted' }, this.model.language === 'es'
-          ? 'Aun no se修改o ningun archivo en este chat.'
+          ? 'Aun no se modifico ningun archivo en este chat.'
           : 'No files changed in this chat yet.');
       }
       const locale = this.model.language === 'es' ? 'es' : 'en';
@@ -523,6 +523,7 @@
           h('span', { class: 'rem' }, `-${f.removed}`),
           ` ${this.model.language === 'es' ? 'lineas' : 'lines'}`))));
     }
+
 
     /** La aprobación va SIEMPRE arriba del cuerpo para que sus botones nunca queden fuera del panel. */
     #approvalSection() {
