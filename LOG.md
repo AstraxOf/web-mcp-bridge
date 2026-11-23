@@ -341,3 +341,8 @@
 ## 2026-11-20 — Claude (asistente de desarrollo) · Avisos de los MCP en Actividad y «Buscar ahora»
 - `notifications/message` y `notifications/progress` de un MCP (antes se ignoraban) → evento `server.notice` en Actividad, con el texto del MCP como título («telegram-mcp: T1120-…: bajando 12 MB de 32 MB (38 %) · 180 KB/s»). Lo usa telegram-mcp para los archivos grandes en segundo plano.
 - Ajustes › Extensión › **Actualizar ahora · Buscar ahora**: el puente (petición de control `update_now`, solo la extensión propietaria) lanza en un proceso aparte los `actualizacion/actualizar.ps1` de los repos de los MCP y, al final, `scripts/windows/update.ps1` (puede reiniciar el puente). La extensión vuelve a mirar a los 10/25/45/75/120 s y se recarga si llegó versión nueva, aunque «Actualizar sola» esté apagado.
+
+## 2026-11-23 — Claude (asistente de desarrollo) · Freno de seguridad de la terminal cada 30 min
+- El freno saltaba sin parar con el MCP de terminal: la IA lee la terminal (`terminal_leer`, mismos argumentos) varias veces seguidas, que ahí es normal, y eso contaba como «misma llamada repetida».
+- Ahora, si el usuario acepta el freno en un MCP cuyo nombre contiene «terminal», no vuelve a salir para ese MCP durante 30 min (`BRAKE_QUIET_MS`); en Actividad queda `call.brake.quiet`. Al rechazar no cambia nada. AutoCAD y los demás MCP siguen igual (el freno sale cada vez).
+- Prueba nueva `tests/browser/test_freno_terminal.mjs`.

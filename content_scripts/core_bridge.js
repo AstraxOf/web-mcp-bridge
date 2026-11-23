@@ -41,10 +41,14 @@
    *   · ese MCP ha fallado FAILS_LIMIT veces seguidas (programa ocupado, colgado, LISP roto…), o
    *   · la IA repite exactamente la misma llamada REPEAT_LIMIT veces seguidas (bucle).
    * Así una IA no puede atascar un programa insistiendo en bucle.
+   * En la terminal, leer varias veces seguidas es normal: si el usuario acepta el freno, no vuelve
+   * a salir para ese MCP durante BRAKE_QUIET_MS.
    */
   const FAILS_LIMIT = 3;
   const REPEAT_LIMIT = 3;
-  const brake = { fails: {}, lastSig: '', repeats: 0 };
+  const BRAKE_QUIET_MS = 30 * 60 * 1000;
+  const BRAKE_QUIET_SERVERS = /terminal/i;
+  const brake = { fails: {}, lastSig: '', repeats: 0, quietUntil: {} };
   let lastRefreshError = '';
 
   // Best-effort: un Web Lock abierto reduce que el navegador «congele» la pestaña en segundo plano.
@@ -325,6 +329,10 @@
       let reason = null;
       if (fails >= FAILS_LIMIT) reason = `«${srv.slug}» ha fallado ${fails} veces seguidas. Comprueba que el programa no esté ocupado o colgado antes de seguir.`;
       else if (brake.repeats >= REPEAT_LIMIT) reason = `La IA repite la misma llamada por ${brake.repeats}.ª vez seguida (posible bucle).`;
+      if (reason && (brake.quietUntil[srv.slug] ?? 0) > Date.now()) {
+        audit('info', 'call.brake.quiet', { server: srv.slug, tool: call.name, fails, repeats: brake.repeats });
+        reason = null;
+      }
       if (reason) audit('warn', 'call.brake', { server: srv.slug, tool: call.name, fails, repeats: brake.repeats });
 
       if (srv.permission === 'ask' || reason) {
@@ -332,6 +340,7 @@
         audit('info', 'call.approval.wait', { mode: srv.permission, brake: Boolean(reason), tool: call.name, size: WMB.sizeOfArguments(call.arguments).chars });
         const answer = await widget.requestApproval({ server: srv.slug, name: call.name, arguments: call.arguments, reason });
         approved = Boolean(answer);
+        if (approved && reason && BRAKE_QUIET_SERVERS.test(srv.slug)) brake.quietUntil[srv.slug] = Date.now() + BRAKE_QUIET_MS;
         audit('info', 'call.approval', { server: srv.slug, tool: call.name, answer: answer || 'reject', ms: Date.now() - askedAt });
         if (answer === 'always') {
           await send({ type: 'SET_PERMISSION', id: srv.id, permission: 'allow' });

@@ -28,6 +28,7 @@ const LABELS = {
   'call.approval.wait': 'Esperando tu aprobación',
   'call.approval': 'Respuesta a la aprobación',
   'call.brake': 'Freno de seguridad',
+  'call.brake.quiet': 'Freno omitido (aceptado hace menos de 30 min)',
   'call.exec.start': 'Ejecutando la herramienta',
   'call.exec.end': 'La herramienta terminó',
   'call.unreadable': 'Bloque ilegible',

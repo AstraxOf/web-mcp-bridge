@@ -9,7 +9,7 @@
     "test": "node scripts/check.mjs && node tests/test_utils.mjs && node tests/test_raw.mjs && node tests/test_activity.mjs && node tests/test_prompt.mjs && node tests/test_version.mjs && node tests/test_audit.mjs && node tests/test_background.mjs && node tests/test_http.mjs && python tests/test_bridge.py && python tests/test_bridge_config.py && python tests/test_auditoria.py && python tests/test_install_service.py && python tests/test_bridge_errors.py && python tests/test_mcp_ctl.py",
     "icons": "python scripts/generate_icons.py",
     "pack": "node scripts/pack.mjs",
-    "test:browser": "node tests/browser/test_deepseek.mjs && node tests/browser/test_freno.mjs && node tests/browser/test_ritmo.mjs && node tests/browser/test_repetida.mjs && node tests/browser/test_lote.mjs"
+    "test:browser": "node tests/browser/test_deepseek.mjs && node tests/browser/test_freno.mjs && node tests/browser/test_freno_terminal.mjs && node tests/browser/test_ritmo.mjs && node tests/browser/test_repetida.mjs && node tests/browser/test_lote.mjs"
   },
   "license": "MIT"
 }
